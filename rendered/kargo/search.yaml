@@ -154,18 +154,18 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: owner-team2
+  name: promote-api
   namespace: kargo-search
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"groups":["team2"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["alice@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: owner-team2
+  name: promote-api
   namespace: kargo-search
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -194,7 +194,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: owner-team2
+  name: promote-api
   namespace: kargo-search
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -203,16 +203,27 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: owner-team2
+  name: promote-api
 subjects:
   - kind: ServiceAccount
-    name: owner-team2
+    name: promote-api
     namespace: kargo-search
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: viewers
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["alice@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: owner-team2-viewer
+  name: viewers
   namespace: kargo-search
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -224,7 +235,7 @@ roleRef:
   name: kargo-viewer
 subjects:
   - kind: ServiceAccount
-    name: owner-team2
+    name: viewers
     namespace: kargo-search
 ---
 apiVersion: v1
@@ -236,7 +247,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"groups":["team2"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["alice@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

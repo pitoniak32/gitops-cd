@@ -35,11 +35,12 @@ spec:
       kind: '*'
   roles:
     - name: viewer
-      description: read-only view of payments apps for its owning teams
+      description: read-only view of payments apps for its promoters and viewers
       policies:
         - p, proj:payments:viewer, applications, get, payments/*, allow
       groups:
-        - team1
+        - bob@example.com
+        - doug@example.com
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -63,6 +64,9 @@ spec:
     name: in-cluster
     namespace: payments-us-east4-dev
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -88,6 +92,9 @@ spec:
     name: in-cluster
     namespace: payments-on-prem-dev
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -113,6 +120,9 @@ spec:
     name: in-cluster
     namespace: payments-us-east1-stg
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -138,6 +148,9 @@ spec:
     name: in-cluster
     namespace: payments-on-prem-stg
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -163,6 +176,9 @@ spec:
     name: in-cluster
     namespace: payments-us-east1-perf
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -188,6 +204,9 @@ spec:
     name: in-cluster
     namespace: payments-on-prem-perf
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -213,6 +232,9 @@ spec:
     name: in-cluster
     namespace: payments-gcp-us-prod
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -238,6 +260,9 @@ spec:
     name: in-cluster
     namespace: payments-gcp-eu-prod
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -263,6 +288,9 @@ spec:
     name: in-cluster
     namespace: payments-on-prem-prod-1
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -288,6 +316,9 @@ spec:
     name: in-cluster
     namespace: payments-on-prem-prod-2
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -313,6 +344,9 @@ spec:
     name: in-cluster
     namespace: payments-us-east4-dev
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -338,6 +372,9 @@ spec:
     name: in-cluster
     namespace: payments-us-east1-stg
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
 ---
@@ -363,5 +400,8 @@ spec:
     name: in-cluster
     namespace: payments-gcp-us-prod
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true

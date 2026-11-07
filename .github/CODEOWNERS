@@ -4,12 +4,15 @@
 /rendered/        @acme/platform
 /.mise.toml       @acme/platform
 /.github/         @acme/platform
+# teams/<team>.yml: per-team lines generated below (team + these owners)
+/teams/                       @acme/platform
 /capabilities/payments/ @acme/team1
 /capabilities/payments/apps/my-app/ @acme/team1
 /capabilities/payments/apps/worker/ @acme/team1
 /capabilities/search/ @acme/team2
 /capabilities/search/apps/api/ @acme/team2
-# ownership and team definitions: platform only
+/teams/team1.yml @acme/team1 @acme/platform
+/teams/team2.yml @acme/team2 @acme/platform
+# ownership (who reviews and who can promote): platform only
 /capabilities/**/owners.yml   @acme/platform
 /capabilities/**/owners.yaml  @acme/platform
-/teams/                       @acme/platform
