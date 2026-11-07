@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#MISE description="Bootstrap argocd, then let it install/upgrade infrastructure apps (idempotent)"
+set -euo pipefail
+
+# keycloak.localhost -> traefik inside cluster, so kargo-api reaches same issuer URL as browser
+corefile=$(kubectl -n kube-system get cm coredns -o jsonpath='{.data.Corefile}')
+if ! grep -q 'keycloak.localhost' <<<"$corefile"; then
+  corefile=$(sed 's/^\( *\)ready$/&\
+\1rewrite name keycloak.localhost traefik.traefik.svc.cluster.local/' <<<"$corefile")
+  kubectl -n kube-system create cm coredns --from-literal=Corefile="$corefile" \
+    --dry-run=client -o yaml | kubectl apply -f -
+  kubectl -n kube-system rollout restart deploy/coredns
+  kubectl -n kube-system rollout status deploy/coredns --timeout=120s
+fi
+
+# bootstrap argocd once; afterwards it manages itself (platform/infrastructure/argocd/app.yaml)
+if ! helm status argocd -n argocd >/dev/null 2>&1; then
+  version=$(yq '.spec.source.targetRevision' platform/infrastructure/argocd/app.yaml)
+  helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$version" \
+    -n argocd --create-namespace -f platform/infrastructure/argocd/values.yaml \
+    --set-json 'extraObjects=[]' --wait  # IngressRoute needs traefik CRDs; added later by argocd app
+fi
+
+# order matters (CRDs, webhooks, issuer); argocd last
+for app in traefik cert-manager argo-rollouts keycloak kargo kargo-config argocd; do
+  mise run infra-render "$app" | kubectl apply -f -
+  # force compare against new spec, else wait sees stale Synced status
+  kubectl -n argocd annotate "app/$app" argocd.argoproj.io/refresh=normal --overwrite >/dev/null
+  for i in $(seq 1 60); do
+    [ -z "$(kubectl -n argocd get "app/$app" -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}')" ] && break
+    sleep 2
+  done
+  kubectl -n argocd wait "app/$app" --for=jsonpath='{.status.sync.status}'=Synced --timeout=600s
+  kubectl -n argocd wait "app/$app" --for=jsonpath='{.status.health.status}'=Healthy --timeout=600s
+done
+
+# generated capabilities: root Applications syncing rendered/ from GitHub main (public repo needs no
+# creds), then git creds (Kargo pushes env/* branches; GitHub App creds from fnox)
+kubectl apply -f platform/bootstrap/rendered.yaml
+mise run creds
+mise run certs

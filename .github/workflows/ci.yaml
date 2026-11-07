@@ -25,7 +25,7 @@ jobs:
         with:
           install_args: cue jq yq
       - uses: actions/cache@v4
-        with: {path: ~/.cache/cue, key: "cue-${{ hashFiles('cue.mod/module.cue') }}"}
+        with: {path: ~/.cache/cue, key: "cue-${{ hashFiles('platform/cue.mod/module.cue') }}"}
 
       - name: rendered/ and CODEOWNERS are CI-owned
         if: github.event_name == 'pull_request'
@@ -39,9 +39,9 @@ jobs:
           fi
 
       - name: renderer tests
-        run: mise run test && cue fmt --check ./render/...
+        run: mise run test && cue fmt --check ./platform/render/...
       - name: editor schemas up to date
-        run: mise run schemas && git diff --exit-code render/schemas/
+        run: mise run schemas && git diff --exit-code platform/render/schemas/
 
       - name: lint all capabilities (annotates file:line)
         run: |

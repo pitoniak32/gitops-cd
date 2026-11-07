@@ -16,4 +16,6 @@ GITHUB_AUTH_TOKEN = {
   value = "{{ exec(command='gh auth token', cache_key='gh_auth_token_user', cache_duration='1h') }}",
   redact = true
 }
-# tasks: see mise-tasks/
+
+[task_config]
+includes = ["platform/mise-tasks"]

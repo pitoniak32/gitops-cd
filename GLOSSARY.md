@@ -11,12 +11,19 @@ A business capability, one folder under `capabilities/`; its stages, targets and
 _Avoid_: team folder, tenant, domain
 
 **Team**:
-A group of people defined in `teams/<team>.yml` (GitHub team + identity-provider group). Teams own apps; they don't own folders.
+A GitHub team registered in `teams/<team>.yml`, used only for code review (CODEOWNERS). Teams own apps; they don't own folders. Teams grant no UI access.
 _Avoid_: org, squad
 
 **Owner**:
-A team listed for an app (`apps/<app>/owners.yml`, else the capability's `owners.yml`). Owners approve the app's changes and promote it to any stage.
+A team listed under `owners` for an app (`apps/<app>/owners.yml`, else the capability's `owners.yml`). Owners approve the app's code changes.
 _Avoid_: maintainer, admin
+
+**Promoter**:
+An email listed under `promoters` for an app (same fallback as owners). Promoters promote the app to any stage, approve its Freight, and view the capability.
+_Avoid_: deployer, owner (owners review code; promoters ship)
+
+**Viewer**:
+An email listed under `viewers` in `owners.yml`. Viewers see the whole capability in Kargo and Argo CD, read-only.
 
 **Stage**:
 A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on.
@@ -37,11 +44,11 @@ _Avoid_: overlay, values
 ### Platform
 
 **Infrastructure**:
-The cluster add-ons in `infrastructure/<addon>/` (Argo CD, Traefik, cert-manager, Argo Rollouts, Keycloak, Kargo), managed by Argo CD and applied in order by `mise run infra`.
+The cluster add-ons in `platform/infrastructure/<addon>/` (Argo CD, Traefik, cert-manager, Argo Rollouts, Keycloak, Kargo), managed by Argo CD and applied in order by `mise run infra`.
 _Avoid_: platform (overloaded with the platform team)
 
 **Bootstrap**:
-The root Argo CD Applications in `bootstrap/` that sync `rendered/argocd` and `rendered/kargo` from `main`.
+The root Argo CD Applications in `platform/bootstrap/` that sync `rendered/argocd` and `rendered/kargo` from `main`.
 _Avoid_: app of apps (for this specific file)
 
 **Cluster**:
@@ -81,7 +88,7 @@ The branch `env/<cap>/<app>/<stage>` that Argo CD syncs a stage's targets from.
 ### Validation
 
 **Editor schema**:
-The generic JSON Schema in `render/schemas/` that editors use; it checks structure but not names that depend on other files.
+The generic JSON Schema in `platform/render/schemas/` that editors use; it checks structure but not names that depend on other files.
 
 **Lint**:
 The full CUE validation over a capability's files (+ `teams/`) (`mise run lint`), run by CI and reported as `file:line:col` errors.

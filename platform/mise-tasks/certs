@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Browser-trusted TLS for *.localhost UIs: mkcert CA in macOS keychain + traefik default cert"
+set -euo pipefail
+# local CA trusted by the system keychain (Chrome/Brave). First run prompts for your password; no-op after.
+mkcert -install
+# explicit names: browsers reject *.localhost wildcards
+d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+mkcert -cert-file "$d/tls.crt" -key-file "$d/tls.key" \
+  kargo.localhost argocd.localhost keycloak.localhost localhost 2>/dev/null
+# traefik's TLSStore default (platform/infrastructure/traefik/values.yaml) points at this secret
+kubectl create ns traefik --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+kubectl -n traefik create secret tls local-tls --cert="$d/tls.crt" --key="$d/tls.key" \
+  --dry-run=client -o yaml | kubectl apply -f -
