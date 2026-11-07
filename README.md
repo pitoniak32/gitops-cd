@@ -23,6 +23,8 @@ mise run down  # delete everything
 | https://argocd.localhost | "Log in via Keycloak" (no local accounts) |
 | http://keycloak.localhost | console: `admin` / `admin` |
 
+HTTPS uses a local mkcert CA (`mise run certs`, run by `infra`); the first run asks for your macOS password to trust it.
+
 Users (password = username):
 
 | User | Group | Kargo | Argo CD |

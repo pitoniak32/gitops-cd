@@ -38,3 +38,4 @@ done
 # creds), then git creds (Kargo pushes env/* branches; GitHub App creds from fnox)
 kubectl apply -f bootstrap/rendered.yaml
 mise run creds
+mise run certs

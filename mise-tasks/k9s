@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#MISE description="Rex session with one k9s tab per namespace (re-run switches to it)"
+#USAGE arg "[namespaces]..." help="namespaces, one tab each (default: argocd kargo)"
+#USAGE flag "--label <label>" help="session label" default="gitops-cd-k9s"
+#USAGE flag "--view <resource>" help="k9s view to open (deploy, pods, svc, ...)" default="deploy"
+#USAGE flag "--no-select" help="create without switching the app to it"
+set -euo pipefail
+
+eval "namespaces=(${usage_namespaces:-payments-on-prem-dev payments-on-prem-perf search-gcp-dev argocd kargo})" # usage passes var args shell-quoted
+label="${usage_label:-gitops-cd-k9s}"
+root="$MISE_CONFIG_ROOT"
+# mise exec: tabs get the project KUBECONFIG (.mise.toml [env])
+k9s=(mise exec -C "$root" -- k9s -c workloads)
+
+sid=$(rex ls --json | jq -r --arg l "$label" '[.. | objects | select(.label? == $l and has("session_id"))][0].session_id // empty')
+
+if [[ -z $sid ]]; then
+  sid=$(rex new "$label" -c "$root" --window "${namespaces[0]}" --json -- "${k9s[@]}" -n "${namespaces[0]}" | jq -r .session_id)
+  for ns in "${namespaces[@]:1}"; do
+    rex window new -s "$sid" "$ns" -c "$root" --focus=false --json -- "${k9s[@]}" -n "$ns" >/dev/null
+  done
+fi
+
+[[ ${usage_no_select:-false} == true ]] || rex do session.select session_id="$sid" >/dev/null
+echo "$sid"
