@@ -8,9 +8,6 @@ fnox = '1.29.0'
 # project-local kubeconfig: never touches ~/.kube/config
 KUBECONFIG = '{{config_root}}/.kubeconfig'
 
-AUTH0_DOMAIN = 'https://dev-tk84hwot6vevuifn.us.auth0.com/'
-AUTH0_CLIENT_ID = 'r2I5JxV8xZHUULOcQMkm0ubokNnrbJNp'
-
 GITHUB_AUTH_TOKEN = {
   value = "{{ exec(command='gh auth token', cache_key='gh_auth_token_user', cache_duration='1h') }}",
   redact = true

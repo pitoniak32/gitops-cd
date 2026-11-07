@@ -1,0 +1,59 @@
+# dev-mode keycloak: in-memory, realm re-imported from configmap on every start
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: keycloak }
+  template:
+    metadata:
+      labels: { app: keycloak }
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.8.2
+          args: [start-dev, --import-realm]
+          env:
+            # fixed public hostname -> issuer identical for browser + in-cluster kargo-api
+            - { name: KC_HOSTNAME, value: "http://keycloak.localhost" }
+            - { name: KC_PROXY_HEADERS, value: xforwarded }
+            - { name: KC_HEALTH_ENABLED, value: "true" }
+            - { name: KC_BOOTSTRAP_ADMIN_USERNAME, value: admin }
+            - { name: KC_BOOTSTRAP_ADMIN_PASSWORD, value: admin }
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: management, containerPort: 9000 }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: management }
+            periodSeconds: 5
+          volumeMounts:
+            - { name: realm, mountPath: /opt/keycloak/data/import, readOnly: true }
+      volumes:
+        - name: realm
+          configMap: { name: keycloak-realm }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  selector: { app: keycloak }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  entryPoints: [web]
+  routes:
+    - match: Host(`keycloak.localhost`)
+      kind: Rule
+      services:
+        - { name: keycloak, port: 80 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Install/upgrade traefik, cert-manager, argo-rollouts, kargo (idempotent)"
+#MISE description="Install/upgrade traefik, cert-manager, argo-rollouts, keycloak, kargo (idempotent)"
 set -euo pipefail
 
 helm upgrade --install traefik traefik \
@@ -16,12 +16,29 @@ helm upgrade --install argo-rollouts argo-rollouts \
   --repo https://argoproj.github.io/argo-helm --version 2.43.9 \
   -n argo-rollouts --create-namespace --wait
 
+# keycloak.localhost -> traefik inside cluster, so kargo-api reaches same issuer URL as browser
+corefile=$(kubectl -n kube-system get cm coredns -o jsonpath='{.data.Corefile}')
+if ! grep -q 'keycloak.localhost' <<<"$corefile"; then
+  corefile=$(sed 's/^\( *\)ready$/&\
+\1rewrite name keycloak.localhost traefik.traefik.svc.cluster.local/' <<<"$corefile")
+  kubectl -n kube-system create cm coredns --from-literal=Corefile="$corefile" \
+    --dry-run=client -o yaml | kubectl apply -f -
+  kubectl -n kube-system rollout restart deploy/coredns
+  kubectl -n kube-system rollout status deploy/coredns --timeout=120s
+fi
+
+kubectl create namespace keycloak --dry-run=client -o yaml | kubectl apply -f -
+realm=$(kubectl -n keycloak create cm keycloak-realm --from-file=kargo-realm.json=platform/keycloak-realm.json \
+  --dry-run=client -o yaml | kubectl apply -f -)
+kubectl apply -f platform/keycloak.yaml
+# realm only imported at startup (keycloak requires <realm>-realm.json filename)
+if [[ "$realm" == *configured* ]]; then kubectl -n keycloak rollout restart deploy/keycloak; fi
+kubectl -n keycloak rollout status deploy/keycloak --timeout=300s
+
 helm upgrade --install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
   --version 1.12.5 \
   -n kargo --create-namespace \
   -f platform/kargo-values.yaml \
-  --set api.oidc.issuerURL="$AUTH0_DOMAIN" \
-  --set api.oidc.clientID="$AUTH0_CLIENT_ID" \
   --wait
 
 # https://kargo.localhost without port-forward
