@@ -1,0 +1,21 @@
+# issuerURL + clientID passed via --set from env (see mise-tasks/platform)
+api:
+  host: kargo.localhost
+  adminAccount:
+    enabled: false
+  secretManagementEnabled: false
+  oidc:
+    enabled: true
+    dex:
+      enabled: false
+    additionalScopes:
+      - email
+    admins:
+      claims:
+        email:
+          - doug@example.com
+    viewers:
+      claims:
+        email:
+          - alice@example.com
+          - bob@example.com

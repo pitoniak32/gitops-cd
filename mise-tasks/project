@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE description="Apply example kargo project (secrets from fnox)"
+set -euo pipefail
+
+# fnox resolves secrets once; envsubst limited to named vars so kargo ${{ }} exprs survive
+fnox exec -- bash -euo pipefail -c '
+  cd example-project
+
+  # Project -> kargo creates ns; secret in same file may race, so retry
+  for i in $(seq 1 30); do
+    envsubst "\$GITHUB_PAT" < project.yml | kubectl apply -f - && break
+    [ "$i" = 30 ] && exit 1
+    sleep 2
+  done
+
+  # gitignored, local only
+  if [ -f gh_app.yml ]; then
+    envsubst "\$GITHUB_APP_CLIENT_ID \$GITHUB_APP_INSTALLATION_ID" < gh_app.yml | kubectl apply -f -
+  fi
+'
+
+kubectl apply \
+  -f example-project/analysistemplates.yml \
+  -f example-project/warehouses.yml \
+  -f example-project/promotiontasks.yml \
+  -f example-project/stages.yml

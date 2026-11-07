@@ -1,8 +1,13 @@
 [tools]
-k3d = '5.8.3'
+kind = '0.31.0'
+helm = '4.1.4'
 kubectl = '1.36.1'
+fnox = '1.29.0'
 
 [env]
+# project-local kubeconfig: never touches ~/.kube/config
+KUBECONFIG = '{{config_root}}/.kubeconfig'
+
 AUTH0_DOMAIN = 'https://dev-tk84hwot6vevuifn.us.auth0.com/'
 AUTH0_CLIENT_ID = 'r2I5JxV8xZHUULOcQMkm0ubokNnrbJNp'
 
@@ -10,69 +15,4 @@ GITHUB_AUTH_TOKEN = {
   value = "{{ exec(command='gh auth token', cache_key='gh_auth_token_user', cache_duration='1h') }}",
   redact = true
 }
-
-[tasks.setup-all]
-depends = [
-  'setup-k3d',
-  'setup-cert-manager',
-  'setup-argo-rollouts',
-  'setup-kargo',
-]
-
-[tasks.setup-k3d]
-dir = '{{cwd}}'
-run = '''
-k3d cluster create -p "80:80@loadbalancer" -p "443:443@loadbalancer"
-'''
-
-[tasks.setup-cert-manager]
-wait_for = ['setup-k3d']
-run = '''
-# install cert-manager
-helm install \
-  cert-manager oci://quay.io/jetstack/charts/cert-manager \
-  --version v1.19.2 \
-  --namespace cert-manager \
-  --create-namespace \
-  --set crds.enabled=true \
-  --wait
-'''
-
-[tasks.setup-argo-rollouts]
-wait_for = ['setup-cert-manager']
-run = '''
-# install argo-rollouts
-kubectl create namespace argo-rollouts
-kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml --wait
-'''
-
-[tasks.setup-kargo]
-wait_for = ['setup-argo-rollouts']
-run = '''
-# install kargo
-helm upgrade --install kargo \
-  oci://ghcr.io/akuity/kargo-charts/kargo \
-  --namespace kargo \
-  --create-namespace \
-  --set api.host="kargo.localhost" \
-  --set api.adminAccount.enabled="false" \
-  --set api.secretManagementEnabled="false" \
-  --set api.oidc.enabled="true" \
-  --set api.oidc.dex.enabled="false" \
-  --set api.oidc.issuerURL="{{env.AUTH0_DOMAIN}}" \
-  --set api.oidc.clientID="{{env.AUTH0_CLIENT_ID}}" \
-  --set api.oidc.additionalScopes[0]=email \
-  --set api.oidc.admins.claims.email[0]='doug@example.com' \
-  --set api.oidc.viewers.claims.email[0]='alice@example.com' \
-  --set api.oidc.viewers.claims.email[1]='bob@example.com' \
-  --wait
-
-# makes it so 'https://kargo.localhost' works without portforward
-kubectl -n kargo apply -f traefik-manifests.yml
-kubectl -n kargo get ingressroutes.traefik.io,serverstransports.traefik.io
-'''
-
-[tasks.setup-project]
-run = '''
-envsubst < example-project/project.yml | kubectl apply -f -
-'''
+# tasks: see mise-tasks/

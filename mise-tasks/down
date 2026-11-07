@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Delete demo cluster"
+set -euo pipefail
+
+kind delete cluster --name kargo-demo
+docker network rm kargo-demo >/dev/null 2>&1 || true
+rm -f "$KUBECONFIG"

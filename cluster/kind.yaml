@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: kargo-demo
+nodes:
+  - role: control-plane
+    # host (loopback v4+v6 only; tailscale etc. may hold *:443) -> traefik NodePorts
+    # see platform/traefik-values.yaml
+    extraPortMappings:
+      - { containerPort: 30080, hostPort: 80, listenAddress: "127.0.0.1" }
+      - { containerPort: 30443, hostPort: 443, listenAddress: "127.0.0.1" }
+      - { containerPort: 30080, hostPort: 80, listenAddress: "::1" }
+      - { containerPort: 30443, hostPort: 443, listenAddress: "::1" }

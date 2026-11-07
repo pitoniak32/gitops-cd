@@ -88,6 +88,7 @@ spec:
     retry:
       timeout: 10m
     config:
+      pollInterval: '10s'
       method: GET
       url: "https://api.github.com/repos/${{ vars.gitopsRepoOwner }}/${{ vars.gitopsRepoName }}/actions/runs/${{ task.outputs['gha-trigger'].workflow_run_id }}"
       successExpression: response.body.status == "completed" && response.body.conclusion == "success"
