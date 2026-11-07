@@ -41,6 +41,7 @@ spec:
       groups:
         - alice@example.com
         - bob@example.com
+        - carol@example.com
         - doug@example.com
 ---
 apiVersion: argoproj.io/v1alpha1

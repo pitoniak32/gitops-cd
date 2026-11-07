@@ -47,6 +47,8 @@ metadata:
     example.com/app: api
     example.com/kind: gate
     example.com/stage: dev
+  annotations:
+    example.com/break-glass: '[]'
 spec:
   requestedFreight:
     - origin:
@@ -66,6 +68,8 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: gcp-dev
+  annotations:
+    example.com/break-glass: '[]'
 spec:
   requestedFreight:
     - origin:

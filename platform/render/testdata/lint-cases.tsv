@@ -9,3 +9,5 @@ capabilities/payments/owners.yml	del(.promoters)	^capabilities/payments/owners\.
 capabilities/payments/owners.yml	.promoters = []	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: promoters: needs at least one email
 capabilities/payments/apps/worker/owners.yml	.promoters = ["doug@example.com", "doug@example.com"]	owners\.yml:[0-9]+:[0-9]+: promoters: emails must not repeat
 teams/team1.yml	.idpGroup = "team1"	^teams/team1\.yml:[0-9]+:[0-9]+: .*idpGroup
+capabilities/payments/owners.yml	.breakGlass = ["Oncall@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: breakGlass\.0: .*expected a lowercase @example\.com email
+capabilities/payments/owners.yml	.breakGlass = ["carol@example.com", "carol@example.com"]	owners\.yml:[0-9]+:[0-9]+: breakGlass: emails must not repeat

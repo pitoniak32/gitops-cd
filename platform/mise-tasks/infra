@@ -22,7 +22,7 @@ if ! helm status argocd -n argocd >/dev/null 2>&1; then
 fi
 
 # order matters (CRDs, webhooks, issuer); argocd last
-for app in traefik cert-manager argo-rollouts keycloak kargo kargo-config argocd; do
+for app in traefik cert-manager argo-rollouts keycloak kargo kargo-config break-glass argocd; do
   mise run infra-render "$app" | kubectl apply -f -
   # force compare against new spec, else wait sees stale Synced status
   kubectl -n argocd annotate "app/$app" argocd.argoproj.io/refresh=normal --overwrite >/dev/null
