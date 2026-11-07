@@ -79,10 +79,12 @@ See `capabilities/payments/apps/my-app/app.yml` for an example of every field.
 |---|---|
 | Approve changes under `apps/<app>/` (except `owners.yml`) | the app's owners |
 | Approve changes under `stages/`, `targets/` | union of the apps' owners |
-| Approve changes to any `owners.yml` or `teams/` | @acme/platform |
-| Promote / approve Freight to any stage of an app | the app's owners (Kargo role per team) |
+| Approve changes to any `owners.yml` | @acme/platform |
+| Approve changes to `teams/<team>.yml` | that team or @acme/platform |
+| Promote / approve Freight to any stage of an app | the app's `promoters` (emails; Kargo role per app) |
+| View the capability in Kargo / Argo CD | its `promoters` + `viewers` |
 
-App owners = `apps/<app>/owners.yml` if present, else the capability's `owners.yml`.
+Each field (`owners`, `promoters`, `viewers`) comes from `apps/<app>/owners.yml` if set there, else the capability's `owners.yml`.
 Stages that deploy to a `prod` target can't `autoPromote`. `.github/CODEOWNERS` is generated
 by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
 
@@ -102,4 +104,5 @@ by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
 - **GitOps-only**: promote rights come from the generated `promote-<app>` roles (`email` claim vs `owners.yml` promoters); only the admin emails in the Kargo/Argo CD values get admin (ADR 0009). An admission policy (`platform/infrastructure/kargo-config/manifests/gitops-only.yaml`) blocks the Kargo API from creating/editing/deleting anything except Promotions.
 - **Secrets on kind**: the `in-cluster` cluster has no secret store, so `secret:` env values are validated but not rendered.
 
+What Argo CD reconciles from git vs what needs `mise run infra` / `up`: `docs/sync-boundaries.md`.
 Rendering details and merge rules: `platform/render/README.md`. Decisions: `docs/adr/`. Gotchas: `docs/gotchas.md`.
