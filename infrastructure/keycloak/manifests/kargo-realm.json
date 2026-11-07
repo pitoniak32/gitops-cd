@@ -129,6 +129,27 @@
       "realmRoles": [
         "default-roles-kargo"
       ]
+    },
+    {
+      "username": "admin",
+      "email": "admin@example.com",
+      "firstName": "Platform",
+      "lastName": "Admin",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-kargo"
+      ],
+      "groups": [
+        "/platform-admins"
+      ]
     }
   ],
   "groups": [
@@ -137,6 +158,9 @@
     },
     {
       "name": "team2"
+    },
+    {
+      "name": "platform-admins"
     }
   ]
 }
