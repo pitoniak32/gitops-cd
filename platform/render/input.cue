@@ -44,6 +44,12 @@ let badName = error("invalid name; use lowercase letters, digits and -, starting
 stages: [!~_nameRe]:  badName
 targets: [!~_nameRe]: badName
 apps: [!~_nameRe]:    badName
+// Kargo Stage names are <app>-<stage> (gates) and <app>-<target>: a target can't share a stage's name.
+// Checked on the raw file names (a condition on targets itself would cycle).
+for k, _ in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if stages[tn] != _|_ {
+	targets: (tn): error("target name \(tn) is also a stage name; Kargo stage names <app>-<name> would collide")
+}
+
 // kept outside #App so the generated JSON Schema stays precise
 apps: [_]: {
 	stages: struct.MinFields(1)

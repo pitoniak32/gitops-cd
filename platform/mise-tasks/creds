@@ -3,7 +3,7 @@
 set -euo pipefail
 # kargo-shared-resources: Kargo chart's global.sharedResources.namespace (created by the chart);
 # a cred-type=git Secret there serves every project. The App needs Contents read/write on the repo
-# (Kargo pushes env/<cap>/<app>/<stage>). Argo CD needs no creds: the repo is public.
+# (Kargo pushes env/<cap>/<app>/<target>). Argo CD needs no creds: the repo is public.
 fnox exec -- bash -euo pipefail -c '
   kubectl -n kargo-shared-resources create secret generic github-gitops-cd \
     --from-literal=repoURL=https://github.com/pitoniak32/gitops-cd \

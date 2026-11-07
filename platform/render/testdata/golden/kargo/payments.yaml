@@ -21,10 +21,22 @@ spec:
         name: my-app-dev
       autoPromotionEnabled: true
     - stageSelector:
+        name: my-app-us-east4-dev
+      autoPromotionEnabled: true
+    - stageSelector:
+        name: my-app-on-prem-dev
+      autoPromotionEnabled: true
+    - stageSelector:
         name: payments-dev
       autoPromotionEnabled: true
     - stageSelector:
+        name: payments-us-east4-dev
+      autoPromotionEnabled: true
+    - stageSelector:
         name: worker-dev
+      autoPromotionEnabled: true
+    - stageSelector:
+        name: worker-us-east4-dev
       autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -71,6 +83,11 @@ kind: Stage
 metadata:
   name: my-app-dev
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: gate
+    example.com/stage: dev
 spec:
   requestedFreight:
     - origin:
@@ -78,15 +95,216 @@ spec:
         name: my-app
       sources:
         direct: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-staging
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: gate
+    example.com/stage: staging
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-on-prem-dev
+          - my-app-us-east4-dev
+        availabilityStrategy: All
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-perf
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: gate
+    example.com/stage: perf
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-on-prem-dev
+          - my-app-us-east4-dev
+        availabilityStrategy: All
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-prod
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: gate
+    example.com/stage: prod
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-on-prem-perf
+          - my-app-on-prem-stg
+          - my-app-us-east1-perf
+          - my-app-us-east1-stg
+        availabilityStrategy: All
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: payments-dev
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/kind: gate
+    example.com/stage: dev
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: payments
+      sources:
+        direct: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: payments-staging
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/kind: gate
+    example.com/stage: staging
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: payments
+      sources:
+        stages:
+          - payments-us-east4-dev
+        availabilityStrategy: All
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: payments-prod
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/kind: gate
+    example.com/stage: prod
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: payments
+      sources:
+        stages:
+          - payments-us-east1-stg
+        availabilityStrategy: All
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: worker-dev
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/kind: gate
+    example.com/stage: dev
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: worker
+      sources:
+        direct: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: worker-staging
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/kind: gate
+    example.com/stage: staging
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: worker
+      sources:
+        stages:
+          - worker-us-east4-dev
+        availabilityStrategy: All
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: worker-prod
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/kind: gate
+    example.com/stage: prod
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: worker
+      sources:
+        stages:
+          - worker-us-east1-stg
+        availabilityStrategy: All
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-us-east4-dev
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: us-east4-dev
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-dev
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/dev/
+          value: ./src/rendered/apps/payments/my-app/dev/us-east4-dev/
         - name: branch
-          value: env/payments/my-app/dev
+          value: env/payments/my-app/us-east4-dev
       steps:
         - uses: git-clone
           config:
@@ -108,7 +326,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to dev/us-east4-dev from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -120,17 +338,18 @@ spec:
                 sources:
                   - repoURL: ${{ vars.repo }}
                     desiredRevision: ${{ outputs.commit.commit }}
-              - name: payments-my-app-on-prem-dev
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-staging
+  name: my-app-on-prem-dev
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: on-prem-dev
 spec:
   requestedFreight:
     - origin:
@@ -139,16 +358,15 @@ spec:
       sources:
         stages:
           - my-app-dev
-        availabilityStrategy: All
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/staging/
+          value: ./src/rendered/apps/payments/my-app/dev/on-prem-dev/
         - name: branch
-          value: env/payments/my-app/staging
+          value: env/payments/my-app/on-prem-dev
       steps:
         - uses: git-clone
           config:
@@ -170,7 +388,69 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to staging from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to dev/on-prem-dev from ${{ commitFrom(vars.repo).ID }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: payments-my-app-on-prem-dev
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-us-east1-stg
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: staging
+    example.com/target: us-east1-stg
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-staging
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/my-app/staging/us-east1-stg/
+        - name: branch
+          value: env/payments/my-app/us-east1-stg
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/my-app to staging/us-east1-stg from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -182,17 +462,18 @@ spec:
                 sources:
                   - repoURL: ${{ vars.repo }}
                     desiredRevision: ${{ outputs.commit.commit }}
-              - name: payments-my-app-on-prem-stg
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-perf
+  name: my-app-on-prem-stg
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: staging
+    example.com/target: on-prem-stg
 spec:
   requestedFreight:
     - origin:
@@ -200,17 +481,16 @@ spec:
         name: my-app
       sources:
         stages:
-          - my-app-dev
-        availabilityStrategy: All
+          - my-app-staging
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/perf/
+          value: ./src/rendered/apps/payments/my-app/staging/on-prem-stg/
         - name: branch
-          value: env/payments/my-app/perf
+          value: env/payments/my-app/on-prem-stg
       steps:
         - uses: git-clone
           config:
@@ -232,7 +512,69 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to perf from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to staging/on-prem-stg from ${{ commitFrom(vars.repo).ID }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: payments-my-app-on-prem-stg
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-us-east1-perf
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: perf
+    example.com/target: us-east1-perf
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-perf
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/my-app/perf/us-east1-perf/
+        - name: branch
+          value: env/payments/my-app/us-east1-perf
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/my-app to perf/us-east1-perf from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -244,17 +586,18 @@ spec:
                 sources:
                   - repoURL: ${{ vars.repo }}
                     desiredRevision: ${{ outputs.commit.commit }}
-              - name: payments-my-app-on-prem-perf
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-prod
+  name: my-app-on-prem-perf
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: perf
+    example.com/target: on-prem-perf
 spec:
   requestedFreight:
     - origin:
@@ -263,17 +606,15 @@ spec:
       sources:
         stages:
           - my-app-perf
-          - my-app-staging
-        availabilityStrategy: All
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/prod/
+          value: ./src/rendered/apps/payments/my-app/perf/on-prem-perf/
         - name: branch
-          value: env/payments/my-app/prod
+          value: env/payments/my-app/on-prem-perf
       steps:
         - uses: git-clone
           config:
@@ -295,7 +636,69 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to perf/on-prem-perf from ${{ commitFrom(vars.repo).ID }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: payments-my-app-on-prem-perf
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-gcp-us-prod
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: gcp-us-prod
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-prod
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/my-app/prod/gcp-us-prod/
+        - name: branch
+          value: env/payments/my-app/gcp-us-prod
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/my-app to prod/gcp-us-prod from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -307,43 +710,35 @@ spec:
                 sources:
                   - repoURL: ${{ vars.repo }}
                     desiredRevision: ${{ outputs.commit.commit }}
-              - name: payments-my-app-gcp-eu-prod
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
-              - name: payments-my-app-on-prem-prod-1
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
-              - name: payments-my-app-on-prem-prod-2
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: payments-dev
+  name: my-app-gcp-eu-prod
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: gcp-eu-prod
 spec:
   requestedFreight:
     - origin:
         kind: Warehouse
-        name: payments
+        name: my-app
       sources:
-        direct: true
+        stages:
+          - my-app-prod
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/payments/dev/
+          value: ./src/rendered/apps/payments/my-app/prod/gcp-eu-prod/
         - name: branch
-          value: env/payments/payments/dev
+          value: env/payments/my-app/gcp-eu-prod
       steps:
         - uses: git-clone
           config:
@@ -365,7 +760,193 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to prod/gcp-eu-prod from ${{ commitFrom(vars.repo).ID }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: payments-my-app-gcp-eu-prod
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-on-prem-prod-1
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: on-prem-prod-1
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-prod
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/my-app/prod/on-prem-prod-1/
+        - name: branch
+          value: env/payments/my-app/on-prem-prod-1
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/my-app to prod/on-prem-prod-1 from ${{ commitFrom(vars.repo).ID }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: payments-my-app-on-prem-prod-1
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-on-prem-prod-2
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: on-prem-prod-2
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - my-app-prod
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/my-app/prod/on-prem-prod-2/
+        - name: branch
+          value: env/payments/my-app/on-prem-prod-2
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/my-app to prod/on-prem-prod-2 from ${{ commitFrom(vars.repo).ID }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: payments-my-app-on-prem-prod-2
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: payments-us-east4-dev
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: us-east4-dev
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: payments
+      sources:
+        stages:
+          - payments-dev
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/payments/dev/us-east4-dev/
+        - name: branch
+          value: env/payments/payments/us-east4-dev
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/payments to dev/us-east4-dev from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -381,8 +962,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: payments-staging
+  name: payments-us-east1-stg
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/kind: target
+    example.com/stage: staging
+    example.com/target: us-east1-stg
 spec:
   requestedFreight:
     - origin:
@@ -390,17 +977,16 @@ spec:
         name: payments
       sources:
         stages:
-          - payments-dev
-        availabilityStrategy: All
+          - payments-staging
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/payments/staging/
+          value: ./src/rendered/apps/payments/payments/staging/us-east1-stg/
         - name: branch
-          value: env/payments/payments/staging
+          value: env/payments/payments/us-east1-stg
       steps:
         - uses: git-clone
           config:
@@ -422,7 +1008,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to staging from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/payments to staging/us-east1-stg from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -438,8 +1024,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: payments-prod
+  name: payments-gcp-us-prod
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: gcp-us-prod
 spec:
   requestedFreight:
     - origin:
@@ -447,17 +1039,16 @@ spec:
         name: payments
       sources:
         stages:
-          - payments-staging
-        availabilityStrategy: All
+          - payments-prod
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/payments/prod/
+          value: ./src/rendered/apps/payments/payments/prod/gcp-us-prod/
         - name: branch
-          value: env/payments/payments/prod
+          value: env/payments/payments/gcp-us-prod
       steps:
         - uses: git-clone
           config:
@@ -479,7 +1070,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/payments to prod/gcp-us-prod from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -495,24 +1086,31 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: worker-dev
+  name: worker-us-east4-dev
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: us-east4-dev
 spec:
   requestedFreight:
     - origin:
         kind: Warehouse
         name: worker
       sources:
-        direct: true
+        stages:
+          - worker-dev
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/worker/dev/
+          value: ./src/rendered/apps/payments/worker/dev/us-east4-dev/
         - name: branch
-          value: env/payments/worker/dev
+          value: env/payments/worker/us-east4-dev
       steps:
         - uses: git-clone
           config:
@@ -534,7 +1132,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/worker to dev/us-east4-dev from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -550,8 +1148,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: worker-staging
+  name: worker-us-east1-stg
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/kind: target
+    example.com/stage: staging
+    example.com/target: us-east1-stg
 spec:
   requestedFreight:
     - origin:
@@ -559,17 +1163,16 @@ spec:
         name: worker
       sources:
         stages:
-          - worker-dev
-        availabilityStrategy: All
+          - worker-staging
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/worker/staging/
+          value: ./src/rendered/apps/payments/worker/staging/us-east1-stg/
         - name: branch
-          value: env/payments/worker/staging
+          value: env/payments/worker/us-east1-stg
       steps:
         - uses: git-clone
           config:
@@ -591,7 +1194,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to staging from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/worker to staging/us-east1-stg from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -607,8 +1210,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: worker-prod
+  name: worker-gcp-us-prod
   namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: gcp-us-prod
 spec:
   requestedFreight:
     - origin:
@@ -616,17 +1225,16 @@ spec:
         name: worker
       sources:
         stages:
-          - worker-staging
-        availabilityStrategy: All
+          - worker-prod
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/worker/prod/
+          value: ./src/rendered/apps/payments/worker/prod/gcp-us-prod/
         - name: branch
-          value: env/payments/worker/prod
+          value: env/payments/worker/gcp-us-prod
       steps:
         - uses: git-clone
           config:
@@ -648,7 +1256,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/worker to prod/gcp-us-prod from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -688,9 +1296,19 @@ rules:
       - stages
     resourceNames:
       - my-app-dev
+      - my-app-gcp-eu-prod
+      - my-app-gcp-us-prod
+      - my-app-on-prem-dev
+      - my-app-on-prem-perf
+      - my-app-on-prem-prod-1
+      - my-app-on-prem-prod-2
+      - my-app-on-prem-stg
       - my-app-perf
       - my-app-prod
       - my-app-staging
+      - my-app-us-east1-perf
+      - my-app-us-east1-stg
+      - my-app-us-east4-dev
     verbs:
       - promote
   - apiGroups:
@@ -748,8 +1366,11 @@ rules:
       - stages
     resourceNames:
       - payments-dev
+      - payments-gcp-us-prod
       - payments-prod
       - payments-staging
+      - payments-us-east1-stg
+      - payments-us-east4-dev
     verbs:
       - promote
   - apiGroups:
@@ -807,8 +1428,11 @@ rules:
       - stages
     resourceNames:
       - worker-dev
+      - worker-gcp-us-prod
       - worker-prod
       - worker-staging
+      - worker-us-east1-stg
+      - worker-us-east4-dev
     verbs:
       - promote
   - apiGroups:

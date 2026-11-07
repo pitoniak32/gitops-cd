@@ -6,17 +6,38 @@ import (
 	"strings"
 )
 
-// Promotion model (rendered-manifests + Kargo):
+// Promotion model (rendered-manifests + Kargo), one Kargo Stage per target (ADR 0012):
 //   CI renders every (app, stage, target) to <repo>@main: rendered/apps/<cap>/<app>/<stage>/<target>/
 //   Kargo Warehouse per app watches that path; Freight = a main commit that changed it.
-//   Promoting Freight to a stage copies rendered/apps/<cap>/<app>/<stage>/ from that commit onto
-//   branch env/<cap>/<app>/<stage>, then syncs the Argo CD apps for its targets.
-//   Argo CD Application per (app, target) tracks that branch, path <target>/.
+//   Gate Stage <app>-<stage> (control flow, no steps) per gitops stage: the first takes Freight from
+//   the Warehouse, later ones once it's verified in every target Stage of the upstream stage(s).
+//   Target Stage <app>-<target> takes Freight from its gate and copies its target folder from that
+//   commit onto branch env/<cap>/<app>/<target>, then syncs that target's Argo CD app.
+//   Argo CD Application <cap>-<app>-<target> tracks that branch, path ".".
 
 _kargoProject: "kargo-\(_cap)"
 _kargoAPI:     "kargo.akuity.io/v1alpha1"
 
-// naming: stage branch env/<cap>/<app>/<stage>, Argo app <cap>-<app>-<target>
+// Kargo Stage names per app: gates first, then targets (target names never equal stage names)
+_gateName: {#app: string, #stage: string, out: "\(#app)-\(#stage)"}
+_tgtName: {#app: string, #target: string, out: "\(#app)-\(#target)"}
+_kargoStages: {for an, p in pipelines {(an): list.Concat([
+	[for sn, _ in p.stages {(_gateName & {#app: an, #stage: sn}).out}],
+	[for sn, s in p.stages for tn, _ in s.targets {(_tgtName & {#app: an, #target: tn}).out}],
+])
+}}
+_autoStages: list.Concat([for an, p in pipelines for sn, s in p.stages if s.autoPromote {list.Concat([
+	[(_gateName & {#app: an, #stage: sn}).out],
+	[for tn, _ in s.targets {(_tgtName & {#app: an, #target: tn}).out}],
+])
+}])
+_stageLabels: {
+	#app:                     string
+	#stage:                   string
+	"example.com/capability": _cap
+	"example.com/app":        #app
+	"example.com/stage":      #stage
+}
 
 _kargoCore: [
 	// Rendered (not left to Kargo) so Argo CD's dry-run of the namespaced resources below passes on
@@ -27,10 +48,8 @@ _kargoCore: [
 		apiVersion: _kargoAPI
 		kind:       "ProjectConfig"
 		metadata: {name: _kargoProject, namespace: _kargoProject}
-		spec: promotionPolicies: [for an, p in pipelines for sn, s in p.stages if s.autoPromote {
-			stageSelector: name: "\(an)-\(sn)"
-			autoPromotionEnabled: true
-		}]
+		// a stage's autoPromote covers its gate and all its targets
+		spec: promotionPolicies: [for n in _autoStages {stageSelector: name: n, autoPromotionEnabled: true}]
 	},
 	for an, _ in pipelines {
 		apiVersion: _kargoAPI
@@ -42,26 +61,44 @@ _kargoCore: [
 			includePaths: ["regexp:^\(renderedDir)/apps/\(_cap)/\(an)/"]
 		}}]
 	},
+	// gates: control flow Stages (no promotionTemplate); Freight promoted here is verified at once
 	for an, p in pipelines for sn, s in p.stages {
 		apiVersion: _kargoAPI
 		kind:       "Stage"
-		metadata: {name: "\(an)-\(sn)", namespace: _kargoProject}
+		metadata: {
+			name: (_gateName & {#app: an, #stage: sn}).out
+			namespace: _kargoProject
+			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "gate"}
+		}
+		spec: requestedFreight: [{
+			origin: {kind: "Warehouse", name: an}
+			sources: [
+				if len(s.dependsOn) == 0 {direct: true},
+				{
+					stages: list.SortStrings([for d in s.dependsOn for tn, _ in p.stages[d].targets {(_tgtName & {#app: an, #target: tn}).out}])
+					availabilityStrategy: "All" // verified in every target of every upstream stage
+				},
+			][0]
+		}]
+	},
+	for an, p in pipelines for sn, s in p.stages for tn, _ in s.targets {
+		apiVersion: _kargoAPI
+		kind:       "Stage"
+		metadata: {
+			name: (_tgtName & {#app: an, #target: tn}).out
+			namespace: _kargoProject
+			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn}
+		}
 		spec: {
 			requestedFreight: [{
 				origin: {kind: "Warehouse", name: an}
-				sources: [
-					if len(s.dependsOn) == 0 {direct: true},
-					{
-						stages: [for d in s.dependsOn {"\(an)-\(d)"}]
-						availabilityStrategy: "All" // verified in every upstream stage
-					},
-				][0]
+				sources: stages: [(_gateName & {#app: an, #stage: sn}).out]
 			}]
 			promotionTemplate: spec: {
 				vars: [
 					{name: "repo", value: _repoURL},
-					{name: "src", value: "./src/\(renderedDir)/apps/\(_cap)/\(an)/\(sn)/"},
-					{name: "branch", value: "env/\(_cap)/\(an)/\(sn)"},
+					{name: "src", value: "./src/\(renderedDir)/apps/\(_cap)/\(an)/\(sn)/\(tn)/"},
+					{name: "branch", value: "env/\(_cap)/\(an)/\(tn)"},
 				]
 				steps: [
 					{uses: "git-clone", config: {
@@ -75,10 +112,10 @@ _kargoCore: [
 					{uses: "copy", config: {inPath: "${{ vars.src }}", outPath: "./out/"}},
 					{uses: "git-commit", as: "commit", config: {
 						path:    "./out"
-						message: "promote \(_cap)/\(an) to \(sn) from ${{ commitFrom(vars.repo).ID }}"
+						message: "promote \(_cap)/\(an) to \(sn)/\(tn) from ${{ commitFrom(vars.repo).ID }}"
 					}},
 					{uses: "git-push", config: path: "./out"},
-					{uses: "argocd-update", config: apps: [for tn, _ in s.targets {
+					{uses: "argocd-update", config: apps: [{
 						name:      "\(_cap)-\(an)-\(tn)"
 						namespace: "argocd"
 						sources: [{repoURL: "${{ vars.repo }}", desiredRevision: "${{ outputs.commit.commit }}"}]
@@ -121,7 +158,7 @@ _argocdApps: [for _, d in deploys {
 	metadata: {
 		name:      "\(_cap)-\(d.app)-\(d.target)"
 		namespace: "argocd"
-		annotations: "kargo.akuity.io/authorized-stage": "\(_kargoProject):\(d.app)-\(d.stage)"
+		annotations: "kargo.akuity.io/authorized-stage": "\(_kargoProject):\((_tgtName & {#app: d.app, #target: d.target}).out)"
 		labels: {
 			"example.com/capability": _cap
 			"example.com/app":        d.app
@@ -133,8 +170,8 @@ _argocdApps: [for _, d in deploys {
 		project: _cap // Argo CD AppProject per capability (platform-owned)
 		source: {
 			repoURL:        _repoURL
-			targetRevision: "env/\(_cap)/\(d.app)/\(d.stage)"
-			path:           d.target
+			targetRevision: "env/\(_cap)/\(d.app)/\(d.target)"
+			path:           "."
 		}
 		destination: {
 			name:      clusters[d.tgt.cluster].argocdName
@@ -148,7 +185,7 @@ _argocdApps: [for _, d in deploys {
 }]
 
 // Promote RBAC: one Kargo ServiceAccount per app, mapped from the OIDC email claim to the app's
-// promoters, allowed to promote (and manually approve Freight for) every stage of that app.
+// promoters, allowed to promote (and manually approve Freight for) every gate and target Stage of that app.
 // Only apps with stages: an empty resourceNames would mean *every* stage.
 _rbacMeta: {
 	#name:     string
@@ -170,7 +207,7 @@ _kargoRBAC: [for an in list.SortStrings([for an, _ in apps {an}]) if len(apps[an
 		rules: [{
 			apiGroups: ["kargo.akuity.io"]
 			resources: ["stages"]
-			resourceNames: list.SortStrings([for sn, _ in apps[an].stages {"\(an)-\(sn)"}])
+			resourceNames: list.SortStrings(_kargoStages[an])
 			verbs: ["promote"]
 		}, {
 			// the promote API creates the Promotion as the user; which stages is limited above
