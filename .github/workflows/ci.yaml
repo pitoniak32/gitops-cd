@@ -73,6 +73,6 @@ jobs:
         if: github.event_name == 'push'
         run: |
           git diff --cached --quiet rendered .github/CODEOWNERS && exit 0
-          git -c user.name=render-bot -c user.email=render-bot@users.noreply.github.com \
+          git -c user.name="github-actions[bot]" -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
             commit -qm "render: ${GITHUB_SHA::7}" -m "source: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
           git push -q origin HEAD:main
