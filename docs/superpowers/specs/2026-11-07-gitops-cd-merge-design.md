@@ -61,7 +61,7 @@ Removed:
   - destinations = that capability's target namespaces on `in-cluster`
   - `clusterResourceWhitelist: []`
   - namespace resources allowed
-- **Example capabilities:** `payments` (team1) and `search` (team2) are kept. The namespaces become `payments-<env>` and `search-<env>`, and the image becomes `ghcr.io/pitoniak32/nginx:<pinned tag>`. Pinned by tag or digest, per CLAUDE.md.
+- **Example capabilities:** `payments` (team1) and `search` (team2) are kept. The namespaces become `<cap>-<target>` (one cluster, so namespaces must be unique per target), and the image becomes `ghcr.io/pitoniak32/nginx:<pinned tag>`. Pinned by tag or digest, per CLAUDE.md.
 
 ## Platform wiring
 
