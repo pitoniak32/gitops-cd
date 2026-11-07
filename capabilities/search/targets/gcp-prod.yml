@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../platform/schemas/target.json
+# yaml-language-server: $schema=../../../render/schemas/target.json
 config:
   cluster: gke-use1-prod
   namespace: team2

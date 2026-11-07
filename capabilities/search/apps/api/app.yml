@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../../platform/schemas/app.json
+# yaml-language-server: $schema=../../../../render/schemas/app.json
 image: ghcr.io/acme/team2-api:0.9.0
 port: 8080
 stages:

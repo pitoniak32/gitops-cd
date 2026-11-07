@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Fresh demo cluster: tear down existing, create, install platform + project"
+#MISE description="Fresh demo cluster: tear down existing, create, install infrastructure + rendered capabilities"
 set -euo pipefail
 
 mise run down
@@ -11,8 +11,7 @@ KIND_EXPERIMENTAL_DOCKER_NETWORK=kargo-demo \
   kind create cluster --config cluster/kind.yaml --wait 120s
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
-mise run platform
-mise run project
+mise run infra
 
 # wait for traefik to pick up the ingressroute
 for i in $(seq 1 60); do

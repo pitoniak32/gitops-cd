@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #MISE description="Render argocd Applications (values + kustomized manifests inlined) to stdout"
-#USAGE arg "[apps]..." help="platform/<app> dirs to render (default: all)"
+#USAGE arg "[apps]..." help="infrastructure/<app> dirs to render (default: all)"
 set -euo pipefail
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 apps=(${usage_apps:-})
-[ ${#apps[@]} -gt 0 ] || apps=($(cd platform && ls -d */ | tr -d /))
+[ ${#apps[@]} -gt 0 ] || apps=($(cd infrastructure && ls -d */ | tr -d /))
 
 for a in "${apps[@]}"; do
-  d=platform/$a
+  d=infrastructure/$a
   cp "$d/app.yaml" "$tmp/app.yaml"
   if [ -f "$d/values.yaml" ]; then
     V="$d/values.yaml" yq -i '.spec.source.helm.valuesObject = load(strenv(V))' "$tmp/app.yaml"

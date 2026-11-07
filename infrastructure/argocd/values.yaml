@@ -14,7 +14,7 @@ configs:
     url: https://argocd.localhost
     # keycloak only; break-glass = kubectl (cluster admin)
     admin.enabled: false
-    # local keycloak (platform/keycloak/), public client + PKCE, no secret
+    # local keycloak (infrastructure/keycloak/), public client + PKCE, no secret
     oidc.config: |
       name: Keycloak
       issuer: http://keycloak.localhost/realms/kargo

@@ -1,8 +1,0 @@
-# Project role mappings (gitops-managed). kargo-admin intentionally unmapped.
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kargo-promoter
-  namespace: example-project
-  annotations:
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com"]}'

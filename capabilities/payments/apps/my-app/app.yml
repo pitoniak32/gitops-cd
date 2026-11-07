@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../../platform/schemas/app.json
+# yaml-language-server: $schema=../../../../render/schemas/app.json
 image: ghcr.io/acme/my-app:1.4.2
 port: 8080
 replicas: 30

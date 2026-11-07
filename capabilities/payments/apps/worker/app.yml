@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../../platform/schemas/app.json
+# yaml-language-server: $schema=../../../../render/schemas/app.json
 # no perf stage: prod depends on staging only
 image: ghcr.io/acme/worker:2.0.0
 stages:
