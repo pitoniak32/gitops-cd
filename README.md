@@ -32,6 +32,7 @@ Users (password = username):
 | `doug` | `team1` | view `kargo-payments`; promote/approve its apps | view `payments` apps |
 | `alice` | `team2` | view `kargo-search`; promote/approve its apps | view `search` apps |
 | `bob` | none | nothing | nothing |
+| `admin` | `platform-admins` | admin: view/promote/approve all projects (edits still gitops-only) | admin: everything, incl. infrastructure apps |
 
 Nobody can create, edit or delete resources through the Kargo or Argo CD UIs; changes go through git.
 Users see only the capabilities their team owns: in Argo CD their apps (read-only, generated AppProject
@@ -94,7 +95,7 @@ by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
 - **Cluster**: kind (`cluster/kind.yaml`), host `127.0.0.1`/`::1` ports 80/443 → Traefik. Kubeconfig is project-local (`.kubeconfig`).
 - **Infrastructure**: `mise run infra` helm-installs Argo CD once, then applies one Argo CD `Application` per `infrastructure/<addon>/` (values and manifests inlined by `mise run infra-render`) and waits for each to be Synced + Healthy. Argo CD then manages everything, including itself. Finally it applies git creds (`mise run creds`) and `bootstrap/`.
 - **Auth**: Keycloak realm in `infrastructure/keycloak/manifests/kargo-realm.json` (users, groups, `kargo` + `argocd` public PKCE clients with a `groups` mapper), re-imported on every Keycloak start.
-- **GitOps-only**: no Kargo admin claim mapping; promote rights come from the generated `owner-<team>` roles (`groups` claim). An admission policy (`infrastructure/kargo-config/manifests/gitops-only.yaml`) blocks the Kargo API from creating/editing/deleting anything except Promotions.
+- **GitOps-only**: team promote rights come from the generated `owner-<team>` roles (`groups` claim); only Keycloak group `platform-admins` maps to Kargo/Argo CD admin (ADR 0009). An admission policy (`infrastructure/kargo-config/manifests/gitops-only.yaml`) blocks the Kargo API from creating/editing/deleting anything except Promotions.
 - **Secrets on kind**: the `in-cluster` cluster has no secret store, so `secret:` env values are validated but not rendered.
 
 Rendering details and merge rules: `render/README.md`. Decisions: `docs/adr/`. Gotchas: `docs/gotchas.md`.

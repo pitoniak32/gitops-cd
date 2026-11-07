@@ -25,11 +25,12 @@ configs:
   rbac:
     # keycloak `groups` claim (client mapper on the argocd client)
     scopes: "[groups, email]"
-    # no global access: users only see apps of capabilities their team owns, read-only, via the
-    # generated AppProject `viewer` roles (rendered/argocd/<cap>.yaml). Kargo does all syncing.
-    # Infrastructure apps (project `default`) are visible to nobody in the UI; use kubectl.
+    # teams: only apps of capabilities they own, read-only, via the generated AppProject `viewer`
+    # roles (rendered/argocd/<cap>.yaml). Kargo does all syncing.
+    # platform-admins (keycloak group): full admin, incl. infrastructure apps (ADR 0009).
     policy.default: ""
-    policy.csv: ""
+    policy.csv: |
+      g, platform-admins, role:admin
 server:
   # Ingress never gets an address with NodePort traefik -> stuck Progressing in argo; use IngressRoute
   ingress:
