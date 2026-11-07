@@ -1,4 +1,4 @@
-# dev-mode keycloak: in-memory, realm re-imported from configmap on every start
+# dev-mode keycloak: in-memory, realm re-imported from configmap (kustomization.yaml) on every start
 apiVersion: apps/v1
 kind: Deployment
 metadata:

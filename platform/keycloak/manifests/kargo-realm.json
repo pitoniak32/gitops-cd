@@ -20,6 +20,25 @@
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "https://kargo.localhost/*"
       }
+    },
+    {
+      "clientId": "argocd",
+      "name": "Argo CD",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://argocd.localhost/pkce/verify",
+        "https://argocd.localhost/auth/callback",
+        "http://localhost:8085/auth/callback"
+      ],
+      "webOrigins": [
+        "https://argocd.localhost"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://argocd.localhost/*"
+      }
     }
   ],
   "users": [

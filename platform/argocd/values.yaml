@@ -1,0 +1,53 @@
+# used for helm bootstrap AND argocd self-managing Application (keep identical; bootstrap skips extraObjects)
+global:
+  domain: argocd.localhost
+configs:
+  params:
+    server.insecure: true  # tls terminated by traefik
+  repositories:
+    kargo-charts:
+      type: helm
+      name: kargo-charts
+      url: ghcr.io/akuity/kargo-charts
+      enableOCI: "true"
+  cm:
+    url: https://argocd.localhost
+    # keycloak only; break-glass = kubectl (cluster admin)
+    admin.enabled: false
+    # local keycloak (platform/keycloak/), public client + PKCE, no secret
+    oidc.config: |
+      name: Keycloak
+      issuer: http://keycloak.localhost/realms/kargo
+      clientID: argocd
+      cliClientID: argocd
+      enablePKCEAuthentication: true
+      requestedScopes: [openid, profile, email]
+  rbac:
+    scopes: "[email]"
+    policy.default: role:readonly
+    # gitops-only: doug may sync/refresh, nobody edits apps via UI
+    policy.csv: |
+      p, role:operator, applications, get, */*, allow
+      p, role:operator, applications, sync, */*, allow
+      p, role:operator, applications, action/*, */*, allow
+      g, doug@example.com, role:operator
+server:
+  # Ingress never gets an address with NodePort traefik -> stuck Progressing in argo; use IngressRoute
+  ingress:
+    enabled: false
+dex:
+  enabled: false
+extraObjects:
+  - apiVersion: traefik.io/v1alpha1
+    kind: IngressRoute
+    metadata:
+      name: argocd-server
+      namespace: argocd
+    spec:
+      entryPoints: [websecure]
+      routes:
+        - match: Host(`argocd.localhost`)
+          kind: Rule
+          services:
+            - name: argocd-server
+              port: 80

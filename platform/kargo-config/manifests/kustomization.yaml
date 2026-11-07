@@ -1,0 +1,3 @@
+resources:
+  - kargo-ingressroute.yaml  # https://kargo.localhost without port-forward
+  - gitops-only.yaml

@@ -1,0 +1,8 @@
+namespace: keycloak
+resources:
+  - keycloak.yaml
+# hashed name -> keycloak restarts (re-imports realm) whenever realm changes
+configMapGenerator:
+  - name: keycloak-realm
+    files:
+      - kargo-realm.json  # keycloak requires <realm>-realm.json filename

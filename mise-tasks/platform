@@ -1,20 +1,6 @@
 #!/usr/bin/env bash
-#MISE description="Install/upgrade traefik, cert-manager, argo-rollouts, keycloak, kargo (idempotent)"
+#MISE description="Bootstrap argocd, then let it install/upgrade platform apps (idempotent)"
 set -euo pipefail
-
-helm upgrade --install traefik traefik \
-  --repo https://traefik.github.io/charts --version 42.3.1 \
-  -n traefik --create-namespace \
-  -f platform/traefik-values.yaml --wait
-
-helm upgrade --install cert-manager oci://quay.io/jetstack/charts/cert-manager \
-  --version v1.19.2 \
-  -n cert-manager --create-namespace \
-  --set crds.enabled=true --wait
-
-helm upgrade --install argo-rollouts argo-rollouts \
-  --repo https://argoproj.github.io/argo-helm --version 2.43.9 \
-  -n argo-rollouts --create-namespace --wait
 
 # keycloak.localhost -> traefik inside cluster, so kargo-api reaches same issuer URL as browser
 corefile=$(kubectl -n kube-system get cm coredns -o jsonpath='{.data.Corefile}')
@@ -27,22 +13,23 @@ if ! grep -q 'keycloak.localhost' <<<"$corefile"; then
   kubectl -n kube-system rollout status deploy/coredns --timeout=120s
 fi
 
-kubectl create namespace keycloak --dry-run=client -o yaml | kubectl apply -f -
-realm=$(kubectl -n keycloak create cm keycloak-realm --from-file=kargo-realm.json=platform/keycloak-realm.json \
-  --dry-run=client -o yaml | kubectl apply -f -)
-kubectl apply -f platform/keycloak.yaml
-# realm only imported at startup (keycloak requires <realm>-realm.json filename)
-if [[ "$realm" == *configured* ]]; then kubectl -n keycloak rollout restart deploy/keycloak; fi
-kubectl -n keycloak rollout status deploy/keycloak --timeout=300s
+# bootstrap argocd once; afterwards it manages itself (platform/argocd/app.yaml)
+if ! helm status argocd -n argocd >/dev/null 2>&1; then
+  version=$(yq '.spec.source.targetRevision' platform/argocd/app.yaml)
+  helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$version" \
+    -n argocd --create-namespace -f platform/argocd/values.yaml \
+    --set-json 'extraObjects=[]' --wait  # IngressRoute needs traefik CRDs; added later by argocd app
+fi
 
-helm upgrade --install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
-  --version 1.12.5 \
-  -n kargo --create-namespace \
-  -f platform/kargo-values.yaml \
-  --wait
-
-# https://kargo.localhost without port-forward
-kubectl -n kargo apply -f platform/kargo-ingressroute.yaml
-
-# UI/API: promote/approve only; everything else via gitops
-kubectl apply -f platform/kargo-gitops-only.yaml
+# order matters (CRDs, webhooks, issuer); argocd last
+for app in traefik cert-manager argo-rollouts keycloak kargo kargo-config argocd; do
+  mise run render "$app" | kubectl apply -f -
+  # force compare against new spec, else wait sees stale Synced status
+  kubectl -n argocd annotate "app/$app" argocd.argoproj.io/refresh=normal --overwrite >/dev/null
+  for i in $(seq 1 60); do
+    [ -z "$(kubectl -n argocd get "app/$app" -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}')" ] && break
+    sleep 2
+  done
+  kubectl -n argocd wait "app/$app" --for=jsonpath='{.status.sync.status}'=Synced --timeout=600s
+  kubectl -n argocd wait "app/$app" --for=jsonpath='{.status.health.status}'=Healthy --timeout=600s
+done

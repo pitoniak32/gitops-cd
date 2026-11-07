@@ -5,14 +5,14 @@ api:
   secretManagementEnabled: false
   oidc:
     enabled: true
-    # local keycloak (platform/keycloak.yaml); http so kargo-api needn't trust a self-signed CA
+    # local keycloak (platform/keycloak/); http so kargo-api needn't trust a self-signed CA
     issuerURL: http://keycloak.localhost/realms/kargo
     clientID: kargo
     dex:
       enabled: false
     # openid/profile/email always requested; chart default `groups` scope doesn't exist in keycloak realm
     additionalScopes: []
-    # no OIDC admins: create/edit/delete only via gitops (see platform/kargo-gitops-only.yaml)
+    # no OIDC admins: create/edit/delete only via gitops (see platform/kargo-config/manifests/gitops-only.yaml)
     # promote rights granted per project (example-project/rbac.yml)
     viewers:
       claims:

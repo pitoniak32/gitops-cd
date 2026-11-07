@@ -3,6 +3,7 @@ kind = '0.31.0'
 helm = '4.1.4'
 kubectl = '1.36.1'
 fnox = '1.29.0'
+yq = '4.54.2'
 
 [env]
 # project-local kubeconfig: never touches ~/.kube/config
