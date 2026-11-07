@@ -26,13 +26,15 @@ Users (password = username):
 
 | User | Group | Kargo | Argo CD |
 |---|---|---|---|
-| `doug` | `team1` | view; promote/approve apps owned by team1 (`payments`) | view `payments` apps |
-| `alice` | `team2` | view; promote/approve apps owned by team2 (`search`) | view `search` apps |
-| `bob` | none | view | nothing |
+| `doug` | `team1` | view `kargo-payments`; promote/approve its apps | view `payments` apps |
+| `alice` | `team2` | view `kargo-search`; promote/approve its apps | view `search` apps |
+| `bob` | none | nothing | nothing |
 
 Nobody can create, edit or delete resources through the Kargo or Argo CD UIs; changes go through git.
-In Argo CD, users see only the apps of capabilities their team owns (read-only, generated AppProject
-`viewer` roles); syncing is done by Kargo. Infrastructure apps aren't visible in the UI (use kubectl).
+Users see only the capabilities their team owns: in Argo CD their apps (read-only, generated AppProject
+`viewer` roles; syncing is done by Kargo), in Kargo their projects (generated `owner-<team>` roles).
+Kargo's project list still shows other projects' names (listing needs cluster-scoped read); use the
+"My projects" filter. Infrastructure apps aren't visible in the Argo CD UI (use kubectl).
 
 ## Layout
 
