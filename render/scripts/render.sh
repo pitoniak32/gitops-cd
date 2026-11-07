@@ -17,7 +17,7 @@ cd "$PLATFORM_DIR"
 cue vet -c . "${CUE_ARGS[@]}"
 cue export . "${CUE_ARGS[@]}" -e files --out json >"$tmp"
 
-rm -rf "$OUT/apps/$CAP" "$OUT/platform/kargo/$CAP.yaml" "$OUT/platform/argocd/$CAP.yaml" "$OUT/pipelines/$CAP.json" "$OUT/codeowners/$CAP"
+rm -rf "$OUT/apps/$CAP" "$OUT/kargo/$CAP.yaml" "$OUT/argocd/$CAP.yaml" "$OUT/pipelines/$CAP.json" "$OUT/codeowners/$CAP"
 jq -r 'keys[]' "$tmp" | while read -r f; do
   mkdir -p "$OUT/$(dirname "$f")"
   jq -j --arg f "$f" '.[$f]' "$tmp" >"$OUT/$f"

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Render every capability into rendered/ (or out dir) and regenerate .github/CODEOWNERS"
+#USAGE arg "[out]" help="output dir (default: rendered)"
+# CI runs this on main; locally optional.
+set -euo pipefail
+cd "$MISE_PROJECT_ROOT"
+OUT="${usage_out:-rendered}"
+mkdir -p "$OUT"
+# generated paths only
+rm -rf "$OUT/apps" "$OUT/argocd" "$OUT/kargo" "$OUT/pipelines" "$OUT/codeowners"
+for dir in capabilities/*/; do
+  cap="$(basename "$dir")"
+  render/scripts/render.sh . "$cap" "$OUT" >/dev/null
+  echo "rendered $cap"
+done
+render/scripts/codeowners.sh . "$OUT"

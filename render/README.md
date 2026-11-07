@@ -14,7 +14,7 @@ Lives in the gitops monorepo; teams never edit it.
 | `delivery.cue` | Kargo Project/ProjectConfig/Warehouse/Stages + Argo CD Applications |
 | `files.cue` | every output file, keyed by rendered-repo path |
 | `scripts/schemas.sh` | generic editor JSON Schemas → `schemas/` (committed, versioned with the platform) |
-| `scripts/lint.sh` | full CUE validation as `file:line:col: message` (editors, CI annotations) |
+| `scripts/lint.sh` (`mise run lint`) | full CUE validation as `file:line:col: message` (editors, CI annotations) |
 
 ## Capability input (paths under the repo root)
 ```
@@ -35,7 +35,7 @@ apps/<app>/app.yml        image, port, replicas, env, resources, stages.<s>.targ
 ## Output (`rendered/` in the monorepo)
 ```
 apps/<cap>/<app>/<stage>/<target>/manifests.yaml
-platform/kargo/<cap>.yaml      platform/argocd/<cap>.yaml      pipelines/<cap>.json
+kargo/<cap>.yaml      argocd/<cap>.yaml      pipelines/<cap>.json
 ```
 
 ## Promotion
@@ -47,10 +47,10 @@ Multi-upstream stages use `availabilityStrategy: All`.
 ## Editor feedback (two layers)
 - **Editor** — `schemas/*.json` from `cue def -t generic=true`: structure, types, formats, cluster/env enums.
   Stage/target names are only pattern-checked, so they don't depend on team files. Team YAML references
-  `platform/schemas/*.json` by relative path, so any editor works with no local tooling.
-- **CI** — `scripts/lint.sh <root> <cap>`: `cue vet -c -E` over the capability's files (+ `teams/`), as `file:line:col: message`
+  `render/schemas/*.json` by relative path, so any editor works with no local tooling.
+- **CI** — `mise run lint` (render/scripts/lint.sh <root> <cap>): `cue vet -c -E` over the capability's files (+ `teams/`), as `file:line:col: message`
   (PR annotations). CUE paths without a YAML position are mapped back with yq. Linux CI only. Custom messages come from `error("...")` in the CUE (unknown stage/target/cluster,
   env/cluster mismatch, prod replicas). An app's computed checks (e.g. prod replicas) appear once its structural errors are fixed.
 
 ## Dev loop
-`scripts/test.sh` (vet + render testdata/root (capability payments) + golden diff), `UPDATE=1 scripts/test.sh` to accept.
+`mise run test` (vet + render testdata/root (capability payments) + golden diff), `UPDATE=1 mise run test` to accept.

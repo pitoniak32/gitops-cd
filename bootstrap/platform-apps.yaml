@@ -1,6 +1,6 @@
 # Apply once to the Argo CD control cluster. Syncs generated, team-level infra from main:
-#   rendered/platform/argocd/*.yaml -> Argo CD Applications (one per app+target, tracking env/* branches)
-#   rendered/platform/kargo/*.yaml  -> Kargo Projects, Warehouses, Stages
+#   rendered/argocd/*.yaml -> Argo CD Applications (one per app+target, tracking env/* branches)
+#   rendered/kargo/*.yaml  -> Kargo Projects, Warehouses, Stages
 # Workload manifests (rendered/apps/**) are NOT synced from main; they reach clusters only via Kargo promotion.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -12,7 +12,7 @@ spec:
   source:
     repoURL: https://github.com/acme/gitops
     targetRevision: main
-    path: rendered/platform/argocd
+    path: rendered/argocd
   destination:
     name: in-cluster
     namespace: argocd
@@ -29,7 +29,7 @@ spec:
   source:
     repoURL: https://github.com/acme/gitops
     targetRevision: main
-    path: rendered/platform/kargo
+    path: rendered/kargo
   destination:
     name: kargo        # cluster running Kargo
   syncPolicy:

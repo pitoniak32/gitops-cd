@@ -4,6 +4,8 @@ helm = '4.1.4'
 kubectl = '1.36.1'
 fnox = '1.29.0'
 yq = '4.54.2'
+cue = '0.17.0'
+jq = '1.8.1'
 
 [env]
 # project-local kubeconfig: never touches ~/.kube/config

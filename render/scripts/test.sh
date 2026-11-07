@@ -34,11 +34,13 @@ r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 printf 'owners: [team1]\n' >"$r/capabilities/search/owners.yml"
 printf 'owners: [team2]\n' >"$r/capabilities/search/apps/api/owners.yml"
 scripts/render.sh "$r" search "$o" >/dev/null
-if grep -q 'owner-team1' "$o/platform/kargo/search.yaml"; then echo "capability-only owner got Kargo RBAC" >&2; exit 1; fi
+[[ -f "$o/kargo/search.yaml" ]] || { echo "missing $o/kargo/search.yaml" >&2; exit 1; }
+if grep -q 'owner-team1' "$o/kargo/search.yaml"; then echo "capability-only owner got Kargo RBAC" >&2; exit 1; fi
 grep -qx '/capabilities/search/ @acme/team2' "$o/codeowners/search" || { echo "stages/targets approvers must be the apps' owners:" >&2; cat "$o/codeowners/search" >&2; exit 1; }
 rm -rf "${r:?}" "${o:?}"; echo "override-all owners ok"
 # no Role may ever render an empty resourceNames
-if yq -e 'select(.kind == "Role") | .rules[] | select(has("resourceNames") and (.resourceNames | length) == 0)' testdata/golden/platform/kargo/*.yaml >/dev/null 2>&1; then echo "empty resourceNames in golden" >&2; exit 1; fi
+ls testdata/golden/kargo/*.yaml >/dev/null || exit 1
+if yq -e 'select(.kind == "Role") | .rules[] | select(has("resourceNames") and (.resourceNames | length) == 0)' testdata/golden/kargo/*.yaml >/dev/null 2>&1; then echo "empty resourceNames in golden" >&2; exit 1; fi
 
 # Invalid app/stage/target directory names fail lint (they become k8s/Kargo names)
 for d in apps/worker stages/perf targets/on-prem-dev; do
