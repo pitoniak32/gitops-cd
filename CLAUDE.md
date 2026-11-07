@@ -23,7 +23,7 @@ Capability YAML (`capabilities/`) + team registry (`teams/`) → CUE renderer (`
 - **GitOps-only**: no UI user gets create/edit/delete rights in Kargo or Argo CD. All UI access is generated per capability from owners (Keycloak `groups` claim): Kargo `owner-<team>` roles (view + promote) and `users-<cap>` global SAs (list projects), Argo CD AppProject `viewer` roles (read-only); never admin claims, global viewers or global policies.
 - **Pin versions**: tools in `.mise.toml`, charts in `infrastructure/<addon>/app.yaml` `targetRevision`, images by tag or digest (`:latest` is rejected).
 - **Idempotent tasks**: every `mise-tasks/*` script must be safe to re-run.
-- **Secrets** come from fnox (`.fnox.toml`, macOS keychain); `mise run creds` puts git creds in `kargo-shared-resources` and Argo CD. Nothing secret in git.
+- **Secrets** come from fnox (`.fnox.toml`, macOS keychain); `mise run creds` puts GitHub App creds in `kargo-shared-resources` (Argo CD needs none: public repo). Nothing secret in git.
 - Teams never write CUE (ADR 0006); every option is a YAML field in `#App`/`#Stage`/`#Target`/`#Owners`/`#Team`. User-facing validation messages come from `error("...")` in CUE.
 - Watch for field shadowing in CUE (`x: x`); use the `_cap`/`_capStages`/`_capTargets`/`_repoURL` aliases.
 - **VCS is jj.** No git mutations, no pushes.
