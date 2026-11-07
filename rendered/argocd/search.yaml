@@ -33,7 +33,7 @@ metadata:
   name: search-api-gcp-dev
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-search:api-dev
+    kargo.akuity.io/authorized-stage: kargo-search:api-gcp-dev
   labels:
     example.com/capability: search
     example.com/app: api
@@ -43,8 +43,8 @@ spec:
   project: search
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/search/api/dev
-    path: gcp-dev
+    targetRevision: env/search/api/gcp-dev
+    path: .
   destination:
     name: in-cluster
     namespace: search-gcp-dev
@@ -61,7 +61,7 @@ metadata:
   name: search-api-gcp-prod
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-search:api-prod
+    kargo.akuity.io/authorized-stage: kargo-search:api-gcp-prod
   labels:
     example.com/capability: search
     example.com/app: api
@@ -71,8 +71,8 @@ spec:
   project: search
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/search/api/prod
-    path: gcp-prod
+    targetRevision: env/search/api/gcp-prod
+    path: .
   destination:
     name: in-cluster
     namespace: search-gcp-prod
@@ -89,7 +89,7 @@ metadata:
   name: search-api-onprem-prod
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-search:api-prod
+    kargo.akuity.io/authorized-stage: kargo-search:api-onprem-prod
   labels:
     example.com/capability: search
     example.com/app: api
@@ -99,8 +99,8 @@ spec:
   project: search
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/search/api/prod
-    path: onprem-prod
+    targetRevision: env/search/api/onprem-prod
+    path: .
   destination:
     name: in-cluster
     namespace: search-onprem-prod
