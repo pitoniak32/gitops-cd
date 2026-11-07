@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#MISE description="Git credentials (GITHUB_PAT from fnox) for Kargo (shared, all projects) and Argo CD"
+set -euo pipefail
+# kargo-shared-resources: Kargo chart's global.sharedResources.namespace (created by the chart);
+# credentials there are available to every project, so generated projects need no secret of their own.
+fnox exec -- bash -euo pipefail -c '
+  kubectl apply -f - <<YAML
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-gitops-cd
+  namespace: kargo-shared-resources
+  labels:
+    kargo.akuity.io/cred-type: git
+stringData:
+  repoURL: https://github.com/pitoniak32/gitops-cd
+  username: pitoniak32
+  password: "$GITHUB_PAT"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-gitops-cd
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  type: git
+  url: https://github.com/pitoniak32/gitops-cd
+  username: pitoniak32
+  password: "$GITHUB_PAT"
+YAML
+'

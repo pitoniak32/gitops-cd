@@ -10,7 +10,8 @@ api:
     clientID: kargo
     dex:
       enabled: false
-    # openid/profile/email always requested; chart default `groups` scope doesn't exist in keycloak realm
+    # openid/profile/email always requested; `groups` claim comes from a client-level mapper on the
+    # kargo client (keycloak realm), so no `groups` scope is requested (it doesn't exist in the realm)
     additionalScopes: []
     # no OIDC admins: create/edit/delete only via gitops (see infrastructure/kargo-config/manifests/gitops-only.yaml)
     # promote rights: generated owner-<team> roles per capability project (rendered/kargo/)
