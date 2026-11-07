@@ -103,6 +103,13 @@ _appProject: {
 		}]
 		clusterResourceWhitelist: [{group: "", kind: "Namespace"}] // CreateNamespace=true
 		namespaceResourceWhitelist: [{group: "*", kind: "*"}]
+		// Argo CD UI/CLI: owners see this capability's apps, read-only (Kargo does all syncing)
+		roles: [{
+			name:        "viewer"
+			description: "read-only view of \(_cap) apps for its owning teams"
+			policies: ["p, proj:\(_cap):viewer, applications, get, \(_cap)/*, allow"]
+			groups: list.SortStrings([for t, _ in {for t in _allOwners {(teams[t].idpGroup): _}} {t}])
+		}]
 	}
 }
 

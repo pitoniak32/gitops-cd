@@ -23,14 +23,13 @@ configs:
       enablePKCEAuthentication: true
       requestedScopes: [openid, profile, email]
   rbac:
-    scopes: "[email]"
-    policy.default: role:readonly
-    # gitops-only: doug may sync/refresh, nobody edits apps via UI
-    policy.csv: |
-      p, role:operator, applications, get, */*, allow
-      p, role:operator, applications, sync, */*, allow
-      p, role:operator, applications, action/*, */*, allow
-      g, doug@example.com, role:operator
+    # keycloak `groups` claim (client mapper on the argocd client)
+    scopes: "[groups, email]"
+    # no global access: users only see apps of capabilities their team owns, read-only, via the
+    # generated AppProject `viewer` roles (rendered/argocd/<cap>.yaml). Kargo does all syncing.
+    # Infrastructure apps (project `default`) are visible to nobody in the UI; use kubectl.
+    policy.default: ""
+    policy.csv: ""
 server:
   # Ingress never gets an address with NodePort traefik -> stuck Progressing in argo; use IngressRoute
   ingress:

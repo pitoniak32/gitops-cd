@@ -13,6 +13,10 @@ grep -rq "APP_SECRET" testdata/root/capabilities/payments/apps/my-app/app.yml ||
 # Argo CD dry-runs all resources first: the project namespace must be rendered (labeled for Kargo
 # to adopt), not left for Kargo to create from the Project
 [[ "$(yq 'select(documentIndex == 0) | .kind + "/" + .metadata.name + "/" + .metadata.labels."kargo.akuity.io/project"' "$tmp/kargo/payments.yaml")" == "Namespace/kargo-payments/true" ]] || { echo "kargo/payments.yaml must start with labeled Namespace kargo-payments" >&2; exit 1; }
+# Argo CD visibility: owners' groups get read-only access to their capability's apps, nothing else
+want='{"name":"viewer","policies":["p, proj:payments:viewer, applications, get, payments/*, allow"],"groups":["team1","team2"]}'
+got="$(yq -o=json -I=0 'select(.kind == "AppProject") | .spec.roles[] | {"name": .name, "policies": .policies, "groups": .groups}' "$tmp/argocd/payments.yaml")"
+[[ "$got" == "$want" ]] || { printf 'AppProject viewer role\nwant: %s\ngot:  %s\n' "$want" "$got" >&2; exit 1; }
 echo "kind cluster ok"
 
 # CODEOWNERS: assemble from the fragments into a copy of root

@@ -26,11 +26,13 @@ Users (password = username):
 
 | User | Group | Kargo | Argo CD |
 |---|---|---|---|
-| `doug` | `team1` | view; promote/approve apps owned by team1 (`payments`) | view + sync |
-| `alice` | `team2` | view; promote/approve apps owned by team2 (`search`) | view |
-| `bob` | none | view | view |
+| `doug` | `team1` | view; promote/approve apps owned by team1 (`payments`) | view `payments` apps |
+| `alice` | `team2` | view; promote/approve apps owned by team2 (`search`) | view `search` apps |
+| `bob` | none | view | nothing |
 
 Nobody can create, edit or delete resources through the Kargo or Argo CD UIs; changes go through git.
+In Argo CD, users see only the apps of capabilities their team owns (read-only, generated AppProject
+`viewer` roles); syncing is done by Kargo. Infrastructure apps aren't visible in the UI (use kubectl).
 
 ## Layout
 
