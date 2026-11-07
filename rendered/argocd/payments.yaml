@@ -48,7 +48,7 @@ metadata:
   name: payments-my-app-us-east4-dev
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-dev
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-us-east4-dev
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -58,8 +58,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/dev
-    path: us-east4-dev
+    targetRevision: env/payments/my-app/us-east4-dev
+    path: .
   destination:
     name: in-cluster
     namespace: payments-us-east4-dev
@@ -76,7 +76,7 @@ metadata:
   name: payments-my-app-on-prem-dev
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-dev
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-on-prem-dev
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -86,8 +86,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/dev
-    path: on-prem-dev
+    targetRevision: env/payments/my-app/on-prem-dev
+    path: .
   destination:
     name: in-cluster
     namespace: payments-on-prem-dev
@@ -104,7 +104,7 @@ metadata:
   name: payments-my-app-us-east1-stg
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-staging
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-us-east1-stg
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -114,8 +114,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/staging
-    path: us-east1-stg
+    targetRevision: env/payments/my-app/us-east1-stg
+    path: .
   destination:
     name: in-cluster
     namespace: payments-us-east1-stg
@@ -132,7 +132,7 @@ metadata:
   name: payments-my-app-on-prem-stg
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-staging
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-on-prem-stg
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -142,8 +142,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/staging
-    path: on-prem-stg
+    targetRevision: env/payments/my-app/on-prem-stg
+    path: .
   destination:
     name: in-cluster
     namespace: payments-on-prem-stg
@@ -160,7 +160,7 @@ metadata:
   name: payments-my-app-us-east1-perf
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-perf
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-us-east1-perf
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -170,8 +170,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/perf
-    path: us-east1-perf
+    targetRevision: env/payments/my-app/us-east1-perf
+    path: .
   destination:
     name: in-cluster
     namespace: payments-us-east1-perf
@@ -188,7 +188,7 @@ metadata:
   name: payments-my-app-on-prem-perf
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-perf
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-on-prem-perf
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -198,8 +198,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/perf
-    path: on-prem-perf
+    targetRevision: env/payments/my-app/on-prem-perf
+    path: .
   destination:
     name: in-cluster
     namespace: payments-on-prem-perf
@@ -216,7 +216,7 @@ metadata:
   name: payments-my-app-gcp-us-prod
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-prod
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-gcp-us-prod
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -226,8 +226,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/prod
-    path: gcp-us-prod
+    targetRevision: env/payments/my-app/gcp-us-prod
+    path: .
   destination:
     name: in-cluster
     namespace: payments-gcp-us-prod
@@ -244,7 +244,7 @@ metadata:
   name: payments-my-app-gcp-eu-prod
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-prod
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-gcp-eu-prod
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -254,8 +254,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/prod
-    path: gcp-eu-prod
+    targetRevision: env/payments/my-app/gcp-eu-prod
+    path: .
   destination:
     name: in-cluster
     namespace: payments-gcp-eu-prod
@@ -272,7 +272,7 @@ metadata:
   name: payments-my-app-on-prem-prod-1
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-prod
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-on-prem-prod-1
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -282,8 +282,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/prod
-    path: on-prem-prod-1
+    targetRevision: env/payments/my-app/on-prem-prod-1
+    path: .
   destination:
     name: in-cluster
     namespace: payments-on-prem-prod-1
@@ -300,7 +300,7 @@ metadata:
   name: payments-my-app-on-prem-prod-2
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:my-app-prod
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-on-prem-prod-2
   labels:
     example.com/capability: payments
     example.com/app: my-app
@@ -310,8 +310,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/my-app/prod
-    path: on-prem-prod-2
+    targetRevision: env/payments/my-app/on-prem-prod-2
+    path: .
   destination:
     name: in-cluster
     namespace: payments-on-prem-prod-2
@@ -328,7 +328,7 @@ metadata:
   name: payments-worker-us-east4-dev
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:worker-dev
+    kargo.akuity.io/authorized-stage: kargo-payments:worker-us-east4-dev
   labels:
     example.com/capability: payments
     example.com/app: worker
@@ -338,8 +338,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/worker/dev
-    path: us-east4-dev
+    targetRevision: env/payments/worker/us-east4-dev
+    path: .
   destination:
     name: in-cluster
     namespace: payments-us-east4-dev
@@ -356,7 +356,7 @@ metadata:
   name: payments-worker-us-east1-stg
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:worker-staging
+    kargo.akuity.io/authorized-stage: kargo-payments:worker-us-east1-stg
   labels:
     example.com/capability: payments
     example.com/app: worker
@@ -366,8 +366,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/worker/staging
-    path: us-east1-stg
+    targetRevision: env/payments/worker/us-east1-stg
+    path: .
   destination:
     name: in-cluster
     namespace: payments-us-east1-stg
@@ -384,7 +384,7 @@ metadata:
   name: payments-worker-gcp-us-prod
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-payments:worker-prod
+    kargo.akuity.io/authorized-stage: kargo-payments:worker-gcp-us-prod
   labels:
     example.com/capability: payments
     example.com/app: worker
@@ -394,8 +394,8 @@ spec:
   project: payments
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/payments/worker/prod
-    path: gcp-us-prod
+    targetRevision: env/payments/worker/gcp-us-prod
+    path: .
   destination:
     name: in-cluster
     namespace: payments-gcp-us-prod

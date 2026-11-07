@@ -20,6 +20,9 @@ spec:
     - stageSelector:
         name: api-dev
       autoPromotionEnabled: true
+    - stageSelector:
+        name: api-gcp-dev
+      autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
@@ -39,6 +42,11 @@ kind: Stage
 metadata:
   name: api-dev
   namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: gate
+    example.com/stage: dev
 spec:
   requestedFreight:
     - origin:
@@ -46,15 +54,55 @@ spec:
         name: api
       sources:
         direct: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: api-prod
+  namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: gate
+    example.com/stage: prod
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: api
+      sources:
+        stages:
+          - api-gcp-dev
+        availabilityStrategy: All
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: api-gcp-dev
+  namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: gcp-dev
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: api
+      sources:
+        stages:
+          - api-dev
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/search/api/dev/
+          value: ./src/rendered/apps/search/api/dev/gcp-dev/
         - name: branch
-          value: env/search/api/dev
+          value: env/search/api/gcp-dev
       steps:
         - uses: git-clone
           config:
@@ -76,7 +124,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote search/api to dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote search/api to dev/gcp-dev from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -92,8 +140,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: api-prod
+  name: api-gcp-prod
   namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: gcp-prod
 spec:
   requestedFreight:
     - origin:
@@ -101,17 +155,16 @@ spec:
         name: api
       sources:
         stages:
-          - api-dev
-        availabilityStrategy: All
+          - api-prod
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/search/api/prod/
+          value: ./src/rendered/apps/search/api/prod/gcp-prod/
         - name: branch
-          value: env/search/api/prod
+          value: env/search/api/gcp-prod
       steps:
         - uses: git-clone
           config:
@@ -133,7 +186,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote search/api to prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote search/api to prod/gcp-prod from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -145,6 +198,63 @@ spec:
                 sources:
                   - repoURL: ${{ vars.repo }}
                     desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: api-onprem-prod
+  namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: onprem-prod
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: api
+      sources:
+        stages:
+          - api-prod
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/search/api/prod/onprem-prod/
+        - name: branch
+          value: env/search/api/onprem-prod
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote search/api to prod/onprem-prod from ${{ commitFrom(vars.repo).ID }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
               - name: search-api-onprem-prod
                 namespace: argocd
                 sources:
@@ -178,6 +288,9 @@ rules:
       - stages
     resourceNames:
       - api-dev
+      - api-gcp-dev
+      - api-gcp-prod
+      - api-onprem-prod
       - api-prod
     verbs:
       - promote
