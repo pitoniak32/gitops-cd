@@ -36,6 +36,14 @@ _Avoid_: overlay, values
 
 ### Platform
 
+**Infrastructure**:
+The cluster add-ons in `infrastructure/<addon>/` (Argo CD, Traefik, cert-manager, Argo Rollouts, Keycloak, Kargo), managed by Argo CD and applied in order by `mise run infra`.
+_Avoid_: platform (overloaded with the platform team)
+
+**Bootstrap**:
+The root Argo CD Applications in `bootstrap/` that sync `rendered/argocd` and `rendered/kargo` from `main`.
+_Avoid_: app of apps (for this specific file)
+
 **Cluster**:
 A Kubernetes cluster from the platform-owned registry, accepting a fixed set of environments.
 
@@ -73,7 +81,7 @@ The branch `env/<cap>/<app>/<stage>` that Argo CD syncs a stage's targets from.
 ### Validation
 
 **Editor schema**:
-The generic JSON Schema in `platform/schemas/` that editors use; it checks structure but not names that depend on other files.
+The generic JSON Schema in `render/schemas/` that editors use; it checks structure but not names that depend on other files.
 
 **Lint**:
-The full CUE validation over a capability's files (+ `teams/`) (`scripts/lint.sh`), run by CI and reported as `file:line:col` errors.
+The full CUE validation over a capability's files (+ `teams/`) (`mise run lint`), run by CI and reported as `file:line:col` errors.

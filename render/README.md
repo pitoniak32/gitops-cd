@@ -1,4 +1,4 @@
-# platform
+# render
 
 CUE that turns capability YAML (stages, targets, apps) into k8s manifests + a promotion pipeline.
 Lives in the gitops monorepo; teams never edit it.
