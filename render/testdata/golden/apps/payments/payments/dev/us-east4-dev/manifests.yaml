@@ -12,7 +12,7 @@ metadata:
     example.com/environment: dev
     example.com/billing: dev
   name: payments
-  namespace: team1-dev
+  namespace: payments-us-east4-dev
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,7 +26,7 @@ metadata:
     example.com/environment: dev
     example.com/billing: dev
   name: payments
-  namespace: team1-dev
+  namespace: payments-us-east4-dev
 spec:
   replicas: 2
   selector:
@@ -44,7 +44,7 @@ spec:
         example.com/billing: dev
     spec:
       containers:
-        - image: ghcr.io/acme/worker:2.0.0
+        - image: ghcr.io/pitoniak32/nginx@sha256:5aca99593157f4ae539a5dec1092a0ad8762f8e2eb1789085a13a0f5622369f6
           name: payments
           resources:
             limits:

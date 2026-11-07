@@ -1,6 +1,6 @@
 config:
-  cluster: gke-use4-dev
-  namespace: search-dev
+  cluster: in-cluster
+  namespace: search-gcp-dev
   environment: dev
   auth:
     wifEmail: search-dev@search-dev.iam.gserviceaccount.com

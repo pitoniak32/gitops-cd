@@ -28,7 +28,7 @@ metadata:
 spec:
   subscriptions:
     - git:
-        repoURL: https://github.com/acme/gitops
+        repoURL: https://github.com/pitoniak32/gitops-cd
         branch: main
         includePaths:
           - regexp:^rendered/apps/payments/my-app/
@@ -41,7 +41,7 @@ metadata:
 spec:
   subscriptions:
     - git:
-        repoURL: https://github.com/acme/gitops
+        repoURL: https://github.com/pitoniak32/gitops-cd
         branch: main
         includePaths:
           - regexp:^rendered/apps/payments/payments/
@@ -54,7 +54,7 @@ metadata:
 spec:
   subscriptions:
     - git:
-        repoURL: https://github.com/acme/gitops
+        repoURL: https://github.com/pitoniak32/gitops-cd
         branch: main
         includePaths:
           - regexp:^rendered/apps/payments/worker/
@@ -75,7 +75,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/my-app/dev/
         - name: branch
@@ -137,7 +137,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/my-app/staging/
         - name: branch
@@ -199,7 +199,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/my-app/perf/
         - name: branch
@@ -262,7 +262,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/my-app/prod/
         - name: branch
@@ -332,7 +332,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/payments/dev/
         - name: branch
@@ -389,7 +389,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/payments/staging/
         - name: branch
@@ -446,7 +446,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/payments/prod/
         - name: branch
@@ -501,7 +501,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/worker/dev/
         - name: branch
@@ -558,7 +558,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/worker/staging/
         - name: branch
@@ -615,7 +615,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/payments/worker/prod/
         - name: branch

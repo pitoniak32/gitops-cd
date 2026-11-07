@@ -1,6 +1,6 @@
 config:
-  cluster: gke-use1-prod
-  namespace: team1
+  cluster: in-cluster
+  namespace: payments-gcp-us-prod
   environment: prod
   auth:
     wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com

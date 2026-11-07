@@ -3,6 +3,7 @@ package render
 import (
 	"encoding/json"
 	"list"
+	"strings"
 )
 
 // Promotion model (rendered-manifests + Kargo):
@@ -85,7 +86,25 @@ _kargoCore: [
 	},
 ]
 
-argocd: [for _, d in deploys {
+// Argo CD AppProject per capability: this repo, its target namespaces, no cluster-scoped resources
+// except creating those namespaces.
+_appProject: {
+	apiVersion: "argoproj.io/v1alpha1"
+	kind:       "AppProject"
+	metadata: {name: _cap, namespace: "argocd"}
+	spec: {
+		sourceRepos: [_repoURL]
+		destinations: [for k in list.SortStrings([for k, _ in {for _, d in deploys {"\(clusters[d.tgt.cluster].argocdName)/\(d.tgt.namespace)": _}} {k}]) {
+			name:      strings.Split(k, "/")[0]
+			namespace: strings.Split(k, "/")[1]
+		}]
+		clusterResourceWhitelist: [{group: "", kind: "Namespace"}] // CreateNamespace=true
+		namespaceResourceWhitelist: [{group: "*", kind: "*"}]
+	}
+}
+
+argocd: list.Concat([[_appProject], _argocdApps])
+_argocdApps: [for _, d in deploys {
 	apiVersion: "argoproj.io/v1alpha1"
 	kind:       "Application"
 	metadata: {

@@ -1,4 +1,26 @@
 apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: search
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/pitoniak32/gitops-cd
+  destinations:
+    - name: in-cluster
+      namespace: search-gcp-dev
+    - name: in-cluster
+      namespace: search-gcp-prod
+    - name: in-cluster
+      namespace: search-onprem-prod
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+---
+apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: search-api-gcp-dev
@@ -13,12 +35,12 @@ metadata:
 spec:
   project: search
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/search/api/dev
     path: gcp-dev
   destination:
-    name: gke-use4-dev
-    namespace: team2-dev
+    name: in-cluster
+    namespace: search-gcp-dev
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -38,12 +60,12 @@ metadata:
 spec:
   project: search
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/search/api/prod
     path: gcp-prod
   destination:
-    name: gke-use1-prod
-    namespace: team2
+    name: in-cluster
+    namespace: search-gcp-prod
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -63,12 +85,12 @@ metadata:
 spec:
   project: search
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/search/api/prod
     path: onprem-prod
   destination:
-    name: onprem-p1
-    namespace: team2
+    name: in-cluster
+    namespace: search-onprem-prod
   syncPolicy:
     syncOptions:
       - CreateNamespace=true

@@ -6,21 +6,17 @@ package render
 
 #Cluster: {
 	argocdName: string // Argo CD cluster secret name
-	kind:       "gke" | "onprem"
+	kind:       "kind" | "gke" | "onprem"
 	region?:    string
 	environments: [...#Environment]
+	// false: no External Secrets store; secret: env values are validated but not rendered
+	secretStore: *true | bool
 }
 
 clusters: [N=string]: #Cluster & {argocdName: *N | string}
 clusters: {
-	"gke-use4-dev": {kind: "gke", region: "us-east4", environments: ["dev"]}
-	"onprem-d1": {kind: "onprem", environments: ["dev"]}
-	"gke-use1-nonprod": {kind: "gke", region: "us-east1", environments: ["staging", "perf"]}
-	"onprem-s1": {kind: "onprem", environments: ["staging", "perf"]}
-	"gke-use1-prod": {kind: "gke", region: "us-east1", environments: ["prod"]}
-	"gke-euw4-prod": {kind: "gke", region: "europe-west4", environments: ["prod"]}
-	"onprem-p1": {kind: "onprem", environments: ["prod"]}
-	"onprem-p2": {kind: "onprem", environments: ["prod"]}
+	// local kind cluster (cluster/kind.yaml): every environment, one namespace per target
+	"in-cluster": {kind: "kind", environments: ["dev", "staging", "perf", "prod"], secretStore: false}
 }
 
 _clusterNames: [for k, _ in clusters {k}]

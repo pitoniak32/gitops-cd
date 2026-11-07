@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../../../render/schemas/target.json
 config:
-  cluster: gke-use4-dev
-  namespace: team2-dev
+  cluster: in-cluster
+  namespace: search-gcp-dev
   environment: dev
   auth:
     wifEmail: team2-dev@team2-dev.iam.gserviceaccount.com

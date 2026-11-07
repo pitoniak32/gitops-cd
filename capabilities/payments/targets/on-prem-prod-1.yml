@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../../../render/schemas/target.json
 config:
-  cluster: onprem-p1
-  namespace: team1
+  cluster: in-cluster
+  namespace: payments-on-prem-prod-1
   environment: prod
   auth:
     wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com

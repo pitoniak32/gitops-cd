@@ -22,7 +22,7 @@ metadata:
 spec:
   subscriptions:
     - git:
-        repoURL: https://github.com/acme/gitops
+        repoURL: https://github.com/pitoniak32/gitops-cd
         branch: main
         includePaths:
           - regexp:^rendered/apps/search/api/
@@ -43,7 +43,7 @@ spec:
     spec:
       vars:
         - name: repo
-          value: https://github.com/acme/gitops
+          value: https://github.com/pitoniak32/gitops-cd
         - name: src
           value: ./src/rendered/apps/search/api/dev/
         - name: branch

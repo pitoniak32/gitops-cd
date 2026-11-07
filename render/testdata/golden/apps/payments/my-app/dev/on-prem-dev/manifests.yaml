@@ -12,7 +12,7 @@ metadata:
     example.com/environment: dev
     example.com/billing: dev
   name: my-app
-  namespace: team1-dev
+  namespace: payments-on-prem-dev
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,7 +26,7 @@ metadata:
     example.com/environment: dev
     example.com/billing: dev
   name: my-app
-  namespace: team1-dev
+  namespace: payments-on-prem-dev
 spec:
   replicas: 3
   selector:
@@ -45,19 +45,14 @@ spec:
     spec:
       containers:
         - env:
-            - name: APP_SECRET
-              valueFrom:
-                secretKeyRef:
-                  key: APP_SECRET
-                  name: my-app-secrets
             - name: STAGE_ENV
               value: "false"
             - name: APP_ENV
               value: "false"
-          image: ghcr.io/acme/my-app:1.4.2
+          image: ghcr.io/pitoniak32/nginx@sha256:5aca99593157f4ae539a5dec1092a0ad8762f8e2eb1789085a13a0f5622369f6
           name: my-app
           ports:
-            - containerPort: 8080
+            - containerPort: 80
               name: http
           resources:
             limits:
@@ -79,7 +74,7 @@ metadata:
     example.com/environment: dev
     example.com/billing: dev
   name: my-app
-  namespace: team1-dev
+  namespace: payments-on-prem-dev
 spec:
   ports:
     - name: http
@@ -87,30 +82,3 @@ spec:
       targetPort: http
   selector:
     app.kubernetes.io/name: my-app
----
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: my-app-secrets
-  namespace: team1-dev
-  labels:
-    app.kubernetes.io/managed-by: cue-platform
-    app.kubernetes.io/name: my-app
-    example.com/capability: payments
-    example.com/stage: dev
-    example.com/target: on-prem-dev
-    example.com/environment: dev
-    example.com/billing: dev
-spec:
-  refreshInterval: 1h
-  target:
-    name: my-app-secrets
-  data:
-    - secretKey: APP_SECRET
-      remoteRef:
-        key: my-app-secret
-        version: latest
-      sourceRef:
-        storeRef:
-          kind: ClusterSecretStore
-          name: gcp-acme-proj1

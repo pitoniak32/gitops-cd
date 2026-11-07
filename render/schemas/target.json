@@ -44,28 +44,7 @@
             {
               "anyOf": [
                 {
-                  "const": "gke-use4-dev"
-                },
-                {
-                  "const": "onprem-d1"
-                },
-                {
-                  "const": "gke-use1-nonprod"
-                },
-                {
-                  "const": "onprem-s1"
-                },
-                {
-                  "const": "gke-use1-prod"
-                },
-                {
-                  "const": "gke-euw4-prod"
-                },
-                {
-                  "const": "onprem-p1"
-                },
-                {
-                  "const": "onprem-p2"
+                  "const": "in-cluster"
                 }
               ]
             }
@@ -85,7 +64,6 @@
       "required": [
         "auth",
         "billing",
-        "cluster",
         "environment",
         "namespace"
       ],

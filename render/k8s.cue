@@ -28,7 +28,11 @@ manifests: {for key, d in deploys {
 			"example.com/billing":          d.tgt.billing
 		}
 		let meta = {name: appName, namespace: d.tgt.namespace, labels: podLabels}
-		let secrets = {for k, v in d.env if strings.HasPrefix(v, "secret:") {
+		let secretStore = clusters[d.tgt.cluster].secretStore
+
+		// without a secret store, secret-backed env vars are omitted (values still validated)
+		let envVars = {for k, v in d.env if secretStore || !strings.HasPrefix(v, "secret:") {(k): v}}
+		let secrets = {for k, v in envVars if strings.HasPrefix(v, "secret:") {
 			(k): regexp.FindSubmatch(_secretRe, v)
 		}}
 
@@ -55,8 +59,8 @@ manifests: {for key, d in deploys {
 								if d.port != _|_ {
 									ports: [{name: "http", containerPort: d.port}]
 								}
-								if len(d.env) > 0 {
-									env: [for k, v in d.env {
+								if len(envVars) > 0 {
+									env: [for k, v in envVars {
 										name: k
 										if secrets[k] == _|_ {value: v}
 										if secrets[k] != _|_ {valueFrom: secretKeyRef: {name: "\(appName)-secrets", key: k}}

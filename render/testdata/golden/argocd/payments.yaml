@@ -1,4 +1,40 @@
 apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: payments
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/pitoniak32/gitops-cd
+  destinations:
+    - name: in-cluster
+      namespace: payments-gcp-eu-prod
+    - name: in-cluster
+      namespace: payments-gcp-us-prod
+    - name: in-cluster
+      namespace: payments-on-prem-dev
+    - name: in-cluster
+      namespace: payments-on-prem-perf
+    - name: in-cluster
+      namespace: payments-on-prem-prod-1
+    - name: in-cluster
+      namespace: payments-on-prem-prod-2
+    - name: in-cluster
+      namespace: payments-on-prem-stg
+    - name: in-cluster
+      namespace: payments-us-east1-perf
+    - name: in-cluster
+      namespace: payments-us-east1-stg
+    - name: in-cluster
+      namespace: payments-us-east4-dev
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+---
+apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: payments-my-app-us-east4-dev
@@ -13,12 +49,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/dev
     path: us-east4-dev
   destination:
-    name: gke-use4-dev
-    namespace: team1-dev
+    name: in-cluster
+    namespace: payments-us-east4-dev
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -38,12 +74,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/dev
     path: on-prem-dev
   destination:
-    name: onprem-d1
-    namespace: team1-dev
+    name: in-cluster
+    namespace: payments-on-prem-dev
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -63,12 +99,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/staging
     path: us-east1-stg
   destination:
-    name: gke-use1-nonprod
-    namespace: team1-staging
+    name: in-cluster
+    namespace: payments-us-east1-stg
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -88,12 +124,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/staging
     path: on-prem-stg
   destination:
-    name: onprem-s1
-    namespace: team1-staging
+    name: in-cluster
+    namespace: payments-on-prem-stg
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -113,12 +149,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/perf
     path: us-east1-perf
   destination:
-    name: gke-use1-nonprod
-    namespace: team1-perf
+    name: in-cluster
+    namespace: payments-us-east1-perf
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -138,12 +174,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/perf
     path: on-prem-perf
   destination:
-    name: onprem-s1
-    namespace: team1-perf
+    name: in-cluster
+    namespace: payments-on-prem-perf
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -163,12 +199,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/prod
     path: gcp-us-prod
   destination:
-    name: gke-use1-prod
-    namespace: team1
+    name: in-cluster
+    namespace: payments-gcp-us-prod
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -188,12 +224,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/prod
     path: gcp-eu-prod
   destination:
-    name: gke-euw4-prod
-    namespace: team1
+    name: in-cluster
+    namespace: payments-gcp-eu-prod
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -213,12 +249,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/prod
     path: on-prem-prod-1
   destination:
-    name: onprem-p1
-    namespace: team1
+    name: in-cluster
+    namespace: payments-on-prem-prod-1
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -238,12 +274,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/my-app/prod
     path: on-prem-prod-2
   destination:
-    name: onprem-p2
-    namespace: team1
+    name: in-cluster
+    namespace: payments-on-prem-prod-2
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -263,12 +299,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/payments/dev
     path: us-east4-dev
   destination:
-    name: gke-use4-dev
-    namespace: team1-dev
+    name: in-cluster
+    namespace: payments-us-east4-dev
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -288,12 +324,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/payments/staging
     path: us-east1-stg
   destination:
-    name: gke-use1-nonprod
-    namespace: team1-staging
+    name: in-cluster
+    namespace: payments-us-east1-stg
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -313,12 +349,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/payments/prod
     path: gcp-us-prod
   destination:
-    name: gke-use1-prod
-    namespace: team1
+    name: in-cluster
+    namespace: payments-gcp-us-prod
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -338,12 +374,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/worker/dev
     path: us-east4-dev
   destination:
-    name: gke-use4-dev
-    namespace: team1-dev
+    name: in-cluster
+    namespace: payments-us-east4-dev
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -363,12 +399,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/worker/staging
     path: us-east1-stg
   destination:
-    name: gke-use1-nonprod
-    namespace: team1-staging
+    name: in-cluster
+    namespace: payments-us-east1-stg
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -388,12 +424,12 @@ metadata:
 spec:
   project: payments
   source:
-    repoURL: https://github.com/acme/gitops
+    repoURL: https://github.com/pitoniak32/gitops-cd
     targetRevision: env/payments/worker/prod
     path: gcp-us-prod
   destination:
-    name: gke-use1-prod
-    namespace: team1
+    name: in-cluster
+    namespace: payments-gcp-us-prod
   syncPolicy:
     syncOptions:
       - CreateNamespace=true

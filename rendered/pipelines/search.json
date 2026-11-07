@@ -9,8 +9,8 @@
         "level": 0,
         "targets": {
           "gcp-dev": {
-            "cluster": "gke-use4-dev",
-            "namespace": "team2-dev",
+            "cluster": "in-cluster",
+            "namespace": "search-gcp-dev",
             "environment": "dev",
             "path": "apps/search/api/dev/gcp-dev"
           }
@@ -24,14 +24,14 @@
         "level": 1,
         "targets": {
           "gcp-prod": {
-            "cluster": "gke-use1-prod",
-            "namespace": "team2",
+            "cluster": "in-cluster",
+            "namespace": "search-gcp-prod",
             "environment": "prod",
             "path": "apps/search/api/prod/gcp-prod"
           },
           "onprem-prod": {
-            "cluster": "onprem-p1",
-            "namespace": "team2",
+            "cluster": "in-cluster",
+            "namespace": "search-onprem-prod",
             "environment": "prod",
             "path": "apps/search/api/prod/onprem-prod"
           }

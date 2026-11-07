@@ -9,7 +9,7 @@ import (
 // Injected by scripts/render.sh.
 capability: =~"^[a-z][a-z0-9-]{0,29}$" @tag(capability)
 // The gitops monorepo; generated output lives under renderedDir in it.
-repoURL:     *"https://github.com/acme/gitops" | string @tag(repo)
+repoURL:     *"https://github.com/pitoniak32/gitops-cd" | string @tag(repo)
 renderedDir: "rendered"
 
 // -t generic=true: export editor schemas without capability data. Stage/target names

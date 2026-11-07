@@ -12,7 +12,7 @@ metadata:
     example.com/environment: perf
     example.com/billing: nonprod
   name: my-app
-  namespace: team1-perf
+  namespace: payments-on-prem-perf
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,7 +26,7 @@ metadata:
     example.com/environment: perf
     example.com/billing: nonprod
   name: my-app
-  namespace: team1-perf
+  namespace: payments-on-prem-perf
 spec:
   replicas: 2
   selector:
@@ -47,15 +47,10 @@ spec:
         - env:
             - name: APP_ENV
               value: "true"
-            - name: APP_SECRET
-              valueFrom:
-                secretKeyRef:
-                  key: APP_SECRET
-                  name: my-app-secrets
-          image: ghcr.io/acme/my-app:1.4.2
+          image: ghcr.io/pitoniak32/nginx@sha256:5aca99593157f4ae539a5dec1092a0ad8762f8e2eb1789085a13a0f5622369f6
           name: my-app
           ports:
-            - containerPort: 8080
+            - containerPort: 80
               name: http
           resources:
             limits:
@@ -77,7 +72,7 @@ metadata:
     example.com/environment: perf
     example.com/billing: nonprod
   name: my-app
-  namespace: team1-perf
+  namespace: payments-on-prem-perf
 spec:
   ports:
     - name: http
@@ -85,30 +80,3 @@ spec:
       targetPort: http
   selector:
     app.kubernetes.io/name: my-app
----
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: my-app-secrets
-  namespace: team1-perf
-  labels:
-    app.kubernetes.io/managed-by: cue-platform
-    app.kubernetes.io/name: my-app
-    example.com/capability: payments
-    example.com/stage: perf
-    example.com/target: on-prem-perf
-    example.com/environment: perf
-    example.com/billing: nonprod
-spec:
-  refreshInterval: 1h
-  target:
-    name: my-app-secrets
-  data:
-    - secretKey: APP_SECRET
-      remoteRef:
-        key: my-app-secret
-        version: latest
-      sourceRef:
-        storeRef:
-          kind: ClusterSecretStore
-          name: gcp-acme-proj1

@@ -6,6 +6,11 @@ tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 for cap in payments search; do scripts/render.sh testdata/root "$cap" "$tmp" >/dev/null; done
 if [[ "${UPDATE:-}" == 1 ]]; then rm -rf testdata/golden; cp -R "$tmp" testdata/golden; echo updated; exit; fi
 diff -ru testdata/golden "$tmp"; echo "golden ok"
+# kind: one AppProject per capability; no secret store -> no ExternalSecrets / secret env refs
+yq -e 'select(.kind == "AppProject" and .metadata.name == "payments")' "$tmp/argocd/payments.yaml" >/dev/null || { echo "missing AppProject payments" >&2; exit 1; }
+if grep -rqE 'ExternalSecret|secretKeyRef' "$tmp/apps/"; then echo "secret refs rendered for a cluster without a secret store" >&2; exit 1; fi
+grep -rq "APP_SECRET" testdata/root/capabilities/payments/apps/my-app/app.yml || { echo "fixture lost its secret: env value" >&2; exit 1; }
+echo "kind cluster ok"
 
 # CODEOWNERS: assemble from the fragments into a copy of root
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"

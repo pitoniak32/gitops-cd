@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../../../render/schemas/target.json
 config:
-  cluster: gke-use1-nonprod
-  namespace: team1-staging
+  cluster: in-cluster
+  namespace: payments-us-east1-stg
   environment: staging
   auth:
     wifEmail: team1-staging@team1-staging.iam.gserviceaccount.com

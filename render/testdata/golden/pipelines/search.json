@@ -9,8 +9,8 @@
         "level": 0,
         "targets": {
           "gcp-dev": {
-            "cluster": "gke-use4-dev",
-            "namespace": "search-dev",
+            "cluster": "in-cluster",
+            "namespace": "search-gcp-dev",
             "environment": "dev",
             "path": "apps/search/api/dev/gcp-dev"
           }

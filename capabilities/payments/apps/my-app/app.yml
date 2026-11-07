@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../../../../render/schemas/app.json
-image: ghcr.io/acme/my-app:1.4.2
-port: 8080
+image: ghcr.io/pitoniak32/nginx@sha256:5aca99593157f4ae539a5dec1092a0ad8762f8e2eb1789085a13a0f5622369f6
+port: 80
 replicas: 30
 env:
   APP_ENV: 'true'

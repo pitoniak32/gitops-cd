@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../../../render/schemas/target.json
 config:
-  cluster: gke-use4-dev
-  namespace: team1-dev
+  cluster: in-cluster
+  namespace: payments-us-east4-dev
   environment: dev
   auth:
     wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
