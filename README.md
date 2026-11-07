@@ -8,7 +8,10 @@ config, and a local kind cluster runs Argo CD + [Kargo](https://kargo.io) to pro
 
 ```sh
 mise install   # pinned tools (kind, helm, kubectl, cue, jq, yq, fnox)
-# first time: push this repo to github.com/pitoniak32/gitops-cd (rendered/ syncs from main)
+# first time:
+#   - push this repo to github.com/pitoniak32/gitops-cd (rendered/ syncs from main)
+#   - store a GitHub PAT with contents:write on that repo in the keychain for fnox:
+#     fnox set GITHUB_PAT   (Kargo pushes env/<cap>/<app>/<stage> branches with it)
 mise run up    # tear down + fresh cluster + infrastructure + bootstrap (~5 min)
 mise run down  # delete everything
 ```

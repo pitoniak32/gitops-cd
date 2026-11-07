@@ -13,6 +13,9 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      # .mise.toml evaluates `gh auth token` for GITHUB_AUTH_TOKEN; gh uses GH_TOKEN on runners
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:

@@ -10,6 +10,9 @@ diff -ru testdata/golden "$tmp"; echo "golden ok"
 yq -e 'select(.kind == "AppProject" and .metadata.name == "payments")' "$tmp/argocd/payments.yaml" >/dev/null || { echo "missing AppProject payments" >&2; exit 1; }
 if grep -rqE 'ExternalSecret|secretKeyRef' "$tmp/apps/"; then echo "secret refs rendered for a cluster without a secret store" >&2; exit 1; fi
 grep -rq "APP_SECRET" testdata/root/capabilities/payments/apps/my-app/app.yml || { echo "fixture lost its secret: env value" >&2; exit 1; }
+# Argo CD dry-runs all resources first: the project namespace must be rendered (labeled for Kargo
+# to adopt), not left for Kargo to create from the Project
+[[ "$(yq 'select(documentIndex == 0) | .kind + "/" + .metadata.name + "/" + .metadata.labels."kargo.akuity.io/project"' "$tmp/kargo/payments.yaml")" == "Namespace/kargo-payments/true" ]] || { echo "kargo/payments.yaml must start with labeled Namespace kargo-payments" >&2; exit 1; }
 echo "kind cluster ok"
 
 # CODEOWNERS: assemble from the fragments into a copy of root

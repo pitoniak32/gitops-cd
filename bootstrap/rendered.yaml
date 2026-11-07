@@ -34,7 +34,7 @@ spec:
     name: in-cluster
   syncPolicy:
     automated: {prune: true, selfHeal: true}
-    # Kargo creates each project's namespace from its Project; retry until it exists
+    # backstop: Kargo must adopt each rendered project namespace before its resources apply cleanly
     retry:
       limit: 10
       backoff: {duration: 5s, factor: 2, maxDuration: 1m}

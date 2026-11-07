@@ -19,6 +19,9 @@ _kargoAPI:     "kargo.akuity.io/v1alpha1"
 // naming: stage branch env/<cap>/<app>/<stage>, Argo app <cap>-<app>-<target>
 
 _kargoCore: [
+	// Rendered (not left to Kargo) so Argo CD's dry-run of the namespaced resources below passes on
+	// first sync; Kargo adopts a pre-existing namespace carrying this label.
+	{apiVersion: "v1", kind: "Namespace", metadata: {name: _kargoProject, labels: "kargo.akuity.io/project": "true"}},
 	{apiVersion: _kargoAPI, kind: "Project", metadata: name: _kargoProject},
 	{
 		apiVersion: _kargoAPI

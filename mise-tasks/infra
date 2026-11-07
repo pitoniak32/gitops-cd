@@ -34,6 +34,7 @@ for app in traefik cert-manager argo-rollouts keycloak kargo kargo-config argocd
   kubectl -n argocd wait "app/$app" --for=jsonpath='{.status.health.status}'=Healthy --timeout=600s
 done
 
-# generated capabilities: git creds, then root Applications syncing rendered/ from GitHub main
-mise run creds
+# generated capabilities: root Applications syncing rendered/ from GitHub main (public repo needs no
+# creds), then git creds (Kargo pushes env/* branches; needs GITHUB_PAT in fnox)
 kubectl apply -f bootstrap/rendered.yaml
+mise run creds
