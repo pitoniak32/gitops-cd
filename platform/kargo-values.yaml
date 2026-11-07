@@ -12,12 +12,11 @@ api:
       enabled: false
     # openid/profile/email always requested; chart default `groups` scope doesn't exist in keycloak realm
     additionalScopes: []
-    admins:
-      claims:
-        email:
-          - doug@example.com
+    # no OIDC admins: create/edit/delete only via gitops (see platform/kargo-gitops-only.yaml)
+    # promote rights granted per project (example-project/rbac.yml)
     viewers:
       claims:
         email:
+          - doug@example.com
           - alice@example.com
           - bob@example.com

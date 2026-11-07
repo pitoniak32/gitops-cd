@@ -43,3 +43,6 @@ helm upgrade --install kargo oci://ghcr.io/akuity/kargo-charts/kargo \
 
 # https://kargo.localhost without port-forward
 kubectl -n kargo apply -f platform/kargo-ingressroute.yaml
+
+# UI/API: promote/approve only; everything else via gitops
+kubectl apply -f platform/kargo-gitops-only.yaml

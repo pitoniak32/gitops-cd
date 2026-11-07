@@ -23,4 +23,5 @@ kubectl apply \
   -f example-project/analysistemplates.yml \
   -f example-project/warehouses.yml \
   -f example-project/promotiontasks.yml \
-  -f example-project/stages.yml
+  -f example-project/stages.yml \
+  -f example-project/rbac.yml
