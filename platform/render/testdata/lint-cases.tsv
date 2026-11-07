@@ -1,0 +1,11 @@
+capabilities/payments/owners.yml	.owners = ["nobody"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown team; allowed: team1, team2
+capabilities/payments/apps/worker/owners.yml	.owners = []	^capabilities/payments/apps/worker/owners\.yml:[0-9]+:[0-9]+:
+teams/team2.yaml	.githubTeam = "Bad Name"	^teams/team2\.yaml:[0-9]+:[0-9]+:
+capabilities/payments/apps/worker/owners.yml	.owners = ["team1", "team1"]	owners\.yml:[0-9]+:[0-9]+: owners: teams must not repeat
+capabilities/payments/stages/prod.yml	.autoPromote = true	^capabilities/payments/stages/prod\.yml:[0-9]+:[0-9]+: .*stage prod deploys to prod targets; autoPromote not allowed
+capabilities/payments/owners.yml	.promoters = ["doug@evil.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: promoters\.0: .*expected a lowercase @example\.com email
+capabilities/payments/owners.yml	.viewers = ["Bob@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: viewers\.0: .*expected a lowercase @example\.com email
+capabilities/payments/owners.yml	del(.promoters)	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*needs promoters
+capabilities/payments/owners.yml	.promoters = []	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: promoters: needs at least one email
+capabilities/payments/apps/worker/owners.yml	.promoters = ["doug@example.com", "doug@example.com"]	owners\.yml:[0-9]+:[0-9]+: promoters: emails must not repeat
+teams/team1.yml	.idpGroup = "team1"	^teams/team1\.yml:[0-9]+:[0-9]+: .*idpGroup

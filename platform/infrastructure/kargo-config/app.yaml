@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kargo-config
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://bedag.github.io/helm-charts
+    chart: raw
+    targetRevision: 2.0.2
+    # helm.valuesObject filled from values.yaml / manifests/ by mise-tasks/infra-render
+    helm:
+      releaseName: kargo-config
+      valuesObject: {}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kargo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff: { duration: 5s, factor: 2, maxDuration: 1m }

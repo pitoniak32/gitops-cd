@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="CUE renderer tests: golden, CODEOWNERS, lint cases (UPDATE=1 accepts golden)"
-set -euo pipefail
-exec "$MISE_PROJECT_ROOT/render/scripts/test.sh"

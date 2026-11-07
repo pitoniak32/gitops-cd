@@ -1,3 +1,0 @@
-# yaml-language-server: $schema=../render/schemas/team.json
-githubTeam: acme/team1
-idpGroup: team1

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#MISE description="Render argocd Applications (values + kustomized manifests inlined) to stdout"
+#USAGE arg "[apps]..." help="platform/infrastructure/<app> dirs to render (default: all)"
+set -euo pipefail
+
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+apps=(${usage_apps:-})
+[ ${#apps[@]} -gt 0 ] || apps=($(cd platform/infrastructure && ls -d */ | tr -d /))
+
+for a in "${apps[@]}"; do
+  d=platform/infrastructure/$a
+  cp "$d/app.yaml" "$tmp/app.yaml"
+  if [ -f "$d/values.yaml" ]; then
+    V="$d/values.yaml" yq -i '.spec.source.helm.valuesObject = load(strenv(V))' "$tmp/app.yaml"
+  fi
+  # plain manifests -> bedag/raw chart `resources` (no git source yet)
+  if [ -f "$d/manifests/kustomization.yaml" ]; then
+    kubectl kustomize "$d/manifests" | yq ea '[.]' > "$tmp/res.yaml"
+    R="$tmp/res.yaml" yq -i '.spec.source.helm.valuesObject.resources = load(strenv(R))' "$tmp/app.yaml"
+  fi
+  echo "---"; cat "$tmp/app.yaml"
+done

@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=../../render/schemas/owners.json
+owners: [team1]
+promoters: [doug@example.com]
+viewers: [bob@example.com]

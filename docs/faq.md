@@ -21,7 +21,7 @@ No. Typical: **one Kargo control plane per org/platform**, on a management (hub)
 
 ### What does this repo run?
 
-Hub-and-spoke with one spoke: one kind cluster, one Kargo (`infrastructure/kargo/`, chart 1.12.5), one Argo CD. `render/clusters.cue` registers `in-cluster`; each entry's `argocdName` is an Argo CD cluster secret name. More clusters in hub-and-spoke = add Argo CD cluster secrets + `clusters` entries; no Kargo changes.
+Hub-and-spoke with one spoke: one kind cluster, one Kargo (`platform/infrastructure/kargo/`, chart 1.12.5), one Argo CD. `platform/render/clusters.cue` registers `in-cluster`; each entry's `argocdName` is an Argo CD cluster secret name. More clusters in hub-and-spoke = add Argo CD cluster secrets + `clusters` entries; no Kargo changes.
 
 ## Integrating with existing Argo CD in each management cluster
 
@@ -51,13 +51,13 @@ Central install: `api.argocd.urls` maps shard name → that Argo CD's URL (UI de
 
 ### What changes in this repo
 
-- `render/clusters.cue`: add a field like `kargoShard` (or `argocd`) per cluster so targets know which management cluster's Argo CD owns them.
-- `render/delivery.cue`:
+- `platform/render/clusters.cue`: add a field like `kargoShard` (or `argocd`) per cluster so targets know which management cluster's Argo CD owns them.
+- `platform/render/delivery.cue`:
   - set `spec.shard` on each Stage from its target's cluster.
   - Applications still carry `kargo.akuity.io/authorized-stage: <project>:<stage>`; Argo CD rejects Kargo updates without it.
   - emit Applications/AppProjects **per management cluster** (e.g. `rendered/argocd/<mgmt>/`), not one flat dir; Kargo resources stay in `rendered/kargo/` (central).
-- `bootstrap/`: each management cluster's Argo CD gets a root Application syncing only its `rendered/argocd/<mgmt>/` dir. Central keeps syncing `rendered/kargo/`.
-- RBAC: owner-generated Argo CD AppProject `viewer` roles must exist in every management cluster's Argo CD, and each Argo CD needs the Keycloak OIDC client (or its own IdP) with the `groups` claim. Kargo `owner-<team>` roles stay central.
+- `platform/bootstrap/`: each management cluster's Argo CD gets a root Application syncing only its `rendered/argocd/<mgmt>/` dir. Central keeps syncing `rendered/kargo/`.
+- RBAC: owner-generated Argo CD AppProject `viewer` roles must exist in every management cluster's Argo CD, and each Argo CD needs the OIDC client with the `email` claim and `scopes: [email]` (ADR 0011). Kargo `promote-<app>`/`viewers` roles stay central.
 - Warehouses: usually unsharded (default controller, central). Shard only if a mgmt cluster must pull from registries/git only it can reach.
 - Git creds: every shard controller needs the GitHub App creds (`kargo-shared-resources` in central works only if the shard reads secrets from the central cluster via `kubeconfigSecrets.kargo`, as in option A).
 

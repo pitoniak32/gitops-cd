@@ -1,0 +1,27 @@
+api:
+  host: kargo.localhost
+  adminAccount:
+    enabled: false
+  secretManagementEnabled: false
+  oidc:
+    enabled: true
+    # local keycloak (infrastructure/keycloak/); http so kargo-api needn't trust a self-signed CA
+    issuerURL: http://keycloak.localhost/realms/kargo
+    clientID: kargo
+    dex:
+      enabled: false
+    # openid/profile/email always requested; all access maps the `email` claim (ADR 0011), no groups
+    additionalScopes: []
+    # platform admins by email = Kargo admin (ADR 0009): view/promote/approve everywhere;
+    # create/edit/delete still blocked for everyone by infrastructure/kargo-config/manifests/gitops-only.yaml
+    admins:
+      claims:
+        email: [admin@example.com]
+    # no global viewers/users; all access is generated per capability from owners.yml emails
+    # (rendered/kargo/<cap>.yaml):
+    #   promote-<app> in kargo-<cap>: the app's promoters promote its stages
+    #   viewers in kargo-<cap>: promoters + viewers get Kargo's kargo-viewer Role (read project)
+    #   users-<cap> in kargo-shared-resources: kargo-user (list project names), via the SAs below
+    globalServiceAccounts:
+      namespaces:
+        - kargo-shared-resources

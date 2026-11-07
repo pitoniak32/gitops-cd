@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Validate capabilities (+ teams/) with the full CUE rules: <file>:<line>:<col>: <message>"
+#USAGE arg "[caps]..." help="capabilities to lint (default: all)"
+set -uo pipefail
+cd "$MISE_PROJECT_ROOT"
+caps=(${usage_caps:-})
+[[ ${#caps[@]} -gt 0 ]] || { caps=(); for d in capabilities/*/; do d="${d%/}"; caps+=("${d#capabilities/}"); done; }
+rc=0; out=""
+for c in "${caps[@]}"; do out+="$(platform/render/scripts/lint.sh . "$c")"$'\n' || rc=1; done
+# teams/ errors show up once per capability; dedupe
+printf '%s' "$out" | sed '/^$/d' | sort | uniq
+exit "$rc"

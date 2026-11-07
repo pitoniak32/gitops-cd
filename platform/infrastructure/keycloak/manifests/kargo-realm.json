@@ -1,0 +1,118 @@
+{
+  "realm": "kargo",
+  "enabled": true,
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "kargo",
+      "name": "Kargo",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "https://kargo.localhost/login",
+        "http://localhost*"
+      ],
+      "webOrigins": [
+        "https://kargo.localhost"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://kargo.localhost/*"
+      }
+    },
+    {
+      "clientId": "argocd",
+      "name": "Argo CD",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://argocd.localhost/pkce/verify",
+        "https://argocd.localhost/auth/callback",
+        "http://localhost:8085/auth/callback"
+      ],
+      "webOrigins": [
+        "https://argocd.localhost"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://argocd.localhost/*"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "doug",
+      "email": "doug@example.com",
+      "firstName": "Doug",
+      "lastName": "Admin",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "doug",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-kargo"
+      ]
+    },
+    {
+      "username": "alice",
+      "email": "alice@example.com",
+      "firstName": "Alice",
+      "lastName": "Viewer",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-kargo"
+      ]
+    },
+    {
+      "username": "bob",
+      "email": "bob@example.com",
+      "firstName": "Bob",
+      "lastName": "Viewer",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-kargo"
+      ]
+    },
+    {
+      "username": "admin",
+      "email": "admin@example.com",
+      "firstName": "Platform",
+      "lastName": "Admin",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-kargo"
+      ]
+    }
+  ]
+}

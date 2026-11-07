@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Regenerate editor JSON Schemas in platform/render/schemas/"
+set -euo pipefail
+exec "$MISE_PROJECT_ROOT/platform/render/scripts/schemas.sh"
