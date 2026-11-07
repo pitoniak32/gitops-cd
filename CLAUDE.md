@@ -31,6 +31,7 @@ App teams own `capabilities/`; everything platform-owned (renderer, cluster, add
 - **VCS is jj.** No git mutations, no pushes.
 
 ## Changing infrastructure
+- What Argo CD pulls from git vs what needs `mise run infra` / `up`: `docs/sync-boundaries.md`. Infra Applications are inlined from the local checkout, not git-sourced.
 - Edit `platform/infrastructure/<addon>/`, then `mise run infra`.
 - **New addon**: create `platform/infrastructure/<addon>/` from an existing `app.yaml`, add it to the ordered list in `platform/mise-tasks/infra`. Order matters: CRDs, webhooks and the OIDC issuer before their users; `argocd` last.
 - **Expose a UI**: Traefik `IngressRoute`, not `Ingress`.
