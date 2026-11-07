@@ -6,8 +6,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="${1:-schemas}"; mkdir -p "$OUT"
-for def in App Stage Target Owners Team; do
-  f="$OUT/$(tr '[:upper:]' '[:lower:]' <<<"$def").json"
+for def in App Stage Target EnvironmentVariables Owners Team; do
+  f="$OUT/$(sed -E 's/([a-z])([A-Z])/\1-\2/g' <<<"$def" | tr '[:upper:]' '[:lower:]').json"
   cue def . -t generic=true -e "#$def" --out jsonschema |
   # CUE embedding exports as {$ref, properties, additionalProperties:false}, which JSON Schema
   # treats as two closed schemas rejecting each other's keys. Inline the ref'd properties.

@@ -22,13 +22,15 @@ owners.yml                owners: [team, ..], promoters: [email, ..], viewers: [
                           (apps/<app>/owners.yml replaces each field it sets)
 ../../teams/<team>.yml    githubTeam
 stages/<stage>.yml        dependsOn: [..], autoPromote: bool
-targets/<target>.yml      config: {cluster, namespace, environment, auth.wifEmail, billing, platform}
-apps/<app>/app.yml        image, port, replicas, env, resources, stages.<s>.targets.<t>
+targets/<t>/target.yml    config: {cluster, namespace, environment, auth.wifEmail, billing, platform}
+targets/<t>/environment-variables/<name>.yml   KEY: value (flat)
+apps/<app>/app.yml        image, port, replicas, env, envFrom, resources, stages.<s>.targets.<t>
 ```
 
 ## Merge rules
 - `replicas`, `resources.*`: target > stage > app > default.
 - `env`: merged per key, same precedence. Keys can't be removed at a lower layer.
+- `envFrom: [<name>]` (any layer, unioned): adds `targets/<t>/environment-variables/<name>.yml` of each target, below all `env`; between files the most specific layer's `envFrom` wins. Missing file, or one KEY with different values from two files of the same layer = lint error (ADR 0014).
 - `image`, `port`: app level only (image promotes through stages via Kargo).
 - An app may skip stages; deps pass through (no perf → prod depends on staging).
 - Each target used once per app; two targets of one app can't share cluster+namespace.

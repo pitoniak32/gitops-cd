@@ -5,7 +5,8 @@ cue_args() {
   local root cap="$2"; root="$(cd "$1" && pwd)"
   local c="$root/capabilities/$cap"
   shopt -s nullglob
-  CUE_ARGS=("$root"/teams/*.y*ml "$c"/owners.y*ml "$c"/stages/*.y*ml "$c"/targets/*.y*ml
+  CUE_ARGS=("$root"/teams/*.y*ml "$c"/owners.y*ml "$c"/stages/*.y*ml "$c"/targets/*.y*ml "$c"/targets/*/target.y*ml
+    "$c"/targets/*/environment-variables/*.y*ml
     "$c"/apps/*/app.y*ml "$c"/apps/*/owners.y*ml)
   shopt -u nullglob
   CUE_ARGS+=(--with-context -l 'in:' -l "strings.TrimPrefix(filename, \"$root/\")" -t capability="$cap")

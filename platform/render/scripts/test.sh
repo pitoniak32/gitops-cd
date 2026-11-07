@@ -80,13 +80,42 @@ for d in apps/worker stages/perf targets/on-prem-dev; do
   r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments"
   mv "$c/$d" "$c/$(dirname "$d")/Bad_Name" 2>/dev/null || mv "$c/$d.yml" "$c/$(dirname "$d")/Bad_Name.yml"
   got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
-  grep -qE '^capabilities/payments/[a-z]+/Bad_Name(/app)?\.yml:[0-9]+:[0-9]+: .*invalid name' <<<"$got" || { printf 'bad name not rejected for %s:\n%s\n' "$d" "$got" >&2; exit 1; }
+  grep -qE '^capabilities/payments/[a-z]+/Bad_Name(/app|/target)?\.yml:[0-9]+:[0-9]+: .*invalid name' <<<"$got" || { printf 'bad name not rejected for %s:\n%s\n' "$d" "$got" >&2; exit 1; }
   echo "bad name ok: $d"
 done
 
 # A target named like a stage would collide as a Kargo Stage name (<app>-<name>)
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
-cp "$r/capabilities/payments/targets/on-prem-dev.yml" "$r/capabilities/payments/targets/dev.yml"
+cp -R "$r/capabilities/payments/targets/on-prem-dev" "$r/capabilities/payments/targets/dev"
 got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
-grep -qE '^capabilities/payments/targets/dev\.yml:[0-9]+:[0-9]+: .*also a stage name' <<<"$got" || { printf 'target/stage name collision not rejected:\n%s\n' "$got" >&2; exit 1; }
+grep -qE '^capabilities/payments/targets/dev/target\.yml:[0-9]+:[0-9]+: .*also a stage name' <<<"$got" || { printf 'target/stage name collision not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "target/stage name collision ok"
+
+# Target layout: old targets/<t>.yml and bundles without target.yml fail lint
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; t="$r/capabilities/payments/targets"
+cp "$t/on-prem-dev/target.yml" "$t/old.yml"
+mkdir -p "$t/ghost/environment-variables"; echo 'A: b' >"$t/ghost/environment-variables/x.yml"
+got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+grep -qE '^capabilities/payments/targets/old\.yml:1:1: .*move to targets/old/target\.yml' <<<"$got" || { printf 'legacy target file not rejected:\n%s\n' "$got" >&2; exit 1; }
+grep -qE '^capabilities/payments/targets/ghost/environment-variables/x\.yml:[0-9]+:[0-9]+: .*without targets/ghost/target\.yml' <<<"$got" || { printf 'bundle without target not rejected:\n%s\n' "$got" >&2; exit 1; }
+echo "target layout ok"
+
+# envFrom precedence: target env > stage env > app env > environment-variables bundle
+for t in us-east4-dev:true on-prem-dev:false; do
+  v="$(yq "select(.kind == \"Deployment\") | .spec.template.spec.containers[0].env[] | select(.name == \"APP_ENV\") | .value" testdata/golden/apps/payments/my-app/dev/${t%%:*}/*.yaml)"
+  [[ $v == "${t#*:}" ]] || { echo "APP_ENV on ${t%%:*}: got '$v' want '${t#*:}' (bundle must not beat app/target env)" >&2; exit 1; }
+done
+echo "envFrom precedence ok"
+
+# envFrom KEY clash: most specific layer wins; same layer: equal ok, different = error
+r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments"
+printf 'LD_RELAY_URL: https://other\nLD_SDK_KEY: secret:acme-dev-use4/launchdarkly-sdk-key\n' >"$c/targets/us-east4-dev/environment-variables/flags.yml"
+yq -i '.stages.dev.targets.us-east4-dev.envFrom = ["flags"]' "$c/apps/my-app/app.yml"
+scripts/render.sh "$r" payments "$o" >/dev/null
+v="$(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "LD_RELAY_URL") | .value' "$o/apps/payments/my-app/dev/us-east4-dev/manifests.yaml")"
+[[ $v == https://other ]] || { echo "target-level envFrom must win: LD_RELAY_URL=$v" >&2; exit 1; }
+yq -i '.stages.dev.targets.us-east4-dev.envFrom = ["flags", "launchdarkly"]' "$c/apps/my-app/app.yml"
+got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}" "${o:?}"
+grep -qE '^capabilities/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.us-east4-dev\.envFrom: .*LD_RELAY_URL differs between environment-variables/\{flags,launchdarkly\}\.yml \(both in target-level' <<<"$got" || { printf 'same-layer clash not rejected:\n%s\n' "$got" >&2; exit 1; }
+grep -q LD_SDK_KEY <<<"$got" && { printf 'equal values must not clash:\n%s\n' "$got" >&2; exit 1; }
+echo "envFrom clash ok"

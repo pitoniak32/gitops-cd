@@ -1,7 +1,7 @@
-# yaml-language-server: $schema=../../../platform/render/schemas/target.json
+# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 config:
   cluster: in-cluster
-  namespace: payments-on-prem-perf
+  namespace: payments-us-east1-perf
   environment: perf
   auth:
     wifEmail: team1-perf@team1-perf.iam.gserviceaccount.com

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../platform/render/schemas/target.json
+# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 config:
   cluster: in-cluster
   namespace: search-gcp-dev

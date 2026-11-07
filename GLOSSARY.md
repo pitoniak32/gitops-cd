@@ -41,8 +41,12 @@ _Avoid_: stage (ambiguous in Kargo)
 The Kargo Stage `<app>-<target>` that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
 
 **Target**:
-A reusable deployment destination (`targets/<name>.yml`): one cluster + namespace + workload identity.
+A reusable deployment destination (`targets/<name>/target.yml`): one cluster + namespace + workload identity.
 _Avoid_: env, region, location
+
+**Environment-variables file**:
+A flat `KEY: value` file of a target (`targets/<t>/environment-variables/<name>.yml`, e.g. `launchdarkly.yml`). An app pulls it in with `envFrom: [<name>]` at app, stage or target level; every target it reaches must have that file. `env` in `app.yml` wins over it; between files, the most specific `envFrom` layer wins.
+_Avoid_: env bundle, env file
 
 **App**:
 A deployable workload (`apps/<name>/app.yml`) assigned to targets per stage.

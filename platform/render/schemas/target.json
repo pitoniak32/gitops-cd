@@ -12,7 +12,7 @@
     }
   },
   "type": "object",
-  "description": "targets/<name>.yml — where a stage deploys. Reusable across apps.",
+  "description": "targets/<name>/target.yml — where a stage deploys. Reusable across apps.\nSibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.",
   "properties": {
     "config": {
       "type": "object",

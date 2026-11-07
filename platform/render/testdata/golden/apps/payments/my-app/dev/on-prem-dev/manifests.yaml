@@ -45,6 +45,8 @@ spec:
     spec:
       containers:
         - env:
+            - name: LD_RELAY_URL
+              value: https://ld-relay.on-prem-dev.example.com
             - name: STAGE_ENV
               value: "false"
             - name: APP_ENV
