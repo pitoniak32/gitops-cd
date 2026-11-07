@@ -511,17 +511,6 @@ rules:
       - worker-staging
     verbs:
       - promote
-  - apiGroups:
-      - kargo.akuity.io
-    resources:
-      - freights
-      - stages
-      - warehouses
-      - promotions
-    verbs:
-      - get
-      - list
-      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -540,3 +529,47 @@ subjects:
   - kind: ServiceAccount
     name: owner-team1
     namespace: kargo-payments
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: owner-team1-viewer
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kargo-viewer
+subjects:
+  - kind: ServiceAccount
+    name: owner-team1
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: users-payments
+  namespace: kargo-shared-resources
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"groups":["team1"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kargo-users-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kargo-user
+subjects:
+  - kind: ServiceAccount
+    name: users-payments
+    namespace: kargo-shared-resources

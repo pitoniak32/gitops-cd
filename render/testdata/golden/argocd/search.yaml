@@ -15,6 +15,13 @@ spec:
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
+  roles:
+    - name: viewer
+      description: read-only view of search apps for its owning teams
+      policies:
+        - p, proj:search:viewer, applications, get, search/*, allow
+      groups:
+        - team2
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

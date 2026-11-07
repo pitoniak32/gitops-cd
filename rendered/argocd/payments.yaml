@@ -33,6 +33,13 @@ spec:
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
+  roles:
+    - name: viewer
+      description: read-only view of payments apps for its owning teams
+      policies:
+        - p, proj:payments:viewer, applications, get, payments/*, allow
+      groups:
+        - team1
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

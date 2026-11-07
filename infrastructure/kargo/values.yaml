@@ -14,10 +14,9 @@ api:
     # kargo client (keycloak realm), so no `groups` scope is requested (it doesn't exist in the realm)
     additionalScopes: []
     # no OIDC admins: create/edit/delete only via gitops (see infrastructure/kargo-config/manifests/gitops-only.yaml)
-    # promote rights: generated owner-<team> roles per capability project (rendered/kargo/)
-    viewers:
-      claims:
-        email:
-          - doug@example.com
-          - alice@example.com
-          - bob@example.com
+    # no global viewers/users: all access is generated per capability (rendered/kargo/<cap>.yaml):
+    #   owner-<team> in kargo-<cap>: promote own apps' stages + Kargo's kargo-viewer Role (read project)
+    #   users-<cap> in kargo-shared-resources: kargo-user (list project names), via the SAs below
+    globalServiceAccounts:
+      namespaces:
+        - kargo-shared-resources

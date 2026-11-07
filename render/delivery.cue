@@ -103,6 +103,13 @@ _appProject: {
 		}]
 		clusterResourceWhitelist: [{group: "", kind: "Namespace"}] // CreateNamespace=true
 		namespaceResourceWhitelist: [{group: "*", kind: "*"}]
+		// Argo CD UI/CLI: owners see this capability's apps, read-only (Kargo does all syncing)
+		roles: [{
+			name:        "viewer"
+			description: "read-only view of \(_cap) apps for its owning teams"
+			policies: ["p, proj:\(_cap):viewer, applications, get, \(_cap)/*, allow"]
+			groups: list.SortStrings([for t, _ in {for t in _allOwners {(teams[t].idpGroup): _}} {t}])
+		}]
 	}
 }
 
@@ -162,10 +169,6 @@ _kargoRBAC: [for t, names in _promoteStages if len(names) > 0 {
 			resources: ["stages"]
 			resourceNames: names
 			verbs: ["promote"]
-		}, {
-			apiGroups: ["kargo.akuity.io"]
-			resources: ["freights", "stages", "warehouses", "promotions"]
-			verbs: ["get", "list", "watch"]
 		}]
 	}, {
 		apiVersion: "rbac.authorization.k8s.io/v1"
@@ -173,6 +176,42 @@ _kargoRBAC: [for t, names in _promoteStages if len(names) > 0 {
 		metadata:   meta
 		roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "Role", name: meta.name}
 		subjects: [{kind: "ServiceAccount", name: meta.name, namespace: _kargoProject}]
+	}, {
+		// read access to the whole project: Kargo's own per-project kargo-viewer Role
+		apiVersion: "rbac.authorization.k8s.io/v1"
+		kind:       "RoleBinding"
+		metadata: {
+			name:        "owner-\(t)-viewer"
+			namespace:   meta.namespace
+			labels:      meta.labels
+			annotations: meta.annotations
+		}
+		roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "Role", name: "kargo-viewer"}
+		subjects: [{kind: "ServiceAccount", name: meta.name, namespace: _kargoProject}]
 	}]
 }]
-kargo: list.Concat([_kargoCore, for r in _kargoRBAC {r}])
+
+// Listing projects needs cluster-scoped read (Kargo's kargo-user ClusterRole). Owners get it via a
+// global ServiceAccount (api.oidc.globalServiceAccounts: kargo-shared-resources). They see other
+// projects' names; contents only where they own apps (UI "My projects" filters to those).
+_kargoUsers: [{
+	apiVersion: "v1"
+	kind:       "ServiceAccount"
+	metadata: {
+		name:      "users-\(_cap)"
+		namespace: "kargo-shared-resources"
+		labels: "app.kubernetes.io/managed-by": "gitops-platform"
+		annotations: {
+			"rbac.kargo.akuity.io/managed": "true"
+			"rbac.kargo.akuity.io/claims": json.Marshal({groups: list.SortStrings([for g, _ in {for t, _ in _promoteStages {(teams[t].idpGroup): _}} {g}])})
+		}
+	}
+}, {
+	apiVersion: "rbac.authorization.k8s.io/v1"
+	kind:       "ClusterRoleBinding"
+	metadata: {name: "kargo-users-\(_cap)", labels: "app.kubernetes.io/managed-by": "gitops-platform"}
+	roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "ClusterRole", name: "kargo-user"}
+	subjects: [{kind: "ServiceAccount", name: "users-\(_cap)", namespace: "kargo-shared-resources"}]
+}]
+
+kargo: list.Concat([_kargoCore, for r in _kargoRBAC {r}, _kargoUsers])

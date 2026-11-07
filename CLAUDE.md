@@ -20,7 +20,7 @@ Capability YAML (`capabilities/`) + team registry (`teams/`) → CUE renderer (`
 
 ## Rules
 - **Fully local and reproducible**: `mise run up` must go from nothing to working with no manual steps (after the repo is pushed: `rendered/` syncs from GitHub `main`). After changing cluster, infrastructure or auth, prove it with a clean `mise run up`; `mise run infra` alone doesn't catch bootstrap-order bugs.
-- **GitOps-only**: no UI user gets create/edit/delete rights in Kargo or Argo CD. Promote rights come only from the generated `owner-<team>` roles (Keycloak `groups` claim), never from admin claims.
+- **GitOps-only**: no UI user gets create/edit/delete rights in Kargo or Argo CD. All UI access is generated per capability from owners (Keycloak `groups` claim): Kargo `owner-<team>` roles (view + promote) and `users-<cap>` global SAs (list projects), Argo CD AppProject `viewer` roles (read-only); never admin claims, global viewers or global policies.
 - **Pin versions**: tools in `.mise.toml`, charts in `infrastructure/<addon>/app.yaml` `targetRevision`, images by tag or digest (`:latest` is rejected).
 - **Idempotent tasks**: every `mise-tasks/*` script must be safe to re-run.
 - **Secrets** come from fnox (`.fnox.toml`, macOS keychain); `mise run creds` puts git creds in `kargo-shared-resources` and Argo CD. Nothing secret in git.
