@@ -12,7 +12,8 @@ import (
 	autoPromote: *false | bool
 }
 
-// targets/<name>.yml — where a stage deploys. Reusable across apps.
+// targets/<name>/target.yml — where a stage deploys. Reusable across apps.
+// Sibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.
 #Target: {
 	config: {
 		cluster:     or(_clusterNames) | error("unknown cluster; allowed: \(strings.Join(_clusterNames, ", "))")

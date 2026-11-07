@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Render one capability into rendered/ (the repo's scripts/render.sh runs every capability).
 # usage: render.sh <root> <capability> <rendered-dir>
-#   <root>/capabilities/<cap>/{owners.yml,stages/*.yml,targets/*.yml,apps/<app>/{app,owners}.yml}
+#   <root>/capabilities/<cap>/{owners.yml,stages/*.yml,targets/<t>/{target.yml,environment-variables/*.yml},apps/<app>/{app,owners}.yml}
 #   <root>/teams/<team>.yml
 # Wipes and rewrites only this capability's paths, so deletions prune.
 set -euo pipefail

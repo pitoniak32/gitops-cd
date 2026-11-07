@@ -26,7 +26,12 @@ locate() {
   LOC_Q=""; LOC_LABEL=""
   case "${segs[0]}" in
     apps) LOC_FILE="$(yamlfile "$C/apps/${segs[1]}/app")"; n=2 ;;
-    stages | targets) LOC_FILE="$(yamlfile "$C/${segs[0]}/${segs[1]}")"; n=2 ;;
+    stages) LOC_FILE="$(yamlfile "$C/stages/${segs[1]}")"; n=2 ;;
+    targets) LOC_FILE="$(yamlfile "$C/targets/${segs[1]}/target")"; n=2 ;;
+    legacyTargets) LOC_FILE="$(yamlfile "$C/targets/${segs[1]}")"; n=${#segs[@]} ;;
+    targetEnvs) # no file for the target-level error: point at its first bundle
+      if ((${#segs[@]} > 2)); then LOC_FILE="$(yamlfile "$C/targets/${segs[1]}/environment-variables/${segs[2]}")"; n=3
+      else LOC_FILE="$(cd "$ROOT" && ls "$C/targets/${segs[1]}"/environment-variables/*.y*ml | head -1)"; n=2; fi ;;
     capOwners) LOC_FILE="$(yamlfile "$C/owners")"; n=2 ;; # skip list index (0 or 1 file)
     appOwners) LOC_FILE="$(yamlfile "$C/apps/${segs[1]}/owners")"; n=2 ;;
     teams) LOC_FILE="$(yamlfile "teams/${segs[1]}")"; n=2 ;;
@@ -34,7 +39,8 @@ locate() {
     deploys) # "app/target": point at the target entry under its stage
       local t="${segs[1]#*/}"
       LOC_FILE="$(yamlfile "$C/apps/${segs[1]%%/*}/app")"
-      LOC_Q=".stages[].targets | select(has(\"$t\")) | .\"$t\""; LOC_LABEL="targets.$t"; n=2 ;;
+      LOC_Q=".stages[].targets | select(has(\"$t\")) | .\"$t\""; LOC_LABEL="targets.$t"; n=2
+      [[ ${segs[2]:-} == envFrom ]] && { LOC_LABEL+=".envFrom"; n=${#segs[@]}; } ;;
     *) return 1 ;;
   esac
   while ((n < ${#segs[@]})); do

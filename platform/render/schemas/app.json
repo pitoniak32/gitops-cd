@@ -19,21 +19,32 @@
       "errorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]",
       "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]"
     },
+    "EnvironmentVariables": {
+      "type": "object",
+      "description": "targets/<t>/environment-variables/<name>.yml: flat KEY: value map",
+      "patternProperties": {
+        "^[A-Z_][A-Z0-9_]*$": {
+          "$ref": "#/$defs/EnvValue"
+        }
+      },
+      "propertyNames": {
+        "pattern": "^[A-Z_][A-Z0-9_]*$",
+        "errorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$",
+        "patternErrorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$"
+      }
+    },
     "Layer": {
       "type": "object",
       "description": "Settings that can be set at app, stage, or target level. Most specific wins;\nenv is merged per key.",
       "properties": {
         "env": {
-          "type": "object",
-          "patternProperties": {
-            "^[A-Z_][A-Z0-9_]*$": {
-              "$ref": "#/$defs/EnvValue"
-            }
-          },
-          "propertyNames": {
-            "pattern": "^[A-Z_][A-Z0-9_]*$",
-            "errorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$",
-            "patternErrorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$"
+          "$ref": "#/$defs/EnvironmentVariables"
+        },
+        "envFrom": {
+          "type": "array",
+          "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. Lists union across layers; env wins.",
+          "items": {
+            "$ref": "#/$defs/Name"
           }
         },
         "replicas": {
@@ -72,26 +83,28 @@
       "propertyNames": {
         "enum": [
           "env",
+          "envFrom",
           "replicas",
           "resources"
         ],
-        "errorMessage": "Unknown key. Allowed: env, replicas, resources"
+        "errorMessage": "Unknown key. Allowed: env, envFrom, replicas, resources"
       }
+    },
+    "Name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$"
     },
     "StageLayer": {
       "type": "object",
       "properties": {
         "env": {
-          "type": "object",
-          "patternProperties": {
-            "^[A-Z_][A-Z0-9_]*$": {
-              "$ref": "#/$defs/EnvValue"
-            }
-          },
-          "propertyNames": {
-            "pattern": "^[A-Z_][A-Z0-9_]*$",
-            "errorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$",
-            "patternErrorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$"
+          "$ref": "#/$defs/EnvironmentVariables"
+        },
+        "envFrom": {
+          "type": "array",
+          "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. Lists union across layers; env wins.",
+          "items": {
+            "$ref": "#/$defs/Name"
           }
         },
         "replicas": {
@@ -143,11 +156,12 @@
       "propertyNames": {
         "enum": [
           "env",
+          "envFrom",
           "replicas",
           "resources",
           "targets"
         ],
-        "errorMessage": "Unknown key. Allowed: env, replicas, resources, targets"
+        "errorMessage": "Unknown key. Allowed: env, envFrom, replicas, resources, targets"
       }
     }
   },
@@ -155,16 +169,13 @@
   "description": "apps/<name>/app.yml",
   "properties": {
     "env": {
-      "type": "object",
-      "patternProperties": {
-        "^[A-Z_][A-Z0-9_]*$": {
-          "$ref": "#/$defs/EnvValue"
-        }
-      },
-      "propertyNames": {
-        "pattern": "^[A-Z_][A-Z0-9_]*$",
-        "errorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$",
-        "patternErrorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$"
+      "$ref": "#/$defs/EnvironmentVariables"
+    },
+    "envFrom": {
+      "type": "array",
+      "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. Lists union across layers; env wins.",
+      "items": {
+        "$ref": "#/$defs/Name"
       }
     },
     "replicas": {
@@ -238,12 +249,13 @@
   "propertyNames": {
     "enum": [
       "env",
+      "envFrom",
       "image",
       "port",
       "replicas",
       "resources",
       "stages"
     ],
-    "errorMessage": "Unknown key. Allowed: env, image, port, replicas, resources, stages"
+    "errorMessage": "Unknown key. Allowed: env, envFrom, image, port, replicas, resources, stages"
   }
 }

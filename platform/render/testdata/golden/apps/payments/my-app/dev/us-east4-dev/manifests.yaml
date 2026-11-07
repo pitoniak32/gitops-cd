@@ -45,6 +45,8 @@ spec:
     spec:
       containers:
         - env:
+            - name: LD_RELAY_URL
+              value: https://ld-relay.us-east4-dev.example.com
             - name: APP_ENV
               value: "true"
             - name: STAGE_ENV

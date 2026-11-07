@@ -4,7 +4,7 @@ Capability YAML (`capabilities/`) + team registry (`teams/`) → CUE renderer (`
 
 ## Layout
 App teams own `capabilities/`; everything platform-owned (renderer, cluster, add-ons, tasks) lives in `platform/`. `teams/`, `rendered/`, `docs/` stay at root (ADR 0010).
-- `capabilities/<cap>/{owners.yml,stages,targets,apps}`: YAML only; folder name = capability name. App owners: `apps/<app>/owners.yml` else capability `owners.yml`.
+- `capabilities/<cap>/{owners.yml,stages,targets,apps}`: YAML only; folder name = capability name. Target = dir `targets/<t>/target.yml` + optional `environment-variables/<name>.yml` (flat env map; apps opt in with `envFrom: [<name>]`, ADR 0014). App owners: `apps/<app>/owners.yml` else capability `owners.yml`.
 - `teams/<team>.yml`: githubTeam only (CODEOWNERS); that team or platform approves it. No access rights.
 - `owners.yml` (capability, optional per-app field replace): `owners` (teams → CODEOWNERS), `promoters` + `viewers` (emails `@example.com` → Kargo/Argo CD access); platform-approved.
 - `platform/render/`: CUE package `render` (module root `platform/cue.mod/`): `input` path routing, `clusters` registry, `team` stages/targets + prod autoPromote rule, `owners`, `app` layered merge, `pipeline`, `k8s`, `delivery` Kargo/Argo CD + promote RBAC + AppProjects, `files` outputs + CODEOWNERS fragment. `schemas/` generated editor schemas (committed), `testdata/` + golden, `scripts/`.
@@ -18,7 +18,7 @@ App teams own `capabilities/`; everything platform-owned (renderer, cluster, add
 - `mise run lint [cap…]`: full validation → `file:line:col: message`.
 - `mise run render [out]`: render all capabilities + regenerate CODEOWNERS.
 - `mise run test`: golden + CODEOWNERS + lint cases (`UPDATE=1` accepts golden).
-- `mise run schemas`: regen `platform/render/schemas/` after changing `#App`/`#Stage`/`#Target`/`#Owners`/`#Team`.
+- `mise run schemas`: regen `platform/render/schemas/` after changing `#App`/`#Stage`/`#Target`/`#EnvironmentVariables`/`#Owners`/`#Team`.
 
 ## Rules
 - **Fully local and reproducible**: `mise run up` must go from nothing to working with no manual steps (after the repo is pushed: `rendered/` syncs from GitHub `main`). After changing cluster, infrastructure or auth, prove it with a clean `mise run up`; `mise run infra` alone doesn't catch bootstrap-order bugs.
