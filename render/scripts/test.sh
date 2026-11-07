@@ -23,6 +23,8 @@ k="$tmp/kargo/payments.yaml"
 [[ "$(yq 'select(.kind == "RoleBinding" and .metadata.name == "owner-team2-viewer") | .roleRef.kind + "/" + .roleRef.name + "/" + .subjects[0].name' "$k")" == "Role/kargo-viewer/owner-team2" ]] || { echo "missing owner-team2-viewer RoleBinding" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "users-payments") | .metadata.namespace + " " + .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == 'kargo-shared-resources {"groups":["team1","team2"]}' ]] || { echo "missing users-payments global SA" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "ClusterRoleBinding" and .metadata.name == "kargo-users-payments") | .roleRef.name + "/" + .subjects[0].namespace + "/" + .subjects[0].name' "$k")" == "kargo-user/kargo-shared-resources/users-payments" ]] || { echo "missing kargo-users-payments ClusterRoleBinding" >&2; exit 1; }
+# Kargo's promote API needs create on promotions as well as promote on the (named) stages
+yq -e 'select(.kind == "Role" and .metadata.name == "owner-team2") | .rules[] | select(.resources[0] == "promotions" and (.verbs[] == "create"))' "$tmp/kargo/payments.yaml" >/dev/null || { echo "owner role can't create promotions" >&2; exit 1; }
 echo "kind cluster ok"
 
 # CODEOWNERS: assemble from the fragments into a copy of root

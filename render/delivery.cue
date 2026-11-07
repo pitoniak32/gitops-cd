@@ -169,6 +169,11 @@ _kargoRBAC: [for t, names in _promoteStages if len(names) > 0 {
 			resources: ["stages"]
 			resourceNames: names
 			verbs: ["promote"]
+		}, {
+			// the promote API creates the Promotion as the user; which stages is limited above
+			apiGroups: ["kargo.akuity.io"]
+			resources: ["promotions"]
+			verbs: ["create", "get", "list", "watch"]
 		}]
 	}, {
 		apiVersion: "rbac.authorization.k8s.io/v1"
