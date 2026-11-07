@@ -28,7 +28,7 @@ metadata:
   name: my-app
   namespace: payments-us-east1-perf
 spec:
-  replicas: 30
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: my-app
