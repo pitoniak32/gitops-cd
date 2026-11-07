@@ -139,7 +139,10 @@ _argocdApps: [for _, d in deploys {
 			name:      clusters[d.tgt.cluster].argocdName
 			namespace: d.tgt.namespace
 		}
-		syncPolicy: syncOptions: ["CreateNamespace=true"]
+		syncPolicy: {
+			automated: {prune: true, selfHeal: true}
+			syncOptions: ["CreateNamespace=true"]
+		}
 	}
 }]
 
