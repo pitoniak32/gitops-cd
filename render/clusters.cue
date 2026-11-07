@@ -27,5 +27,5 @@ policy: {
 	dev: minReplicas:     0
 	staging: minReplicas: 1
 	perf: minReplicas:    1
-	prod: minReplicas:    2
+	prod: minReplicas:    1
 }
