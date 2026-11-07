@@ -5,5 +5,5 @@ keychain = { type = "keychain", service = "fnox-argo-kargo" }
 GITHUB_APP_ID = { provider = "keychain", value = "GITHUB_APP_ID" }
 GITHUB_APP_CLIENT_ID = { provider = "keychain", value = "GITHUB_APP_CLIENT_ID" }
 GITHUB_APP_INSTALLATION_ID = { provider = "keychain", value = "GITHUB_APP_INSTALLATION_ID" }
-GITHUB_APP_PRIVATE_KEY = { provider = "keychain", value = "GITHUB_APP_PRIVATE_KEY" }
+GITHUB_APP_PRIVATE_KEY= { provider = "keychain", value = "GITHUB_APP_PRIVATE_KEY" }
 GITHUB_PAT = { provider = "keychain", value = "GITHUB_PAT" }
