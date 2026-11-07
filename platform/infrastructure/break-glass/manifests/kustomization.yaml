@@ -1,0 +1,8 @@
+namespace: kargo
+resources:
+  - guard.yaml
+# hashed name -> the guard restarts whenever guard.py changes
+configMapGenerator:
+  - name: break-glass-guard
+    files:
+      - guard.py

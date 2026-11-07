@@ -29,9 +29,10 @@ Users (password = username):
 
 | User (email `<user>@example.com`) | Listed in | Kargo | Argo CD |
 |---|---|---|---|
-| `doug` | payments `promoters` | view `kargo-payments`; promote/approve its apps | view `payments` apps |
-| `alice` | search `promoters` | view `kargo-search`; promote/approve its apps | view `search` apps |
+| `doug` | payments `promoters` | view `kargo-payments`; promote verified Freight | view `payments` apps |
+| `alice` | search `promoters` | view `kargo-search`; promote verified Freight | view `search` apps |
 | `bob` | payments `viewers` | view `kargo-payments` | view `payments` apps |
+| `oncall` | payments `breakGlass` | view `kargo-payments`; promote, and approve unverified Freight (break-glass, ADR 0013) | view `payments` apps |
 | `admin` | infra values (ADR 0009) | admin: view/promote/approve all projects (edits still gitops-only) | admin: everything, incl. infrastructure apps |
 
 Nobody can create, edit or delete resources through the Kargo or Argo CD UIs; changes go through git.
@@ -81,7 +82,8 @@ See `capabilities/payments/apps/my-app/app.yml` for an example of every field.
 | Approve changes under `stages/`, `targets/` | union of the apps' owners |
 | Approve changes to any `owners.yml` | @acme/platform |
 | Approve changes to `teams/<team>.yml` | that team or @acme/platform |
-| Promote / approve Freight to any stage of an app | the app's `promoters` (emails; Kargo role per app) |
+| Promote verified Freight to any stage of an app | the app's `promoters` (emails; Kargo role per app) |
+| Approve Freight that skipped verification ("Manual approval required") | the app's `breakGlass` emails + admins (guard, `docs/break-glass.md`) |
 | View the capability in Kargo / Argo CD | its `promoters` + `viewers` |
 
 Each field (`owners`, `promoters`, `viewers`) comes from `apps/<app>/owners.yml` if set there, else the capability's `owners.yml`.
@@ -105,5 +107,5 @@ by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
 - **GitOps-only**: promote rights come from the generated `promote-<app>` roles (`email` claim vs `owners.yml` promoters); only the admin emails in the Kargo/Argo CD values get admin (ADR 0009). An admission policy (`platform/infrastructure/kargo-config/manifests/gitops-only.yaml`) blocks the Kargo API from creating/editing/deleting anything except Promotions.
 - **Secrets on kind**: the `in-cluster` cluster has no secret store, so `secret:` env values are validated but not rendered.
 
-What Argo CD reconciles from git vs what needs `mise run infra` / `up`: `docs/sync-boundaries.md`.
+What Argo CD reconciles from git vs what needs `mise run infra` / `up`: `docs/sync-boundaries.md`. Runbooks (break-glass, resetting Kargo state): `docs/operations.md`.
 Rendering details and merge rules: `platform/render/README.md`. Decisions: `docs/adr/`. Gotchas: `docs/gotchas.md`.

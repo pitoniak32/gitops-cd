@@ -31,6 +31,12 @@ _autoStages: list.Concat([for an, p in pipelines for sn, s in p.stages if s.auto
 	[for tn, _ in s.targets {(_tgtName & {#app: an, #target: tn}).out}],
 ])
 }])
+// read by the break-glass guard (platform/infrastructure/break-glass): who may approve unverified
+// Freight for this Stage (ADR 0013)
+_breakGlassAnn: {
+	#app:                      string
+	"example.com/break-glass": json.Marshal(_breakGlass[#app])
+}
 _stageLabels: {
 	#app:                     string
 	#stage:                   string
@@ -69,6 +75,7 @@ _kargoCore: [
 			name: (_gateName & {#app: an, #stage: sn}).out
 			namespace: _kargoProject
 			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "gate"}
+			annotations: _breakGlassAnn & {#app: an}
 		}
 		spec: requestedFreight: [{
 			origin: {kind: "Warehouse", name: an}
@@ -88,6 +95,7 @@ _kargoCore: [
 			name: (_tgtName & {#app: an, #target: tn}).out
 			namespace: _kargoProject
 			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn}
+			annotations: _breakGlassAnn & {#app: an}
 		}
 		spec: {
 			requestedFreight: [{
@@ -199,7 +207,7 @@ _kargoRBAC: [for an in list.SortStrings([for an, _ in apps {an}]) if len(apps[an
 	[{
 		apiVersion: "v1"
 		kind:       "ServiceAccount"
-		metadata: meta & {annotations: "rbac.kargo.akuity.io/claims": json.Marshal({email: _promoters[an]})}
+		metadata: meta & {annotations: "rbac.kargo.akuity.io/claims": json.Marshal({email: _canPromote[an]})}
 	}, {
 		apiVersion: "rbac.authorization.k8s.io/v1"
 		kind:       "Role"

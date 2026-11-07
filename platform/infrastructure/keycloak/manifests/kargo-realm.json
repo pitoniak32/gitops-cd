@@ -113,6 +113,24 @@
       "realmRoles": [
         "default-roles-kargo"
       ]
+    },
+    {
+      "username": "oncall",
+      "email": "oncall@example.com",
+      "firstName": "On",
+      "lastName": "Call",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "oncall",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-kargo"
+      ]
     }
   ]
 }

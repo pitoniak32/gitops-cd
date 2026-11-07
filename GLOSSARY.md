@@ -22,6 +22,10 @@ _Avoid_: maintainer, admin
 An email listed under `promoters` for an app (same fallback as owners). Promoters promote the app to any stage, approve its Freight, and view the capability.
 _Avoid_: deployer, owner (owners review code; promoters ship)
 
+**Break-glass**:
+An email listed under `breakGlass` in `owners.yml`. Only break-glass users (and admins) can approve Freight that skipped upstream verification (Kargo's "Manual approval required"), then promote it. Reserved for critical promotions (ADR 0013).
+_Avoid_: approver (promoters approve normal promotions by promoting)
+
 **Viewer**:
 An email listed under `viewers` in `owners.yml`. Viewers see the whole capability in Kargo and Argo CD, read-only.
 

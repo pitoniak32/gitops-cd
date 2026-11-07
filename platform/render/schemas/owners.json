@@ -15,6 +15,22 @@
   "type": "object",
   "description": "capabilities/<cap>/owners.yml (required: owners + promoters) and apps/<app>/owners.yml\n(optional; each field it sets replaces the capability's).",
   "properties": {
+    "breakGlass": {
+      "description": "emails: break-glass. Can approve Freight that skipped upstream verification (Kargo's \"Manual\napproval required\" popup), then promote it. Reserved for critical promotions (ADR 0013).",
+      "allOf": [
+        {
+          "type": "array"
+        },
+        {
+          "type": "array",
+          "description": "emails: break-glass. Can approve Freight that skipped upstream verification (Kargo's \"Manual\napproval required\" popup), then promote it. Reserved for critical promotions (ADR 0013).",
+          "items": {
+            "$ref": "#/$defs/Email"
+          },
+          "uniqueItems": true
+        }
+      ]
+    },
     "owners": {
       "description": "GitHub teams (teams/): approve the app's code changes (CODEOWNERS)\n\neditor schema: minItems/uniqueItems",
       "allOf": [
@@ -77,10 +93,11 @@
   },
   "propertyNames": {
     "enum": [
+      "breakGlass",
       "owners",
       "promoters",
       "viewers"
     ],
-    "errorMessage": "Unknown key. Allowed: owners, promoters, viewers"
+    "errorMessage": "Unknown key. Allowed: breakGlass, owners, promoters, viewers"
   }
 }

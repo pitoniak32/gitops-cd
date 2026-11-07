@@ -43,6 +43,7 @@ The infrastructure Applications are not git-sourced. `mise run infra-render` inl
 | CoreDNS `keycloak.localhost` rewrite | Patched by the `infra` script. Argo CD doesn't manage `kube-system`. |
 | Kargo git creds (`mise run creds`) / TLS cert (`mise run certs`) | They come from fnox / mkcert and never touch git. `infra` runs both, or run them alone. |
 | A new addon | Add it to the ordered list in `platform/mise-tasks/infra`. |
+| Break-glass guard (`platform/infrastructure/break-glass/`: script, admin emails, approve route) | An infra addon like the others. Who is break-glass comes from `owners.yml` and arrives via the gitops lane (Stage annotations). |
 
 ## `mise run up` needed (deletes and recreates the cluster)
 

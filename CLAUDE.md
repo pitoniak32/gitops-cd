@@ -22,7 +22,8 @@ App teams own `capabilities/`; everything platform-owned (renderer, cluster, add
 
 ## Rules
 - **Fully local and reproducible**: `mise run up` must go from nothing to working with no manual steps (after the repo is pushed: `rendered/` syncs from GitHub `main`). After changing cluster, infrastructure or auth, prove it with a clean `mise run up`; `mise run infra` alone doesn't catch bootstrap-order bugs.
-- **GitOps-only**: no UI user gets create/edit/delete rights in Kargo or Argo CD. All UI access is generated per capability from `owners.yml` emails, matched on the OIDC `email` claim; never IdP groups/roles (ADR 0011): Kargo `promote-<app>` (promoters) + `viewers` (read project) and `users-<cap>` global SAs (list projects), Argo CD AppProject `viewer` roles (read-only); no global viewers or global policies. Sole exception: admin emails hardcoded in Kargo + Argo CD values (ADR 0009); Kargo edits still blocked by `gitops-only.yaml`.
+- **GitOps-only**: no UI user gets create/edit/delete rights in Kargo or Argo CD. All UI access is generated per capability from `owners.yml` emails, matched on the OIDC `email` claim; never IdP groups/roles (ADR 0011): Kargo `promote-<app>` (promoters) + `viewers` (read project) and `users-<cap>` global SAs (list projects), Argo CD AppProject `viewer` roles (read-only); no global viewers or global policies. Sole exception: admin emails hardcoded in Kargo + Argo CD values + break-glass guard `ADMIN_EMAILS` (ADR 0009); Kargo edits still blocked by `gitops-only.yaml`.
+- **Break-glass (ADR 0013, `docs/break-glass.md`)**: Kargo checks `promote` for approving unverified Freight too, so the approve endpoint goes through a Traefik ForwardAuth guard (`platform/infrastructure/break-glass/`) that allows only the Stage's `example.com/break-glass` emails (from `owners.yml` `breakGlass`) + admins.
 - **Pin versions**: tools in `.mise.toml`, charts in `platform/infrastructure/<addon>/app.yaml` `targetRevision`, images by tag or digest (`:latest` is rejected).
 - **Idempotent tasks**: every `platform/mise-tasks/*` script must be safe to re-run.
 - **Secrets** come from fnox (`.fnox.toml`, macOS keychain); `mise run creds` puts GitHub App creds in `kargo-shared-resources` (Argo CD needs none: public repo). Nothing secret in git.
@@ -31,6 +32,7 @@ App teams own `capabilities/`; everything platform-owned (renderer, cluster, add
 - **VCS is jj.** No git mutations, no pushes.
 
 ## Changing infrastructure
+- Manual runbooks (break-glass, resetting Kargo state): `docs/operations.md`.
 - What Argo CD pulls from git vs what needs `mise run infra` / `up`: `docs/sync-boundaries.md`. Infra Applications are inlined from the local checkout, not git-sourced.
 - Edit `platform/infrastructure/<addon>/`, then `mise run infra`.
 - **New addon**: create `platform/infrastructure/<addon>/` from an existing `app.yaml`, add it to the ordered list in `platform/mise-tasks/infra`. Order matters: CRDs, webhooks and the OIDC issuer before their users; `argocd` last.
