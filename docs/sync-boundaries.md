@@ -9,7 +9,8 @@ GITOPS LANE (pull: Argo CD, automated + prune + selfHeal)
   capabilities/, teams/, platform/render/
     → PR, merge → CI renders rendered/ on main
     → rendered-argocd, rendered-kargo sync rendered/{argocd,kargo}
-    → Kargo: Freight from rendered/apps → promotion → env/<cap>/<app>/<stage>
+    → Kargo: Freight from rendered/apps → gate <app>-<stage> → target stage <app>-<target>
+      → env/<cap>/<app>/<target>
     → capability Applications sync the env/* branches
 
 TASK LANE (push: mise run infra / up, from your local checkout)
@@ -24,7 +25,7 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 | You change | Path to the cluster |
 |---|---|
 | `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → `rendered-argocd` / `rendered-kargo` sync it. Workloads don't change until a promotion. |
-| Workload manifests | Kargo Warehouse sees new `rendered/apps/<cap>/<app>/` → Freight → promotion pushes `env/<cap>/<app>/<stage>` → capability Applications sync. |
+| Workload manifests | Kargo Warehouse sees new `rendered/apps/<cap>/<app>/` → Freight → gate → target-stage promotion pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
 | `teams/` | Takes effect on the next render, for CODEOWNERS only. It has no cluster effect (ADR 0011). |
 | `platform/render/**` (renderer logic) | Same as capabilities: lands when CI renders on `main` after the merge. |
 | Drift (manual `kubectl edit` of anything Argo CD manages) | Reverted by `selfHeal`. That includes infrastructure, but it reverts to the **last spec applied by `mise run infra`**, not to git. |

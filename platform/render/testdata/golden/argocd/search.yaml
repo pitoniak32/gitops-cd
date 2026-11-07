@@ -29,7 +29,7 @@ metadata:
   name: search-api-gcp-dev
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-search:api-dev
+    kargo.akuity.io/authorized-stage: kargo-search:api-gcp-dev
   labels:
     example.com/capability: search
     example.com/app: api
@@ -39,8 +39,8 @@ spec:
   project: search
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/search/api/dev
-    path: gcp-dev
+    targetRevision: env/search/api/gcp-dev
+    path: .
   destination:
     name: in-cluster
     namespace: search-gcp-dev

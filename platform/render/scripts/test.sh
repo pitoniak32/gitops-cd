@@ -29,7 +29,12 @@ yq -e 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[]
 # promoters are per app: worker's app owners.yml replaces promoters; my-app inherits the capability's
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-worker") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["alice@example.com","doug@example.com"]}' ]] || { echo "promote-worker must use the app's promoters" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-my-app") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["doug@example.com"]}' ]] || { echo "promote-my-app must inherit the capability's promoters" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[0].resourceNames | join(",")' "$k")" == "worker-dev,worker-prod,worker-staging" ]] || { echo "promote-worker must cover only worker's stages" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[0].resourceNames | join(",")' "$k")" == "worker-dev,worker-gcp-us-prod,worker-prod,worker-staging,worker-us-east1-stg,worker-us-east4-dev" ]] || { echo "promote-worker must cover only worker's gate + target stages" >&2; exit 1; }
+# Kargo graph: gate <app>-<stage> per gitops stage, target Stage <app>-<target> per target, own env branch
+[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec.requestedFreight[0].sources | .availabilityStrategy + ":" + (.stages | join(","))' "$k")" == "All:my-app-on-prem-perf,my-app-on-prem-stg,my-app-us-east1-perf,my-app-us-east1-stg" ]] || { echo "prod gate must wait for every upstream target" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec | has("promotionTemplate")' "$k")" == "false" ]] || { echo "gates must be control flow stages" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-gcp-eu-prod") | (.spec.requestedFreight[0].sources.stages | join(",")) + " " + .spec.promotionTemplate.spec.vars[2].value' "$k")" == "my-app-prod env/payments/my-app/gcp-eu-prod" ]] || { echo "target stage must follow its gate and push its own branch" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Application" and .metadata.name == "payments-my-app-gcp-eu-prod") | .spec.source.targetRevision + " " + .spec.source.path + " " + .metadata.annotations."kargo.akuity.io/authorized-stage"' "$tmp/argocd/payments.yaml")" == "env/payments/my-app/gcp-eu-prod . kargo-payments:my-app-gcp-eu-prod" ]] || { echo "Argo CD app must track its target branch, authorized for its target stage" >&2; exit 1; }
 if grep -q '"groups"' "$tmp"/kargo/*.yaml; then echo "no Kargo claim may use groups" >&2; exit 1; fi
 echo "kind cluster ok"
 
@@ -76,3 +81,10 @@ for d in apps/worker stages/perf targets/on-prem-dev; do
   grep -qE '^capabilities/payments/[a-z]+/Bad_Name(/app)?\.yml:[0-9]+:[0-9]+: .*invalid name' <<<"$got" || { printf 'bad name not rejected for %s:\n%s\n' "$d" "$got" >&2; exit 1; }
   echo "bad name ok: $d"
 done
+
+# A target named like a stage would collide as a Kargo Stage name (<app>-<name>)
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
+cp "$r/capabilities/payments/targets/on-prem-dev.yml" "$r/capabilities/payments/targets/dev.yml"
+got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+grep -qE '^capabilities/payments/targets/dev\.yml:[0-9]+:[0-9]+: .*also a stage name' <<<"$got" || { printf 'target/stage name collision not rejected:\n%s\n' "$got" >&2; exit 1; }
+echo "target/stage name collision ok"

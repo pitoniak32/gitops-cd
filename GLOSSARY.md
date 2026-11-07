@@ -26,8 +26,15 @@ _Avoid_: deployer, owner (owners review code; promoters ship)
 An email listed under `viewers` in `owners.yml`. Viewers see the whole capability in Kargo and Argo CD, read-only.
 
 **Stage**:
-A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on.
+A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on. In Kargo it becomes a gate plus one target stage per target.
 _Avoid_: environment, phase
+
+**Gate**:
+The Kargo Stage `<app>-<stage>` for a stage: control flow only (no promotion steps). It takes Freight once it's verified in every target of the upstream stage(s), and its targets take Freight from it.
+_Avoid_: stage (ambiguous in Kargo)
+
+**Target stage**:
+The Kargo Stage `<app>-<target>` that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
 
 **Target**:
 A reusable deployment destination (`targets/<name>.yml`): one cluster + namespace + workload identity.
@@ -79,11 +86,12 @@ _Avoid_: release, version
 The Kargo resource per app that watches `rendered/apps/<cap>/<app>/` and produces Freight.
 
 **Promotion**:
-Copying one stage's rendered manifests from a Freight commit onto that stage's branch.
+Copying one target's rendered manifests from a Freight commit onto that target's branch (target stage), or passing Freight through a gate.
 _Avoid_: deploy (as a verb for this step)
 
-**Stage branch**:
-The branch `env/<cap>/<app>/<stage>` that Argo CD syncs a stage's targets from.
+**Target branch**:
+The branch `env/<cap>/<app>/<target>` that Argo CD syncs one target from (manifests at the root). It doesn't exist until the target's first promotion; until then its Argo CD app shows sync `Unknown`.
+_Avoid_: stage branch (the pre-ADR 0012 layout `env/<cap>/<app>/<stage>`)
 
 ### Validation
 

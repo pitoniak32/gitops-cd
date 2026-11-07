@@ -20,6 +20,9 @@ spec:
     - stageSelector:
         name: api-dev
       autoPromotionEnabled: true
+    - stageSelector:
+        name: api-gcp-dev
+      autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
@@ -39,6 +42,11 @@ kind: Stage
 metadata:
   name: api-dev
   namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: gate
+    example.com/stage: dev
 spec:
   requestedFreight:
     - origin:
@@ -46,15 +54,35 @@ spec:
         name: api
       sources:
         direct: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: api-gcp-dev
+  namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: gcp-dev
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: api
+      sources:
+        stages:
+          - api-dev
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/search/api/dev/
+          value: ./src/rendered/apps/search/api/dev/gcp-dev/
         - name: branch
-          value: env/search/api/dev
+          value: env/search/api/gcp-dev
       steps:
         - uses: git-clone
           config:
@@ -76,7 +104,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote search/api to dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote search/api to dev/gcp-dev from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
@@ -116,6 +144,7 @@ rules:
       - stages
     resourceNames:
       - api-dev
+      - api-gcp-dev
     verbs:
       - promote
   - apiGroups:

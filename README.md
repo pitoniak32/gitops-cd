@@ -11,7 +11,7 @@ mise install   # pinned tools (kind, helm, kubectl, cue, jq, yq, fnox)
 # first time:
 #   - push this repo to github.com/pitoniak32/gitops-cd (rendered/ syncs from main)
 #   - a GitHub App installed on that repo with Contents read/write (Kargo pushes
-#     env/<cap>/<app>/<stage> branches); store it for fnox:
+#     env/<cap>/<app>/<target> branches); store it for fnox:
 #     fnox set GITHUB_APP_ID / GITHUB_APP_INSTALLATION_ID / GITHUB_APP_PRIVATE_KEY
 mise run up    # tear down + fresh cluster + infrastructure + bootstrap (~5 min)
 mise run down  # delete everything
@@ -93,8 +93,9 @@ by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
 1. PR: CI lints every capability (errors annotated on the changed lines), renders, and comments the `rendered/` diff.
 2. Merge: CI commits `rendered/` and `.github/CODEOWNERS` to main (`render: <sha>`).
 3. Argo CD (`platform/bootstrap/rendered.yaml`) syncs `rendered/argocd` and `rendered/kargo` from main.
-4. Kargo: each app's Warehouse watches `rendered/apps/<cap>/<app>/`; promotion copies a stage's
-   folder to branch `env/<cap>/<app>/<stage>`; Argo CD syncs each target from there.
+4. Kargo: each app's Warehouse watches `rendered/apps/<cap>/<app>/`. Per stage there's a gate
+   (`<app>-<stage>`) and one Kargo Stage per target (`<app>-<target>`); promoting a target copies its
+   folder to branch `env/<cap>/<app>/<target>`, and Argo CD syncs it from there (ADR 0012).
 
 ## How the cluster works
 
