@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../../../../platform/schemas/app.json
+image: ghcr.io/acme/team2-api:0.9.0
+port: 8080
+stages:
+  dev:
+    replicas: 1
+    targets:
+      gcp-dev: {}
+  prod:
+    replicas: 3
+    targets:
+      gcp-prod: {}
+      onprem-prod: {}

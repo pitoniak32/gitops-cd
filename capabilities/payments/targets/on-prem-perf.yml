@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../platform/schemas/target.json
+config:
+  cluster: onprem-s1
+  namespace: team1-perf
+  environment: perf
+  auth:
+    wifEmail: team1-perf@team1-perf.iam.gserviceaccount.com
+  billing: nonprod
+  platform: K8S

@@ -1,0 +1,6 @@
+image: ghcr.io/acme/search-api:1.0.0
+port: 8080
+stages:
+  dev:
+    targets:
+      gcp-dev: {}

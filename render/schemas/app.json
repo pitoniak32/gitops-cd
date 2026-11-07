@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "EnvValue": {
+      "type": "string",
+      "description": "Plain value, or a Secret Manager ref: secret:<gcp-project>/<secret>[@<version>]",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^(?![\\s\\S]*?(?:^secret:))",
+          "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]"
+        },
+        {
+          "type": "string",
+          "pattern": "^secret:[a-z][a-z0-9-]{4,28}[a-z0-9]/[A-Za-z0-9_-]+(@([0-9]+|latest))?$",
+          "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]"
+        }
+      ],
+      "errorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]",
+      "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]"
+    },
+    "Layer": {
+      "type": "object",
+      "description": "Settings that can be set at app, stage, or target level. Most specific wins;\nenv is merged per key.",
+      "properties": {
+        "env": {
+          "type": "object",
+          "patternProperties": {
+            "^[A-Z_][A-Z0-9_]*$": {
+              "$ref": "#/$defs/EnvValue"
+            }
+          },
+          "propertyNames": {
+            "pattern": "^[A-Z_][A-Z0-9_]*$",
+            "errorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$",
+            "patternErrorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$"
+          }
+        },
+        "replicas": {
+          "allOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 0
+            }
+          ]
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+m?$"
+            },
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+(Mi|Gi)$"
+            }
+          },
+          "propertyNames": {
+            "enum": [
+              "cpu",
+              "memory"
+            ],
+            "errorMessage": "Unknown key. Allowed: cpu, memory"
+          }
+        }
+      },
+      "propertyNames": {
+        "enum": [
+          "env",
+          "replicas",
+          "resources"
+        ],
+        "errorMessage": "Unknown key. Allowed: env, replicas, resources"
+      }
+    },
+    "StageLayer": {
+      "type": "object",
+      "properties": {
+        "env": {
+          "type": "object",
+          "patternProperties": {
+            "^[A-Z_][A-Z0-9_]*$": {
+              "$ref": "#/$defs/EnvValue"
+            }
+          },
+          "propertyNames": {
+            "pattern": "^[A-Z_][A-Z0-9_]*$",
+            "errorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$",
+            "patternErrorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$"
+          }
+        },
+        "replicas": {
+          "allOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 0
+            }
+          ]
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+m?$"
+            },
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+(Mi|Gi)$"
+            }
+          },
+          "propertyNames": {
+            "enum": [
+              "cpu",
+              "memory"
+            ],
+            "errorMessage": "Unknown key. Allowed: cpu, memory"
+          }
+        },
+        "targets": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z][a-z0-9-]{0,39}$": {
+              "$ref": "#/$defs/Layer"
+            }
+          },
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9-]{0,39}$",
+            "errorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$",
+            "patternErrorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$"
+          }
+        }
+      },
+      "propertyNames": {
+        "enum": [
+          "env",
+          "replicas",
+          "resources",
+          "targets"
+        ],
+        "errorMessage": "Unknown key. Allowed: env, replicas, resources, targets"
+      }
+    }
+  },
+  "type": "object",
+  "description": "apps/<name>/app.yml",
+  "properties": {
+    "env": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Z_][A-Z0-9_]*$": {
+          "$ref": "#/$defs/EnvValue"
+        }
+      },
+      "propertyNames": {
+        "pattern": "^[A-Z_][A-Z0-9_]*$",
+        "errorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$",
+        "patternErrorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$"
+      }
+    },
+    "replicas": {
+      "allOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 0
+        }
+      ]
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "cpu": {
+          "type": "string",
+          "pattern": "^[0-9]+m?$"
+        },
+        "memory": {
+          "type": "string",
+          "pattern": "^[0-9]+(Mi|Gi)$"
+        }
+      },
+      "propertyNames": {
+        "enum": [
+          "cpu",
+          "memory"
+        ],
+        "errorMessage": "Unknown key. Allowed: cpu, memory"
+      }
+    },
+    "image": {
+      "type": "string",
+      "pattern": "^(?![\\s\\S]*?(?::latest$))[\\s\\S]*?(?:(:[A-Za-z0-9_.-]+|@sha256:[a-f0-9]{64})$)",
+      "errorMessage": "Pinned image required: name:tag or name@sha256:<digest> (:latest not allowed)",
+      "patternErrorMessage": "Pinned image required: name:tag or name@sha256:<digest> (:latest not allowed)"
+    },
+    "port": {
+      "allOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "integer",
+          "exclusiveMaximum": 65536,
+          "exclusiveMinimum": 0
+        }
+      ]
+    },
+    "stages": {
+      "type": "object",
+      "description": "Subset of the capability's stages. Skipped stages are bypassed in the pipeline\n(prod depends on [staging, perf]; without perf, prod depends on staging).",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]{0,39}$": {
+          "$ref": "#/$defs/StageLayer"
+        }
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{0,39}$",
+        "errorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$",
+        "patternErrorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$"
+      }
+    }
+  },
+  "required": [
+    "image"
+  ],
+  "propertyNames": {
+    "enum": [
+      "env",
+      "image",
+      "port",
+      "replicas",
+      "resources",
+      "stages"
+    ],
+    "errorMessage": "Unknown key. Allowed: env, image, port, replicas, resources, stages"
+  }
+}

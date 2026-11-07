@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../../../platform/schemas/app.json
+# no perf stage: prod depends on staging only
+image: ghcr.io/acme/worker:2.0.0
+stages:
+  dev:
+    targets:
+      us-east4-dev: {}
+  staging:
+    targets:
+      us-east1-stg: {}
+  prod:
+    replicas: 3
+    targets:
+      gcp-us-prod: {}

@@ -1,0 +1,26 @@
+{
+  "api": {
+    "capability": "search",
+    "app": "api",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "gcp-dev": {
+            "cluster": "gke-use4-dev",
+            "namespace": "search-dev",
+            "environment": "dev",
+            "path": "apps/search/api/dev/gcp-dev"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ]
+    ]
+  }
+}

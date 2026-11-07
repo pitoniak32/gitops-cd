@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "description": "stages/<name>.yml",
+  "properties": {
+    "autoPromote": {
+      "type": "boolean",
+      "description": "promote automatically once upstream stages are verified"
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "propertyNames": {
+    "enum": [
+      "autoPromote",
+      "dependsOn"
+    ],
+    "errorMessage": "Unknown key. Allowed: autoPromote, dependsOn"
+  }
+}

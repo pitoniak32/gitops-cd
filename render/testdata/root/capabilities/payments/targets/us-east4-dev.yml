@@ -1,0 +1,8 @@
+config:
+  cluster: gke-use4-dev
+  namespace: team1-dev
+  environment: dev
+  auth:
+    wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
+  billing: dev
+  platform: K8S

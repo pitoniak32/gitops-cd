@@ -1,0 +1,399 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-us-east4-dev
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-dev
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: dev
+    example.com/target: us-east4-dev
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/dev
+    path: us-east4-dev
+  destination:
+    name: gke-use4-dev
+    namespace: team1-dev
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-on-prem-dev
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-dev
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: dev
+    example.com/target: on-prem-dev
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/dev
+    path: on-prem-dev
+  destination:
+    name: onprem-d1
+    namespace: team1-dev
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-us-east1-stg
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-staging
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: staging
+    example.com/target: us-east1-stg
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/staging
+    path: us-east1-stg
+  destination:
+    name: gke-use1-nonprod
+    namespace: team1-staging
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-on-prem-stg
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-staging
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: staging
+    example.com/target: on-prem-stg
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/staging
+    path: on-prem-stg
+  destination:
+    name: onprem-s1
+    namespace: team1-staging
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-us-east1-perf
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-perf
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: perf
+    example.com/target: us-east1-perf
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/perf
+    path: us-east1-perf
+  destination:
+    name: gke-use1-nonprod
+    namespace: team1-perf
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-on-prem-perf
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-perf
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: perf
+    example.com/target: on-prem-perf
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/perf
+    path: on-prem-perf
+  destination:
+    name: onprem-s1
+    namespace: team1-perf
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-gcp-us-prod
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-prod
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: prod
+    example.com/target: gcp-us-prod
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/prod
+    path: gcp-us-prod
+  destination:
+    name: gke-use1-prod
+    namespace: team1
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-gcp-eu-prod
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-prod
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: prod
+    example.com/target: gcp-eu-prod
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/prod
+    path: gcp-eu-prod
+  destination:
+    name: gke-euw4-prod
+    namespace: team1
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-on-prem-prod-1
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-prod
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: prod
+    example.com/target: on-prem-prod-1
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/prod
+    path: on-prem-prod-1
+  destination:
+    name: onprem-p1
+    namespace: team1
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-my-app-on-prem-prod-2
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:my-app-prod
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/stage: prod
+    example.com/target: on-prem-prod-2
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/my-app/prod
+    path: on-prem-prod-2
+  destination:
+    name: onprem-p2
+    namespace: team1
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-payments-us-east4-dev
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:payments-dev
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/stage: dev
+    example.com/target: us-east4-dev
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/payments/dev
+    path: us-east4-dev
+  destination:
+    name: gke-use4-dev
+    namespace: team1-dev
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-payments-us-east1-stg
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:payments-staging
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/stage: staging
+    example.com/target: us-east1-stg
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/payments/staging
+    path: us-east1-stg
+  destination:
+    name: gke-use1-nonprod
+    namespace: team1-staging
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-payments-gcp-us-prod
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:payments-prod
+  labels:
+    example.com/capability: payments
+    example.com/app: payments
+    example.com/stage: prod
+    example.com/target: gcp-us-prod
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/payments/prod
+    path: gcp-us-prod
+  destination:
+    name: gke-use1-prod
+    namespace: team1
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-worker-us-east4-dev
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:worker-dev
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/stage: dev
+    example.com/target: us-east4-dev
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/worker/dev
+    path: us-east4-dev
+  destination:
+    name: gke-use4-dev
+    namespace: team1-dev
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-worker-us-east1-stg
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:worker-staging
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/stage: staging
+    example.com/target: us-east1-stg
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/worker/staging
+    path: us-east1-stg
+  destination:
+    name: gke-use1-nonprod
+    namespace: team1-staging
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-worker-gcp-us-prod
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-payments:worker-prod
+  labels:
+    example.com/capability: payments
+    example.com/app: worker
+    example.com/stage: prod
+    example.com/target: gcp-us-prod
+spec:
+  project: payments
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/payments/worker/prod
+    path: gcp-us-prod
+  destination:
+    name: gke-use1-prod
+    namespace: team1
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

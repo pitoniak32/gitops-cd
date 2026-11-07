@@ -1,0 +1,3 @@
+# yaml-language-server: $schema=../../../platform/schemas/stage.json
+dependsOn: []
+autoPromote: true

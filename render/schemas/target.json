@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Environment": {
+      "description": "Platform-owned. Team targets may only point at clusters listed here,\nand only with an environment the cluster accepts.",
+      "enum": [
+        "dev",
+        "staging",
+        "perf",
+        "prod"
+      ]
+    }
+  },
+  "type": "object",
+  "description": "targets/<name>.yml — where a stage deploys. Reusable across apps.",
+  "properties": {
+    "config": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "type": "object",
+          "properties": {
+            "wifEmail": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com$"
+            }
+          },
+          "required": [
+            "wifEmail"
+          ],
+          "propertyNames": {
+            "enum": [
+              "wifEmail"
+            ],
+            "errorMessage": "Unknown key. Allowed: wifEmail"
+          }
+        },
+        "billing": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "cluster": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "const": "gke-use4-dev"
+                },
+                {
+                  "const": "onprem-d1"
+                },
+                {
+                  "const": "gke-use1-nonprod"
+                },
+                {
+                  "const": "onprem-s1"
+                },
+                {
+                  "const": "gke-use1-prod"
+                },
+                {
+                  "const": "gke-euw4-prod"
+                },
+                {
+                  "const": "onprem-p1"
+                },
+                {
+                  "const": "onprem-p2"
+                }
+              ]
+            }
+          ]
+        },
+        "environment": {
+          "$ref": "#/$defs/Environment"
+        },
+        "namespace": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+        },
+        "platform": {
+          "const": "K8S"
+        }
+      },
+      "required": [
+        "auth",
+        "billing",
+        "cluster",
+        "environment",
+        "namespace"
+      ],
+      "propertyNames": {
+        "enum": [
+          "auth",
+          "billing",
+          "cluster",
+          "environment",
+          "namespace",
+          "platform"
+        ],
+        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, namespace, platform"
+      }
+    }
+  },
+  "required": [
+    "config"
+  ],
+  "propertyNames": {
+    "enum": [
+      "config"
+    ],
+    "errorMessage": "Unknown key. Allowed: config"
+  }
+}

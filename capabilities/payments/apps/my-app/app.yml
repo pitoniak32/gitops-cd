@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../../../../platform/schemas/app.json
+image: ghcr.io/acme/my-app:1.4.2
+port: 8080
+replicas: 30
+env:
+  APP_ENV: 'true'
+  APP_SECRET: 'secret:acme-proj1/my-app-secret'
+stages:
+  dev:
+    env:
+      STAGE_ENV: 'false'
+    replicas: 1
+    targets:
+      us-east4-dev: {}
+      on-prem-dev:
+        env:
+          APP_ENV: 'false'
+        replicas: 3
+  staging:
+    targets:
+      us-east1-stg: {}
+      on-prem-stg:
+        env:
+          APP_SECRET: 'secret:acme-proj2/my-app-secret@3'
+  perf:
+    targets:
+      us-east1-perf:
+        env:
+          DIFFERENT_SECRET: '/test@3'
+      on-prem-perf: {}
+  prod:
+    resources:
+      cpu: 500m
+      memory: 512Mi
+    targets:
+      gcp-us-prod: {}
+      gcp-eu-prod: {}
+      on-prem-prod-1: {}
+      on-prem-prod-2: {}

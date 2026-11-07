@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: search-api-gcp-dev
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-search:api-dev
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/stage: dev
+    example.com/target: gcp-dev
+spec:
+  project: search
+  source:
+    repoURL: https://github.com/acme/gitops
+    targetRevision: env/search/api/dev
+    path: gcp-dev
+  destination:
+    name: gke-use4-dev
+    namespace: search-dev
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

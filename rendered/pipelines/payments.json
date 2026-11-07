@@ -1,0 +1,175 @@
+{
+  "my-app": {
+    "capability": "payments",
+    "app": "my-app",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "us-east4-dev": {
+            "cluster": "gke-use4-dev",
+            "namespace": "team1-dev",
+            "environment": "dev",
+            "path": "apps/payments/my-app/dev/us-east4-dev"
+          },
+          "on-prem-dev": {
+            "cluster": "onprem-d1",
+            "namespace": "team1-dev",
+            "environment": "dev",
+            "path": "apps/payments/my-app/dev/on-prem-dev"
+          }
+        }
+      },
+      "staging": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 1,
+        "targets": {
+          "us-east1-stg": {
+            "cluster": "gke-use1-nonprod",
+            "namespace": "team1-staging",
+            "environment": "staging",
+            "path": "apps/payments/my-app/staging/us-east1-stg"
+          },
+          "on-prem-stg": {
+            "cluster": "onprem-s1",
+            "namespace": "team1-staging",
+            "environment": "staging",
+            "path": "apps/payments/my-app/staging/on-prem-stg"
+          }
+        }
+      },
+      "perf": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 1,
+        "targets": {
+          "us-east1-perf": {
+            "cluster": "gke-use1-nonprod",
+            "namespace": "team1-perf",
+            "environment": "perf",
+            "path": "apps/payments/my-app/perf/us-east1-perf"
+          },
+          "on-prem-perf": {
+            "cluster": "onprem-s1",
+            "namespace": "team1-perf",
+            "environment": "perf",
+            "path": "apps/payments/my-app/perf/on-prem-perf"
+          }
+        }
+      },
+      "prod": {
+        "dependsOn": [
+          "perf",
+          "staging"
+        ],
+        "autoPromote": false,
+        "level": 2,
+        "targets": {
+          "gcp-us-prod": {
+            "cluster": "gke-use1-prod",
+            "namespace": "team1",
+            "environment": "prod",
+            "path": "apps/payments/my-app/prod/gcp-us-prod"
+          },
+          "gcp-eu-prod": {
+            "cluster": "gke-euw4-prod",
+            "namespace": "team1",
+            "environment": "prod",
+            "path": "apps/payments/my-app/prod/gcp-eu-prod"
+          },
+          "on-prem-prod-1": {
+            "cluster": "onprem-p1",
+            "namespace": "team1",
+            "environment": "prod",
+            "path": "apps/payments/my-app/prod/on-prem-prod-1"
+          },
+          "on-prem-prod-2": {
+            "cluster": "onprem-p2",
+            "namespace": "team1",
+            "environment": "prod",
+            "path": "apps/payments/my-app/prod/on-prem-prod-2"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ],
+      [
+        "perf",
+        "staging"
+      ],
+      [
+        "prod"
+      ]
+    ]
+  },
+  "worker": {
+    "capability": "payments",
+    "app": "worker",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "us-east4-dev": {
+            "cluster": "gke-use4-dev",
+            "namespace": "team1-dev",
+            "environment": "dev",
+            "path": "apps/payments/worker/dev/us-east4-dev"
+          }
+        }
+      },
+      "staging": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 1,
+        "targets": {
+          "us-east1-stg": {
+            "cluster": "gke-use1-nonprod",
+            "namespace": "team1-staging",
+            "environment": "staging",
+            "path": "apps/payments/worker/staging/us-east1-stg"
+          }
+        }
+      },
+      "prod": {
+        "dependsOn": [
+          "staging"
+        ],
+        "autoPromote": false,
+        "level": 2,
+        "targets": {
+          "gcp-us-prod": {
+            "cluster": "gke-use1-prod",
+            "namespace": "team1",
+            "environment": "prod",
+            "path": "apps/payments/worker/prod/gcp-us-prod"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ],
+      [
+        "staging"
+      ],
+      [
+        "prod"
+      ]
+    ]
+  }
+}

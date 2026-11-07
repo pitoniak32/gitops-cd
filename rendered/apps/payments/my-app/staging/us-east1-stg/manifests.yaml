@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: team1-staging@team1-staging.iam.gserviceaccount.com
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: staging
+    example.com/target: us-east1-stg
+    example.com/environment: staging
+    example.com/billing: nonprod
+  name: my-app
+  namespace: team1-staging
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: staging
+    example.com/target: us-east1-stg
+    example.com/environment: staging
+    example.com/billing: nonprod
+  name: my-app
+  namespace: team1-staging
+spec:
+  replicas: 30
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: my-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: cue-platform
+        app.kubernetes.io/name: my-app
+        example.com/capability: payments
+        example.com/stage: staging
+        example.com/target: us-east1-stg
+        example.com/environment: staging
+        example.com/billing: nonprod
+    spec:
+      containers:
+        - env:
+            - name: APP_ENV
+              value: "true"
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: APP_SECRET
+                  name: my-app-secrets
+          image: ghcr.io/acme/my-app:1.4.2
+          name: my-app
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      serviceAccountName: my-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: staging
+    example.com/target: us-east1-stg
+    example.com/environment: staging
+    example.com/billing: nonprod
+  name: my-app
+  namespace: team1-staging
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: my-app
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: my-app-secrets
+  namespace: team1-staging
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: staging
+    example.com/target: us-east1-stg
+    example.com/environment: staging
+    example.com/billing: nonprod
+spec:
+  refreshInterval: 1h
+  target:
+    name: my-app-secrets
+  data:
+    - secretKey: APP_SECRET
+      remoteRef:
+        key: my-app-secret
+        version: latest
+      sourceRef:
+        storeRef:
+          kind: ClusterSecretStore
+          name: gcp-acme-proj1

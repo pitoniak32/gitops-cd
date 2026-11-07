@@ -1,0 +1,2 @@
+# yaml-language-server: $schema=../../../../platform/schemas/owners.json
+owners: [team1, team2]

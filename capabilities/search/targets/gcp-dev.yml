@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../platform/schemas/target.json
+config:
+  cluster: gke-use4-dev
+  namespace: team2-dev
+  environment: dev
+  auth:
+    wifEmail: team2-dev@team2-dev.iam.gserviceaccount.com
+  billing: dev
+  platform: K8S

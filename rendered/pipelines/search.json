@@ -1,0 +1,50 @@
+{
+  "api": {
+    "capability": "search",
+    "app": "api",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "gcp-dev": {
+            "cluster": "gke-use4-dev",
+            "namespace": "team2-dev",
+            "environment": "dev",
+            "path": "apps/search/api/dev/gcp-dev"
+          }
+        }
+      },
+      "prod": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 1,
+        "targets": {
+          "gcp-prod": {
+            "cluster": "gke-use1-prod",
+            "namespace": "team2",
+            "environment": "prod",
+            "path": "apps/search/api/prod/gcp-prod"
+          },
+          "onprem-prod": {
+            "cluster": "onprem-p1",
+            "namespace": "team2",
+            "environment": "prod",
+            "path": "apps/search/api/prod/onprem-prod"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ],
+      [
+        "prod"
+      ]
+    ]
+  }
+}

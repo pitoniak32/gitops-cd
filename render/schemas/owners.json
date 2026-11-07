@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "description": "capabilities/<cap>/owners.yml (required) and apps/<app>/owners.yml (optional, replaces).\nOwners approve the app's code changes and promote it to any stage.",
+  "properties": {
+    "owners": {
+      "allOf": [
+        {
+          "prefixItems": [
+            true
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    }
+  },
+  "required": [
+    "owners"
+  ],
+  "propertyNames": {
+    "enum": [
+      "owners"
+    ],
+    "errorMessage": "Unknown key. Allowed: owners"
+  }
+}

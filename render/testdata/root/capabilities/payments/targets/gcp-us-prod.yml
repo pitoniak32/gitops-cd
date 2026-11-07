@@ -1,0 +1,8 @@
+config:
+  cluster: gke-use1-prod
+  namespace: team1
+  environment: prod
+  auth:
+    wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
+  billing: prod
+  platform: K8S
