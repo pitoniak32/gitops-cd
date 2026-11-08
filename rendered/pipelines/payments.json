@@ -8,17 +8,17 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "us-east4-dev": {
-            "cluster": "in-cluster",
-            "namespace": "payments-us-east4-dev",
+          "us-dev": {
+            "cluster": "us",
+            "namespace": "payments-us-dev",
             "environment": "dev",
-            "path": "apps/payments/my-app/dev/us-east4-dev"
+            "path": "apps/payments/my-app/dev/us-dev"
           },
-          "on-prem-dev": {
-            "cluster": "in-cluster",
-            "namespace": "payments-on-prem-dev",
+          "onprem-dev": {
+            "cluster": "onprem",
+            "namespace": "payments-onprem-dev",
             "environment": "dev",
-            "path": "apps/payments/my-app/dev/on-prem-dev"
+            "path": "apps/payments/my-app/dev/onprem-dev"
           }
         }
       },
@@ -29,17 +29,17 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-east1-stg": {
-            "cluster": "in-cluster",
-            "namespace": "payments-us-east1-stg",
+          "us-stg": {
+            "cluster": "us",
+            "namespace": "payments-us-stg",
             "environment": "staging",
-            "path": "apps/payments/my-app/staging/us-east1-stg"
+            "path": "apps/payments/my-app/staging/us-stg"
           },
-          "on-prem-stg": {
-            "cluster": "in-cluster",
-            "namespace": "payments-on-prem-stg",
+          "onprem-stg": {
+            "cluster": "onprem",
+            "namespace": "payments-onprem-stg",
             "environment": "staging",
-            "path": "apps/payments/my-app/staging/on-prem-stg"
+            "path": "apps/payments/my-app/staging/onprem-stg"
           }
         }
       },
@@ -50,17 +50,11 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-east1-perf": {
-            "cluster": "in-cluster",
-            "namespace": "payments-us-east1-perf",
+          "us-perf": {
+            "cluster": "us",
+            "namespace": "payments-us-perf",
             "environment": "perf",
-            "path": "apps/payments/my-app/perf/us-east1-perf"
-          },
-          "on-prem-perf": {
-            "cluster": "in-cluster",
-            "namespace": "payments-on-prem-perf",
-            "environment": "perf",
-            "path": "apps/payments/my-app/perf/on-prem-perf"
+            "path": "apps/payments/my-app/perf/us-perf"
           }
         }
       },
@@ -72,29 +66,17 @@
         "autoPromote": false,
         "level": 2,
         "targets": {
-          "gcp-us-prod": {
-            "cluster": "in-cluster",
-            "namespace": "payments-gcp-us-prod",
+          "us-prod": {
+            "cluster": "us",
+            "namespace": "payments-us-prod",
             "environment": "prod",
-            "path": "apps/payments/my-app/prod/gcp-us-prod"
+            "path": "apps/payments/my-app/prod/us-prod"
           },
-          "gcp-eu-prod": {
-            "cluster": "in-cluster",
-            "namespace": "payments-gcp-eu-prod",
+          "onprem-prod": {
+            "cluster": "onprem",
+            "namespace": "payments-onprem-prod",
             "environment": "prod",
-            "path": "apps/payments/my-app/prod/gcp-eu-prod"
-          },
-          "on-prem-prod-1": {
-            "cluster": "in-cluster",
-            "namespace": "payments-on-prem-prod-1",
-            "environment": "prod",
-            "path": "apps/payments/my-app/prod/on-prem-prod-1"
-          },
-          "on-prem-prod-2": {
-            "cluster": "in-cluster",
-            "namespace": "payments-on-prem-prod-2",
-            "environment": "prod",
-            "path": "apps/payments/my-app/prod/on-prem-prod-2"
+            "path": "apps/payments/my-app/prod/onprem-prod"
           }
         }
       }
@@ -121,11 +103,11 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "us-east4-dev": {
-            "cluster": "in-cluster",
-            "namespace": "payments-us-east4-dev",
+          "us-dev": {
+            "cluster": "us",
+            "namespace": "payments-us-dev",
             "environment": "dev",
-            "path": "apps/payments/worker/dev/us-east4-dev"
+            "path": "apps/payments/worker/dev/us-dev"
           }
         }
       },
@@ -136,11 +118,11 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-east1-stg": {
-            "cluster": "in-cluster",
-            "namespace": "payments-us-east1-stg",
+          "us-stg": {
+            "cluster": "us",
+            "namespace": "payments-us-stg",
             "environment": "staging",
-            "path": "apps/payments/worker/staging/us-east1-stg"
+            "path": "apps/payments/worker/staging/us-stg"
           }
         }
       },
@@ -151,11 +133,11 @@
         "autoPromote": false,
         "level": 2,
         "targets": {
-          "gcp-us-prod": {
-            "cluster": "in-cluster",
-            "namespace": "payments-gcp-us-prod",
+          "us-prod": {
+            "cluster": "us",
+            "namespace": "payments-us-prod",
             "environment": "prod",
-            "path": "apps/payments/worker/prod/gcp-us-prod"
+            "path": "apps/payments/worker/prod/us-prod"
           }
         }
       }

@@ -8,11 +8,9 @@ spec:
     - https://github.com/pitoniak32/gitops-cd
   destinations:
     - name: in-cluster
-      namespace: search-gcp-dev
+      namespace: search-us-dev
     - name: in-cluster
-      namespace: search-gcp-prod
-    - name: in-cluster
-      namespace: search-onprem-prod
+      namespace: search-us-prod
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace
@@ -30,24 +28,24 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: search-api-gcp-dev
+  name: search-api-us-dev
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-search:api-gcp-dev
+    kargo.akuity.io/authorized-stage: kargo-search:api-us-dev
   labels:
     example.com/capability: search
     example.com/app: api
     example.com/stage: dev
-    example.com/target: gcp-dev
+    example.com/target: us-dev
 spec:
   project: search
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/search/api/gcp-dev
+    targetRevision: env/search/api/us-dev
     path: .
   destination:
     name: in-cluster
-    namespace: search-gcp-dev
+    namespace: search-us-dev
   syncPolicy:
     automated:
       prune: true
@@ -58,52 +56,24 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: search-api-gcp-prod
+  name: search-api-us-prod
   namespace: argocd
   annotations:
-    kargo.akuity.io/authorized-stage: kargo-search:api-gcp-prod
+    kargo.akuity.io/authorized-stage: kargo-search:api-us-prod
   labels:
     example.com/capability: search
     example.com/app: api
     example.com/stage: prod
-    example.com/target: gcp-prod
+    example.com/target: us-prod
 spec:
   project: search
   source:
     repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/search/api/gcp-prod
+    targetRevision: env/search/api/us-prod
     path: .
   destination:
     name: in-cluster
-    namespace: search-gcp-prod
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: search-api-onprem-prod
-  namespace: argocd
-  annotations:
-    kargo.akuity.io/authorized-stage: kargo-search:api-onprem-prod
-  labels:
-    example.com/capability: search
-    example.com/app: api
-    example.com/stage: prod
-    example.com/target: onprem-prod
-spec:
-  project: search
-  source:
-    repoURL: https://github.com/pitoniak32/gitops-cd
-    targetRevision: env/search/api/onprem-prod
-    path: .
-  destination:
-    name: in-cluster
-    namespace: search-onprem-prod
+    namespace: search-us-prod
   syncPolicy:
     automated:
       prune: true

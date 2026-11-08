@@ -8,11 +8,11 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "gcp-dev": {
-            "cluster": "in-cluster",
-            "namespace": "search-gcp-dev",
+          "us-dev": {
+            "cluster": "us",
+            "namespace": "search-us-dev",
             "environment": "dev",
-            "path": "apps/search/api/dev/gcp-dev"
+            "path": "apps/search/api/dev/us-dev"
           }
         }
       },
@@ -23,14 +23,14 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "gcp-prod": {
-            "cluster": "in-cluster",
-            "namespace": "search-gcp-prod",
+          "us-prod": {
+            "cluster": "us",
+            "namespace": "search-us-prod",
             "environment": "prod",
-            "path": "apps/search/api/prod/gcp-prod"
+            "path": "apps/search/api/prod/us-prod"
           },
           "onprem-prod": {
-            "cluster": "in-cluster",
+            "cluster": "onprem",
             "namespace": "search-onprem-prod",
             "environment": "prod",
             "path": "apps/search/api/prod/onprem-prod"
