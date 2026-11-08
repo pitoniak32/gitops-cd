@@ -1,8 +1,0 @@
-config:
-  cluster: in-cluster
-  namespace: search-gcp-dev
-  environment: dev
-  auth:
-    wifEmail: search-dev@search-dev.iam.gserviceaccount.com
-  billing: dev
-  platform: K8S

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 config:
-  cluster: in-cluster
+  cluster: onprem
   namespace: search-onprem-prod
   environment: prod
   auth:

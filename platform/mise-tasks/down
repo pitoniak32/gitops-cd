@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-#MISE description="Delete demo cluster"
+#MISE description="Delete demo clusters (hub + regions)"
 set -euo pipefail
 
 kind delete cluster --name kargo-demo
+for r in $(grep -v '^#' platform/cluster/regions); do
+  kind delete cluster --name "region-$r"
+done
 docker network rm kargo-demo >/dev/null 2>&1 || true
 rm -f "$KUBECONFIG"

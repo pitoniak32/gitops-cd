@@ -38,7 +38,7 @@ apps/<app>/app.yml        image, port, replicas, env, envFrom, resources, stages
 ## Output (`rendered/` in the monorepo)
 ```
 apps/<cap>/<app>/<stage>/<target>/manifests.yaml
-kargo/<cap>.yaml      argocd/<cap>.yaml      pipelines/<cap>.json
+kargo/<cap>.yaml      argocd/<region>/<cap>.yaml      pipelines/<cap>.json
 ```
 
 ## Promotion

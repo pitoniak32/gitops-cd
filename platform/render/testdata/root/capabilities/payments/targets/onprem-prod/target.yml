@@ -1,0 +1,8 @@
+config:
+  cluster: onprem
+  namespace: payments-onprem-prod
+  environment: prod
+  auth:
+    wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
+  billing: prod
+  platform: K8S

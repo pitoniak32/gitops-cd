@@ -5,8 +5,9 @@ set -euo pipefail
 mkcert -install
 # explicit names: browsers reject *.localhost wildcards
 d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+regional=$(for r in $(grep -v '^#' platform/cluster/regions); do echo "argocd-$r.localhost"; done)
 mkcert -cert-file "$d/tls.crt" -key-file "$d/tls.key" \
-  kargo.localhost argocd.localhost keycloak.localhost localhost 2>/dev/null
+  kargo.localhost argocd.localhost keycloak.localhost localhost $regional 2>/dev/null
 # traefik's TLSStore default (platform/infrastructure/traefik/values.yaml) points at this secret
 kubectl create ns traefik --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 kubectl -n traefik create secret tls local-tls --cert="$d/tls.crt" --key="$d/tls.key" \

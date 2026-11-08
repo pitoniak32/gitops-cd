@@ -3,4 +3,4 @@ port: 80
 stages:
   dev:
     targets:
-      gcp-dev: {}
+      us-dev: {}

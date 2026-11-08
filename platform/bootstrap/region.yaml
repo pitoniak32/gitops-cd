@@ -1,0 +1,21 @@
+# Regional root Application template; `infra` fills __REGION__ (platform/cluster/regions) and applies it
+# to kind-region-<r>. Syncs from main on GitHub (public repo, no creds):
+#   rendered/argocd/<region>/<cap>.yaml -> AppProject + Applications (one per app+target in this region,
+#   tracking env/* branches), destination in-cluster of this region's Argo CD
+# Workload manifests (rendered/apps/**) are NOT synced from main; they reach the cluster only via Kargo promotion.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rendered-argocd
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/pitoniak32/gitops-cd
+    targetRevision: main
+    path: rendered/argocd/__REGION__
+  destination:
+    name: in-cluster
+    namespace: argocd
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}

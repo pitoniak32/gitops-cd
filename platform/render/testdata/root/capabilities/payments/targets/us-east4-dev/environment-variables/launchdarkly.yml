@@ -1,4 +1,0 @@
-LD_SDK_KEY: 'secret:acme-dev-use4/launchdarkly-sdk-key'
-LD_RELAY_URL: https://ld-relay.us-east4-dev.example.com
-APP_ENV: 'from-bundle'
-APP_ENV: 'from-bundle'

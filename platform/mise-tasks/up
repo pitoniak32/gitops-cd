@@ -9,7 +9,20 @@ mise run down
 docker network create --ipv4 --ipv6=false kargo-demo >/dev/null
 KIND_EXPERIMENTAL_DOCKER_NETWORK=kargo-demo \
   kind create cluster --config platform/cluster/kind.yaml --wait 120s
-kubectl wait --for=condition=Ready nodes --all --timeout=120s
+kubectl --context kind-kargo-demo wait --for=condition=Ready nodes --all --timeout=120s
+
+# regions: same network, no host ports (parallel; kind merges kubeconfig under a lock)
+pids=()
+for r in $(grep -v '^#' platform/cluster/regions); do
+  N="region-$r" yq '.name = strenv(N)' platform/cluster/region.yaml |
+    KIND_EXPERIMENTAL_DOCKER_NETWORK=kargo-demo kind create cluster --config - --wait 120s &
+  pids+=($!)
+done
+for p in "${pids[@]}"; do wait "$p"; done
+for r in $(grep -v '^#' platform/cluster/regions); do
+  kubectl --context "kind-region-$r" wait --for=condition=Ready nodes --all --timeout=120s
+done
+kubectl config use-context kind-kargo-demo >/dev/null
 
 mise run infra
 

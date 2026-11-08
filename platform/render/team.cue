@@ -16,11 +16,10 @@ import (
 
 // Kargo UI named stage colors (kargo.akuity.io/color)
 _kargoColors: ["red", "salmon", "orange", "amber", "yellow", "lime", "avocado", "green", "teal", "cyan", "sky", "blue", "indigo", "periwinkle", "violet", "purple", "fuchsia", "pink", "rose", "dragonfruit", "gray"]
-// default: spread sorted stage names across the palette
+// default color: spread sorted stage names across the palette
 _defaultColors: ["blue", "amber", "violet", "green", "red", "teal", "pink", "orange", "indigo", "lime"]
-_stageColor: {
-	let names = list.SortStrings(_stageNames)
-	for i, n in names {(n): [if stages[n].color != _|_ {stages[n].color}, _defaultColors[mod(i, len(_defaultColors))]][0]}
+for i, n in list.SortStrings(_stageNames) {
+	stages: (n): color: *_defaultColors[mod(i, len(_defaultColors))] | _
 }
 
 // targets/<name>/target.yml — where a stage deploys. Reusable across apps.

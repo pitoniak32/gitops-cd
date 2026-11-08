@@ -7,7 +7,7 @@ for cap in payments search; do scripts/render.sh testdata/root "$cap" "$tmp" >/d
 if [[ "${UPDATE:-}" == 1 ]]; then rm -rf testdata/golden; cp -R "$tmp" testdata/golden; echo updated; exit; fi
 diff -ru testdata/golden "$tmp"; echo "golden ok"
 # kind: one AppProject per capability; no secret store -> no ExternalSecrets / secret env refs
-yq -e 'select(.kind == "AppProject" and .metadata.name == "payments")' "$tmp/argocd/payments.yaml" >/dev/null || { echo "missing AppProject payments" >&2; exit 1; }
+yq -e 'select(.kind == "AppProject" and .metadata.name == "payments")' "$tmp/argocd/us/payments.yaml" >/dev/null || { echo "missing AppProject payments" >&2; exit 1; }
 if grep -rqE 'ExternalSecret|secretKeyRef' "$tmp/apps/"; then echo "secret refs rendered for a cluster without a secret store" >&2; exit 1; fi
 grep -rq "APP_SECRET" testdata/root/capabilities/payments/apps/my-app/app.yml || { echo "fixture lost its secret: env value" >&2; exit 1; }
 # Argo CD dry-runs all resources first: the project namespace must be rendered (labeled for Kargo
@@ -15,7 +15,7 @@ grep -rq "APP_SECRET" testdata/root/capabilities/payments/apps/my-app/app.yml ||
 [[ "$(yq 'select(documentIndex == 0) | .kind + "/" + .metadata.name + "/" + .metadata.labels."kargo.akuity.io/project"' "$tmp/kargo/payments.yaml")" == "Namespace/kargo-payments/true" ]] || { echo "kargo/payments.yaml must start with labeled Namespace kargo-payments" >&2; exit 1; }
 # Argo CD visibility: promoters + viewers (emails) get read-only access to their capability's apps, nothing else
 want='{"name":"viewer","policies":["p, proj:payments:viewer, applications, get, payments/*, allow"],"groups":["alice@example.com","bob@example.com","carol@example.com","doug@example.com"]}'
-got="$(yq -o=json -I=0 'select(.kind == "AppProject") | .spec.roles[] | {"name": .name, "policies": .policies, "groups": .groups}' "$tmp/argocd/payments.yaml")"
+got="$(yq -o=json -I=0 'select(.kind == "AppProject") | .spec.roles[] | {"name": .name, "policies": .policies, "groups": .groups}' "$tmp/argocd/us/payments.yaml")"
 [[ "$got" == "$want" ]] || { printf 'AppProject viewer role\nwant: %s\ngot:  %s\n' "$want" "$got" >&2; exit 1; }
 # Kargo visibility (email claim): promoters + viewers read their project via Kargo's per-project
 # kargo-viewer Role, and list projects via a global SA (kargo-shared-resources) bound to kargo-user
@@ -31,12 +31,20 @@ yq -e 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[]
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-my-app") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["carol@example.com","doug@example.com"]}' ]] || { echo "promote-my-app must inherit the capability's promoters + break-glass" >&2; exit 1; }
 # break-glass (ADR 0013): every gate and target Stage carries the app's list for the approve guard
 [[ "$(yq 'select(.kind == "Stage" and .metadata.labels."example.com/app" == "my-app") | .metadata.annotations."example.com/break-glass"' "$k" | sort -u | grep -v '^---$')" == '["carol@example.com"]' ]] || { echo "every my-app Stage needs the break-glass annotation" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[0].resourceNames | join(",")' "$k")" == "worker-dev,worker-gcp-us-prod,worker-prod,worker-staging,worker-us-east1-stg,worker-us-east4-dev" ]] || { echo "promote-worker must cover only worker's gate + target stages" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[0].resourceNames | join(",")' "$k")" == "worker-dev,worker-prod,worker-staging,worker-us-dev,worker-us-prod,worker-us-stg" ]] || { echo "promote-worker must cover only worker's gate + target stages" >&2; exit 1; }
 # Kargo graph: gate <app>-<stage> per gitops stage, target Stage <app>-<target> per target, own env branch
-[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec.requestedFreight[0].sources | .availabilityStrategy + ":" + (.stages | join(","))' "$k")" == "All:my-app-on-prem-perf,my-app-on-prem-stg,my-app-us-east1-perf,my-app-us-east1-stg" ]] || { echo "prod gate must wait for every upstream target" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec.requestedFreight[0].sources | .availabilityStrategy + ":" + (.stages | join(","))' "$k")" == "All:my-app-onprem-stg,my-app-us-perf,my-app-us-stg" ]] || { echo "prod gate must wait for every upstream target" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec | has("promotionTemplate")' "$k")" == "false" ]] || { echo "gates must be control flow stages" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-gcp-eu-prod") | (.spec.requestedFreight[0].sources.stages | join(",")) + " " + .spec.promotionTemplate.spec.vars[2].value' "$k")" == "my-app-prod env/payments/my-app/gcp-eu-prod" ]] || { echo "target stage must follow its gate and push its own branch" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Application" and .metadata.name == "payments-my-app-gcp-eu-prod") | .spec.source.targetRevision + " " + .spec.source.path + " " + .metadata.annotations."kargo.akuity.io/authorized-stage"' "$tmp/argocd/payments.yaml")" == "env/payments/my-app/gcp-eu-prod . kargo-payments:my-app-gcp-eu-prod" ]] || { echo "Argo CD app must track its target branch, authorized for its target stage" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-onprem-prod") | (.spec.requestedFreight[0].sources.stages | join(",")) + " " + .spec.promotionTemplate.spec.vars[2].value' "$k")" == "my-app-prod env/payments/my-app/onprem-prod" ]] || { echo "target stage must follow its gate and push its own branch" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Application" and .metadata.name == "payments-my-app-onprem-prod") | .spec.source.targetRevision + " " + .spec.source.path + " " + .metadata.annotations."kargo.akuity.io/authorized-stage"' "$tmp/argocd/onprem/payments.yaml")" == "env/payments/my-app/onprem-prod . kargo-payments:my-app-onprem-prod" ]] || { echo "Argo CD app must track its target branch, authorized for its target stage" >&2; exit 1; }
+# regions: target Stages run on their cluster's region shard; gates and Warehouses stay on the hub controller
+[[ "$(yq 'select(.kind == "Stage") | .metadata.name + "=" + (.spec.shard // "-")' "$k" | grep '^my-app-' | sort | paste -sd' ' -)" == "my-app-dev=- my-app-onprem-dev=onprem my-app-onprem-prod=onprem my-app-onprem-stg=onprem my-app-perf=- my-app-prod=- my-app-staging=- my-app-us-dev=us my-app-us-perf=us my-app-us-prod=us my-app-us-stg=us" ]] || { echo "shard must be set on target Stages only, from the target's cluster region" >&2; exit 1; }
+if yq -e 'select(.kind == "Warehouse") | .spec.shard' "$k" >/dev/null 2>&1; then echo "Warehouses must not be sharded" >&2; exit 1; fi
+# Argo CD output is per region; destination is the regional Argo CD's own cluster
+[[ "$(cd "$tmp/argocd" && find . -type f | sort | paste -sd' ' -)" == "./onprem/payments.yaml ./us/payments.yaml ./us/search.yaml" ]] || { echo "argocd output must be per region" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "AppProject") | .spec.destinations[] | .name + "/" + .namespace' "$tmp/argocd/onprem/payments.yaml" | paste -sd' ' -)" == "in-cluster/payments-onprem-dev in-cluster/payments-onprem-prod in-cluster/payments-onprem-stg" ]] || { echo "onprem AppProject must list only onprem destinations" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Application") | .metadata.name' "$tmp/argocd/us/payments.yaml" | grep -c onprem || true)" == 0 ]] || { echo "us Argo CD file has onprem apps" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Application" and .metadata.name == "payments-my-app-us-dev") | .spec.destination.name + "/" + .spec.destination.namespace' "$tmp/argocd/us/payments.yaml")" == "in-cluster/payments-us-dev" ]] || { echo "app destination must be in-cluster of its regional Argo CD" >&2; exit 1; }
 if grep -q '"groups"' "$tmp"/kargo/*.yaml; then echo "no Kargo claim may use groups" >&2; exit 1; fi
 echo "kind cluster ok"
 
@@ -76,7 +84,7 @@ ls testdata/golden/kargo/*.yaml >/dev/null || exit 1
 if yq -e 'select(.kind == "Role") | .rules[] | select(has("resourceNames") and (.resourceNames | length) == 0)' testdata/golden/kargo/*.yaml >/dev/null 2>&1; then echo "empty resourceNames in golden" >&2; exit 1; fi
 
 # Invalid app/stage/target directory names fail lint (they become k8s/Kargo names)
-for d in apps/worker stages/perf targets/on-prem-dev; do
+for d in apps/worker stages/perf targets/onprem-dev; do
   r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments"
   mv "$c/$d" "$c/$(dirname "$d")/Bad_Name" 2>/dev/null || mv "$c/$d.yml" "$c/$(dirname "$d")/Bad_Name.yml"
   got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
@@ -86,14 +94,14 @@ done
 
 # A target named like a stage would collide as a Kargo Stage name (<app>-<name>)
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
-cp -R "$r/capabilities/payments/targets/on-prem-dev" "$r/capabilities/payments/targets/dev"
+cp -R "$r/capabilities/payments/targets/onprem-dev" "$r/capabilities/payments/targets/dev"
 got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE '^capabilities/payments/targets/dev/target\.yml:[0-9]+:[0-9]+: .*also a stage name' <<<"$got" || { printf 'target/stage name collision not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "target/stage name collision ok"
 
 # Target layout: old targets/<t>.yml and bundles without target.yml fail lint
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; t="$r/capabilities/payments/targets"
-cp "$t/on-prem-dev/target.yml" "$t/old.yml"
+cp "$t/onprem-dev/target.yml" "$t/old.yml"
 mkdir -p "$t/ghost/environment-variables"; echo 'A: b' >"$t/ghost/environment-variables/x.yml"
 got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE '^capabilities/payments/targets/old\.yml:1:1: .*move to targets/old/target\.yml' <<<"$got" || { printf 'legacy target file not rejected:\n%s\n' "$got" >&2; exit 1; }
@@ -101,7 +109,7 @@ grep -qE '^capabilities/payments/targets/ghost/environment-variables/x\.yml:[0-9
 echo "target layout ok"
 
 # envFrom precedence: target env > stage env > app env > environment-variables bundle
-for t in us-east4-dev:true on-prem-dev:false; do
+for t in us-dev:true onprem-dev:false; do
   v="$(yq "select(.kind == \"Deployment\") | .spec.template.spec.containers[0].env[] | select(.name == \"APP_ENV\") | .value" testdata/golden/apps/payments/my-app/dev/${t%%:*}/*.yaml)"
   [[ $v == "${t#*:}" ]] || { echo "APP_ENV on ${t%%:*}: got '$v' want '${t#*:}' (bundle must not beat app/target env)" >&2; exit 1; }
 done
@@ -109,13 +117,13 @@ echo "envFrom precedence ok"
 
 # envFrom KEY clash: most specific layer wins; same layer: equal ok, different = error
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments"
-printf 'LD_RELAY_URL: https://other\nLD_SDK_KEY: secret:acme-dev-use4/launchdarkly-sdk-key\n' >"$c/targets/us-east4-dev/environment-variables/flags.yml"
-yq -i '.stages.dev.targets.us-east4-dev.envFrom = ["flags"]' "$c/apps/my-app/app.yml"
+printf 'LD_RELAY_URL: https://other\nLD_SDK_KEY: secret:acme-dev-us/launchdarkly-sdk-key\n' >"$c/targets/us-dev/environment-variables/flags.yml"
+yq -i '.stages.dev.targets.us-dev.envFrom = ["flags"]' "$c/apps/my-app/app.yml"
 scripts/render.sh "$r" payments "$o" >/dev/null
-v="$(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "LD_RELAY_URL") | .value' "$o/apps/payments/my-app/dev/us-east4-dev/manifests.yaml")"
+v="$(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "LD_RELAY_URL") | .value' "$o/apps/payments/my-app/dev/us-dev/manifests.yaml")"
 [[ $v == https://other ]] || { echo "target-level envFrom must win: LD_RELAY_URL=$v" >&2; exit 1; }
-yq -i '.stages.dev.targets.us-east4-dev.envFrom = ["flags", "launchdarkly"]' "$c/apps/my-app/app.yml"
+yq -i '.stages.dev.targets.us-dev.envFrom = ["flags", "launchdarkly"]' "$c/apps/my-app/app.yml"
 got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}" "${o:?}"
-grep -qE '^capabilities/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.us-east4-dev\.envFrom: .*LD_RELAY_URL differs between environment-variables/\{flags,launchdarkly\}\.yml \(both in target-level' <<<"$got" || { printf 'same-layer clash not rejected:\n%s\n' "$got" >&2; exit 1; }
+grep -qE '^capabilities/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.us-dev\.envFrom: .*LD_RELAY_URL differs between environment-variables/\{flags,launchdarkly\}\.yml \(both in target-level' <<<"$got" || { printf 'same-layer clash not rejected:\n%s\n' "$got" >&2; exit 1; }
 grep -q LD_SDK_KEY <<<"$got" && { printf 'equal values must not clash:\n%s\n' "$got" >&2; exit 1; }
 echo "envFrom clash ok"

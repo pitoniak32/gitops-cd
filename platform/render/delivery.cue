@@ -31,13 +31,15 @@ _autoStages: list.Concat([for an, p in pipelines for sn, s in p.stages if s.auto
 	[for tn, _ in s.targets {(_tgtName & {#app: an, #target: tn}).out}],
 ])
 }])
-// read by the break-glass guard (platform/infrastructure/break-glass): who may approve unverified
-// Freight for this Stage (ADR 0013)
 _stageAnnotations: {
-	#app:                      string
-	#stage:                    string
+	#app:   string
+	#stage: string
+
+	// read by the break-glass guard (platform/infrastructure/break-glass): who may approve unverified
+	// Freight for this Stage (ADR 0013)
 	"example.com/break-glass": json.Marshal(_breakGlass[#app])
-	"kargo.akuity.io/color":   _stageColor[#stage] // same color for a stage's gate and targets
+	// Kargo UI: a stage's gate and targets share its color
+	"kargo.akuity.io/color": stages[#stage].color
 }
 _stageLabels: {
 	#app:                     string
@@ -100,6 +102,8 @@ _kargoCore: [
 			annotations: _stageAnnotations & {#app: an, #stage: sn}
 		}
 		spec: {
+			// the region's Kargo controller promotes it (gates and Warehouses stay on the hub controller)
+			shard: clusters[targets[tn].config.cluster].region
 			requestedFreight: [{
 				origin: {kind: "Warehouse", name: an}
 				sources: stages: [(_gateName & {#app: an, #stage: sn}).out]
@@ -136,15 +140,18 @@ _kargoCore: [
 	},
 ]
 
-// Argo CD AppProject per capability: this repo, its target namespaces, no cluster-scoped resources
-// except creating those namespaces.
+// Argo CD output per region (one Argo CD per region, rendered/argocd/<region>/<cap>.yaml): an AppProject
+// per capability with only that region's destinations, plus the Applications deployed there.
+// Inside a regional Argo CD the workload cluster is its own (clusters[].argocdName, in-cluster).
+_deployRegion: {for _, d in deploys {(clusters[d.tgt.cluster].region): _}}
 _appProject: {
+	#region:    string
 	apiVersion: "argoproj.io/v1alpha1"
 	kind:       "AppProject"
 	metadata: {name: _cap, namespace: "argocd"}
 	spec: {
 		sourceRepos: [_repoURL]
-		destinations: [for k in list.SortStrings([for k, _ in {for _, d in deploys {"\(clusters[d.tgt.cluster].argocdName)/\(d.tgt.namespace)": _}} {k}]) {
+		destinations: [for k in list.SortStrings([for k, _ in {for _, d in deploys if clusters[d.tgt.cluster].region == #region {"\(clusters[d.tgt.cluster].argocdName)/\(d.tgt.namespace)": _}} {k}]) {
 			name:      strings.Split(k, "/")[0]
 			namespace: strings.Split(k, "/")[1]
 		}]
@@ -161,35 +168,40 @@ _appProject: {
 	}
 }
 
-argocd: list.Concat([[_appProject], _argocdApps])
+argocd: {for r, _ in _deployRegion {
+	(r): list.Concat([[_appProject & {#region: r}], [for a in _argocdApps if a.#region == r {a.app}]])
+}}
 _argocdApps: [for _, d in deploys {
-	apiVersion: "argoproj.io/v1alpha1"
-	kind:       "Application"
-	metadata: {
-		name:      "\(_cap)-\(d.app)-\(d.target)"
-		namespace: "argocd"
-		annotations: "kargo.akuity.io/authorized-stage": "\(_kargoProject):\((_tgtName & {#app: d.app, #target: d.target}).out)"
-		labels: {
-			"example.com/capability": _cap
-			"example.com/app":        d.app
-			"example.com/stage":      d.stage
-			"example.com/target":     d.target
+	#region: clusters[d.tgt.cluster].region
+	app: {
+		apiVersion: "argoproj.io/v1alpha1"
+		kind:       "Application"
+		metadata: {
+			name:      "\(_cap)-\(d.app)-\(d.target)"
+			namespace: "argocd"
+			annotations: "kargo.akuity.io/authorized-stage": "\(_kargoProject):\((_tgtName & {#app: d.app, #target: d.target}).out)"
+			labels: {
+				"example.com/capability": _cap
+				"example.com/app":        d.app
+				"example.com/stage":      d.stage
+				"example.com/target":     d.target
+			}
 		}
-	}
-	spec: {
-		project: _cap // Argo CD AppProject per capability (platform-owned)
-		source: {
-			repoURL:        _repoURL
-			targetRevision: "env/\(_cap)/\(d.app)/\(d.target)"
-			path:           "."
-		}
-		destination: {
-			name:      clusters[d.tgt.cluster].argocdName
-			namespace: d.tgt.namespace
-		}
-		syncPolicy: {
-			automated: {prune: true, selfHeal: true}
-			syncOptions: ["CreateNamespace=true"]
+		spec: {
+			project: _cap // Argo CD AppProject per capability (platform-owned)
+			source: {
+				repoURL:        _repoURL
+				targetRevision: "env/\(_cap)/\(d.app)/\(d.target)"
+				path:           "."
+			}
+			destination: {
+				name:      clusters[d.tgt.cluster].argocdName
+				namespace: d.tgt.namespace
+			}
+			syncPolicy: {
+				automated: {prune: true, selfHeal: true}
+				syncOptions: ["CreateNamespace=true"]
+			}
 		}
 	}
 }]

@@ -8,11 +8,11 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "gcp-dev": {
-            "cluster": "in-cluster",
-            "namespace": "search-gcp-dev",
+          "us-dev": {
+            "cluster": "us",
+            "namespace": "search-us-dev",
             "environment": "dev",
-            "path": "apps/search/api/dev/gcp-dev"
+            "path": "apps/search/api/dev/us-dev"
           }
         }
       }

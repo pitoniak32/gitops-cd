@@ -3,11 +3,11 @@ image: ghcr.io/pitoniak32/nginx@sha256:5aca99593157f4ae539a5dec1092a0ad8762f8e2e
 stages:
   dev:
     targets:
-      us-east4-dev: {}
+      us-dev: {}
   staging:
     targets:
-      us-east1-stg: {}
+      us-stg: {}
   prod:
     replicas: 3
     targets:
-      gcp-us-prod: {}
+      us-prod: {}

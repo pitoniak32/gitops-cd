@@ -44,7 +44,10 @@
             {
               "anyOf": [
                 {
-                  "const": "in-cluster"
+                  "const": "us"
+                },
+                {
+                  "const": "onprem"
                 }
               ]
             }
@@ -64,6 +67,7 @@
       "required": [
         "auth",
         "billing",
+        "cluster",
         "environment",
         "namespace"
       ],

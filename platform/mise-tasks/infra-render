@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 #MISE description="Render argocd Applications (values + kustomized manifests inlined) to stdout"
-#USAGE arg "[apps]..." help="platform/infrastructure/<app> dirs to render (default: all)"
+#USAGE arg "[apps]..." help="platform/infrastructure/<app> dirs to render (default: all non-templated)"
+# Templated addons (contain __SHARD__): set SHARD=<region> to substitute; a placeholder chart pin
+# (PINNED-IN-KARGO-APP) is replaced with the pin in ../kargo/app.yaml
+# Generated bits: keycloak gets one public PKCE client per region; kargo gets api.argocd.urls per region
 set -euo pipefail
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 apps=(${usage_apps:-})
-[ ${#apps[@]} -gt 0 ] || apps=($(cd platform/infrastructure && ls -d */ | tr -d /))
+if [ ${#apps[@]} -eq 0 ]; then
+  for f in platform/infrastructure/*/app.yaml; do
+    grep -q __SHARD__ "$f" "$(dirname "$f")/values.yaml" 2>/dev/null || apps+=("$(basename "$(dirname "$f")")")
+  done
+fi
+regions=$(grep -v '^#' platform/cluster/regions)
 
 for a in "${apps[@]}"; do
   d=platform/infrastructure/$a
@@ -15,8 +23,36 @@ for a in "${apps[@]}"; do
   fi
   # plain manifests -> bedag/raw chart `resources` (no git source yet)
   if [ -f "$d/manifests/kustomization.yaml" ]; then
-    kubectl kustomize "$d/manifests" | yq ea '[.]' > "$tmp/res.yaml"
+    md=$d/manifests
+    if [ "$a" = keycloak ]; then
+      # regional Argo CD clients generated from the regions list (same shape as the hub `argocd` client)
+      md=$tmp/keycloak-manifests; rm -rf "$md"; cp -R "$d/manifests" "$md"
+      for r in $regions; do
+        R=$r yq -i -p=json -o=json '.clients += [{
+          "clientId": "argocd-" + strenv(R), "name": "Argo CD (" + strenv(R) + ")",
+          "publicClient": true, "standardFlowEnabled": true, "directAccessGrantsEnabled": false,
+          "redirectUris": ["https://argocd-" + strenv(R) + ".localhost/pkce/verify", "https://argocd-" + strenv(R) + ".localhost/auth/callback", "http://localhost:8085/auth/callback"],
+          "webOrigins": ["https://argocd-" + strenv(R) + ".localhost"],
+          "attributes": {"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": "https://argocd-" + strenv(R) + ".localhost/*"}}]' "$md/kargo-realm.json"
+      done
+    fi
+    kubectl kustomize "$md" | yq ea '[.]' > "$tmp/res.yaml"
     R="$tmp/res.yaml" yq -i '.spec.source.helm.valuesObject.resources = load(strenv(R))' "$tmp/app.yaml"
+  fi
+  if [ "$a" = kargo ]; then
+    # deep links: shard name -> regional Argo CD UI. Default shard ("") has no mapping: gate Stages have no
+    # Argo CD apps and the hub Argo CD only runs infrastructure.
+    for r in $regions; do
+      R=$r yq -i '.spec.source.helm.valuesObject.api.argocd.urls[strenv(R)] = "https://argocd-" + strenv(R) + ".localhost"' "$tmp/app.yaml"
+    done
+  fi
+  if grep -q __SHARD__ "$tmp/app.yaml"; then
+    : "${SHARD:?$a is templated: set SHARD=<region>}"
+    if [ "$(yq '.spec.source.targetRevision' "$tmp/app.yaml")" = PINNED-IN-KARGO-APP ]; then
+      V=$(yq '.spec.source.targetRevision' platform/infrastructure/kargo/app.yaml) \
+        yq -i '.spec.source.targetRevision = strenv(V)' "$tmp/app.yaml"
+    fi
+    sed -i.bak "s/__SHARD__/$SHARD/g" "$tmp/app.yaml"
   fi
   echo "---"; cat "$tmp/app.yaml"
 done
