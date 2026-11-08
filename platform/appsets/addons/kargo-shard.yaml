@@ -74,5 +74,5 @@ spec:
           - ServerSideApply=true
           - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
         retry:
-          limit: 10
+          limit: -1  # unlimited: add-ons start together, deps (CRDs, webhooks) may take a while
           backoff: {duration: 5s, factor: 2, maxDuration: 1m}

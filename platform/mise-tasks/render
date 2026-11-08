@@ -14,5 +14,6 @@ for dir in capabilities/*/; do
   echo "rendered $cap"
 done
 platform/render/scripts/regions.sh "$OUT" >/dev/null  # platform-level: clusters.cue
+platform/render/scripts/unique-apps.sh "$OUT"  # Application names are global per region
 echo "rendered regions"
 platform/render/scripts/codeowners.sh . "$OUT"

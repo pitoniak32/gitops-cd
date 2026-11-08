@@ -142,3 +142,11 @@ r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; cp -R "$r/capab
 scripts/render.sh "$r" payments "$o" >/dev/null; scripts/render.sh "$r" pay "$o" >/dev/null; scripts/render.sh "$r" pay "$o" >/dev/null
 [[ -f "$o/argocd/deploys/us/payments/my-app-us-dev.json" && -f "$o/argocd/deploys/us/pay/my-app-us-dev.json" ]] || { echo "re-render of pay wiped payments deploys" >&2; exit 1; }
 rm -rf "${r:?}" "${o:?}"; echo "prefix caps ok"
+
+# workload Application names are global per region Argo CD: a duplicate breaks the whole workloads AppSet
+o="$(mktemp -d)"; scripts/render.sh testdata/root payments "$o" >/dev/null
+scripts/unique-apps.sh "$o" >/dev/null || { echo "unique-apps rejected a clean render" >&2; exit 1; }
+mkdir -p "$o/argocd/deploys/us/payments-my"; cp "$o/argocd/deploys/us/payments/my-app-us-dev.json" "$o/argocd/deploys/us/payments-my/app-us-dev.json"
+got="$(scripts/unique-apps.sh "$o" 2>&1 || true)"; rm -rf "${o:?}"
+grep -q 'duplicate workload Application name payments-my-app-us-dev' <<<"$got" || { printf 'duplicate appName not rejected:\n%s\n' "$got" >&2; exit 1; }
+echo "unique app names ok"
