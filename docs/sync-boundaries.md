@@ -2,52 +2,55 @@
 
 What changes reach the cluster by themselves, and what needs a command.
 
-Rule of thumb: Argo CD only reads **`rendered/` on GitHub `main`** and the **`env/*` branches**. Everything under `platform/` is read from your **local checkout** by `mise` tasks. So a platform change does nothing until you run a task, and a capability change does nothing until it is merged and CI has rendered it.
+Rule of thumb: Argo CD reads **GitHub `main`** (`platform/appsets/`, `platform/infrastructure/`, `rendered/`) and the **`env/*` branches**. Every Argo CD (hub + each region) runs the same root app; ApplicationSets with the cluster generator pick what each one deploys from its cluster labels (ADR 0017). So a change under those paths does nothing until it is **pushed to `main`** (capabilities: merged and rendered by CI). `mise` tasks only cover what can't live in git: cluster creation, the first Argo CD install, the root app, CoreDNS, secrets and the Kargo shard token.
 
 ```
 GITOPS LANE (pull: Argo CD, automated + prune + selfHeal)
   capabilities/, teams/, platform/render/
     → PR, merge → CI renders rendered/ on main
-    → hub rendered-kargo syncs rendered/kargo; each region's rendered-argocd syncs rendered/argocd/<region>/
+    → hub rendered-kargo syncs rendered/kargo
+    → each region: argocd-projects syncs rendered/argocd/projects/<region>/,
+      workloads AppSet makes one Application per rendered/argocd/deploys/<region>/<cap>/<app>-<target>.json
       (hub runs no workloads)
     → Kargo: Freight from rendered/apps → gate <app>-<stage> → target stage <app>-<target>
       → env/<cap>/<app>/<target>
-    → capability Applications sync the env/* branches
+    → workload Applications sync the env/* branches
+  platform/appsets/**, platform/infrastructure/**
+    → push to main → root app syncs the AppSets → add-on Applications (chart + values/manifests from main)
 
 TASK LANE (push: mise run infra / up, from your local checkout)
   platform/cluster/{kind.yaml,region.yaml,regions} → kind hub + regional clusters (up only)
-  platform/infrastructure/<addon>/         → inlined infra Applications → Argo CD installs + self-heals them
-  platform/bootstrap/rendered.yaml         → hub root Application (rendered/kargo)
-  platform/bootstrap/region.yaml           → regional root Application template, applied per region
-  CoreDNS rewrites (hub + `region-dns`), fnox creds, mkcert cert → applied directly by kubectl
+  platform/bootstrap/root.yaml             → root Application, applied to every Argo CD
+  first helm install of each Argo CD       → values.yaml (+ argocd-region AppSet valuesObject)
+  CoreDNS rewrites (hub + `region-dns`), fnox creds, mkcert cert, shard token → applied directly by kubectl
 ```
 
-## Argo CD syncs it (merge to `main`, nothing to run)
+## Argo CD syncs it (push/merge to `main`, nothing to run)
 
 | You change | Path to the cluster |
 |---|---|
-| `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → hub `rendered-kargo` and each region's `rendered-argocd` sync it. Workloads don't change until a promotion. |
+| `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → hub `rendered-kargo`, each region's `argocd-projects` and `workloads` AppSet pick it up. Workloads don't change until a promotion. |
 | Workload manifests | Kargo Warehouse discovers new `rendered/apps/<cap>/<app>/` commits and image tags → promoter assembles Freight → gate → target-stage promotion pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
 | `teams/` | Takes effect on the next render, for CODEOWNERS only. It has no cluster effect (ADR 0011). |
 | `platform/render/**` (renderer logic) | Same as capabilities: lands when CI renders on `main` after the merge. |
-| Drift (manual `kubectl edit` of anything Argo CD manages) | Reverted by `selfHeal`. That includes infrastructure, but it reverts to the **last spec applied by `mise run infra`**, not to git. |
+| `platform/infrastructure/<addon>/values.yaml`, `manifests/**` | Push to `main`; the add-on's Application reads them through its AppSet (`$values` ref / kustomize path). |
+| `platform/appsets/**` (chart pins, region values, which cluster gets what) | Push to `main`; the root app syncs the AppSets, which regenerate their Applications. |
+| Keycloak realm (`kargo-realm.json`) | Push; the configMap hash then restarts Keycloak, which re-imports the realm. |
+| Argo CD's own values (`argocd/`, `argocd-region/`, the AppSets' `valuesObject`) | Push; each Argo CD manages itself through its `argocd` Application. |
+| `platform/render/clusters.cue` regions | `mise run regions` (committed config; CI checks drift), merge; CI renders `rendered/infrastructure/regions/`. A new region also needs a clean `up`. |
+| Drift (manual `kubectl edit` of anything Argo CD manages) | Reverted by `selfHeal` to what's on `main`. |
 
 ## `mise run infra` needed (idempotent, keeps the cluster)
 
-The infrastructure Applications are not git-sourced. `mise run infra-render` inlines `values.yaml` and `manifests/` into each Application, and `infra` applies them with `kubectl`. Argo CD then installs, upgrades and self-heals them, but it never sees edits to the files.
-
 | You change | Why a task is needed |
 |---|---|
-| `platform/infrastructure/<addon>/values.yaml`, `manifests/**`, `app.yaml` (chart version) | Argo CD only knows the Application spec that was last applied. |
-| Keycloak realm (`kargo-realm.json`) | Same, and the configMap hash then restarts Keycloak, which re-imports the realm. |
-| Argo CD's own values (`platform/infrastructure/argocd/`) | Argo CD manages itself, but only from the spec that `infra` applied. |
-| `platform/bootstrap/{rendered,region}.yaml` | Applied by `kubectl`, not synced. `region.yaml` is a template: `infra` fills the region name and applies it to each `kind-region-<r>`. A new region is one line in `platform/cluster/regions`. |
+| `platform/bootstrap/root.yaml` | Applied by `kubectl` to every Argo CD, not synced. |
 | CoreDNS `keycloak.localhost` rewrite | Patched by the `infra` script. Argo CD doesn't manage `kube-system`. |
 | Kargo git creds (`mise run creds`) / TLS cert (`mise run certs`) | They come from fnox / mkcert and never touch git. `infra` runs both, or run them alone. |
-| Regional Argo CD (`platform/infrastructure/argocd-region/`) | Applied to each `kind-region-<r>` context by `infra`, inlined like the hub addons. Bootstrapped from the host; the hub holds no credentials to regions. |
-| Kargo shards (`platform/infrastructure/kargo-shard-hub/`, `kargo-shard/`, `mise run kargo-shards`) | Templated per region from `platform/cluster/regions` (`__SHARD__`): hub identity Application, then the hub SA token is copied into each region's `kargo-hub-kubeconfig` Secret (never in git), then the regional controller Application. `infra` runs it last. Chart pin is read from `kargo/app.yaml`. |
-| A new addon | Add it to the ordered list in `platform/mise-tasks/infra`. |
-| Break-glass guard (`platform/infrastructure/break-glass/`: script, admin emails, approve route) | An infra addon like the others. Who is break-glass comes from `owners.yml` and arrives via the gitops lane (Stage annotations). |
+| Kargo shard token (`mise run kargo-shards`) | The hub SA token is copied into each region's `kargo-hub-kubeconfig` Secret (never in git). The hub and regional shard Applications themselves come from AppSets. `infra` runs it last. |
+| A new hub add-on's position in the bootstrap order | Add it to the ordered wait list in `platform/mise-tasks/infra`. |
+
+`infra` itself doesn't change anything Argo CD manages; it only installs Argo CD if missing, applies the root app and waits for the add-ons in order.
 
 ## `mise run up` needed (deletes and recreates the cluster)
 
@@ -58,12 +61,14 @@ The infrastructure Applications are not git-sourced. `mise run infra-render` inl
 | Anything about bootstrap **order** (CRDs, webhooks, OIDC issuer before their users) | `infra` on a live cluster already has everything, so ordering bugs only show up from empty. |
 | Proving a cluster, infrastructure or auth change | CLAUDE.md rule: finish with a clean `up`. |
 
-Also needed outside the cluster: **push first**. `rendered-*` (hub and regional) and Kargo read GitHub `main` and `env/*`, so local, unpushed commits never reach the cluster, whatever you run.
+Also needed outside the cluster: **push first**. Every Argo CD and Kargo read GitHub `main` and `env/*`, so local, unpushed commits never reach the cluster, whatever you run.
 
 ## Quick check: where does my change land?
 
 - Under `capabilities/` or `teams/`? → merge it; CI and Argo CD handle the rest.
 - Under `platform/render/`? → merge it; it applies when CI renders.
-- Under `platform/infrastructure/` or `platform/bootstrap/`? → `mise run infra`.
+- Under `platform/infrastructure/` or `platform/appsets/`? → push to `main`.
+- `platform/render/clusters.cue` regions? → `mise run regions`, merge, clean `mise run up`.
+- `platform/bootstrap/`? → `mise run infra`.
 - Under `platform/cluster/`, or you need to prove it from scratch? → `mise run up`.
 - `rendered/` → never edit it; CI owns it.

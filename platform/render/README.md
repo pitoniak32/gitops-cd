@@ -38,7 +38,9 @@ apps/<app>/app.yml        image (repo only), imageConstraint, port, replicas, en
 ## Output (`rendered/` in the monorepo)
 ```
 apps/<cap>/<app>/<stage>/<target>/{deployment.yaml,manifests.yaml}
-kargo/<cap>.yaml      argocd/<region>/<cap>.yaml      pipelines/<cap>.json
+kargo/<cap>.yaml      pipelines/<cap>.json
+argocd/deploys/<region>/<cap>/<app>-<target>.json   argocd/projects/<region>/<cap>.yaml
+infrastructure/regions/<region>.json                 (scripts/regions.sh, clusters.cue only)
 ```
 
 ## Promotion
