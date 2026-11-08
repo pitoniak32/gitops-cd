@@ -27,4 +27,14 @@ done
 pin() { yq '.spec.template.spec.sources[] | select(has("chart")) | .targetRevision' "platform/appsets/addons/$1.yaml"; }
 [[ "$(pin kargo)" == "$(pin kargo-shard)" && "$(pin kargo)" == "$(pin kargo-shard-hub)" ]] || fail "kargo chart pin differs: kargo=$(pin kargo) kargo-shard=$(pin kargo-shard) kargo-shard-hub=$(pin kargo-shard-hub)"
 [[ "$(pin argocd)" == "$(pin argocd-region)" ]] || fail "argo-cd chart pin differs: argocd=$(pin argocd) argocd-region=$(pin argocd-region)"
+
+# root app syncs platform/appsets; bootstrap AppSets exist
+[[ "$(yq '.spec.source.path' platform/bootstrap/root.yaml 2>/dev/null)" == platform/appsets ]] || fail "platform/bootstrap/root.yaml must sync platform/appsets"
+for f in kargo projects workloads; do [[ -f "platform/appsets/$f.yaml" ]] || fail "missing platform/appsets/$f.yaml"; done
+# workloads template reads only keys the renderer emits (golden deploy params; values.* is the cluster gen)
+keys=$(jq -r 'keys[]' platform/render/testdata/golden/argocd/deploys/onprem/payments/my-app-onprem-prod.json)
+for k in $(grep -o '{{\.[A-Za-z.]*}}' platform/appsets/workloads.yaml | sed 's/{{\.\(.*\)}}/\1/' | sort -u); do
+  [[ $k == values.* ]] && continue
+  grep -qx "$k" <<<"$keys" || fail "workloads.yaml uses {{.$k}}, not a deploy params key"
+done
 echo "appsets ok"

@@ -1,0 +1,26 @@
+# Root Application, identical in every Argo CD (hub + each region), applied by `mise run infra`
+# (ADR 0017, https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/).
+# Syncs platform/appsets/ from GitHub main: ApplicationSets whose cluster generators pick what this
+# Argo CD runs from the labels on its own in-cluster Secret (example.com/role, example.com/region):
+#   hub:    infrastructure add-ons, kargo-ctrl-<r> + argocd-ui-<r> per region, rendered-kargo
+#   region: argocd, kargo-ctrl, argocd-projects, workload Applications
+# Workload manifests (rendered/apps/**) are NOT synced from main; they reach clusters only via Kargo promotion.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/pitoniak32/gitops-cd
+    targetRevision: main
+    path: platform/appsets
+    directory:
+      recurse: true
+      include: '*.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}

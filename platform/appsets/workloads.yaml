@@ -1,0 +1,53 @@
+# each region: one Application per app+target deployed there, from the renderer's params files
+# rendered/argocd/deploys/<region>/<cap>/<app>-<target>.json (keys: platform/render/delivery.cue argocdDeploys).
+# Tracks the target's env/* branch; Kargo's argocd-update (authorized-stage) syncs it on promotion.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workloads
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # removing a target must not delete its workloads by surprise
+  generators:
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  example.com/role: region
+              values:
+                region: '{{index .metadata.labels "example.com/region"}}'
+          - git:
+              repoURL: https://github.com/pitoniak32/gitops-cd
+              revision: main
+              files:
+                - path: rendered/argocd/deploys/{{.values.region}}/*/*.json
+  template:
+    metadata:
+      name: "{{.appName}}"
+      namespace: argocd
+      annotations:
+        kargo.akuity.io/authorized-stage: "{{.authorizedStage}}"
+      labels:
+        example.com/capability: "{{.capability}}"
+        example.com/app: "{{.app}}"
+        example.com/stage: "{{.stage}}"
+        example.com/target: "{{.target}}"
+    spec:
+      project: "{{.capability}}"  # AppProject per capability (argocd-projects)
+      source:
+        repoURL: https://github.com/pitoniak32/gitops-cd
+        targetRevision: "{{.branch}}"
+        path: .
+      destination:
+        name: "{{.destination}}"
+        namespace: "{{.namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
