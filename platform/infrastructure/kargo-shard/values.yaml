@@ -1,5 +1,6 @@
-# REGION side of a Kargo controller shard (templated: __SHARD__ = region name; applied per region by
-# mise-tasks/kargo-shards). Only the controller + local Argo CD RBAC; everything else is on the hub.
+# REGION side of a Kargo controller shard: region-independent values. Region bits (controller id/shardName,
+# events Role) are the valuesObject in ../../appsets/addons/kargo-shard.yaml. Only the controller + local
+# Argo CD RBAC; everything else is on the hub.
 dataPlane:
   install: false
   controller: {install: false}
@@ -13,30 +14,4 @@ managementController: {enabled: false}
 kubeconfigSecrets:
   kargo: kargo-hub-kubeconfig  # written by mise-tasks/kargo-shards
 controller:
-  id: __SHARD__
-  shardName: __SHARD__
   rollouts: {integrationEnabled: false}
-extraObjects:
-  # argocd-update records events on the Application; the chart's Argo CD RBAC lacks them
-  - apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      name: kargo-controller-__SHARD__-events
-      namespace: argocd
-    rules:
-      - apiGroups: [""]
-        resources: [events]
-        verbs: [create, patch]
-  - apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      name: kargo-controller-__SHARD__-events
-      namespace: argocd
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: kargo-controller-__SHARD__-events
-    subjects:
-      - kind: ServiceAccount
-        name: kargo-controller-__SHARD__
-        namespace: kargo

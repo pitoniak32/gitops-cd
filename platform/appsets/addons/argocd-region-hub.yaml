@@ -1,0 +1,76 @@
+# HUB side of each regional Argo CD UI (Application `argocd-ui-<region>` on the hub): https://argocd-<region>.localhost
+# via hub traefik -> ExternalName to the region container's argocd-server NodePort. Plain HTTP proxying, no creds
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd-region-hub
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # deleting this AppSet must not take the add-on with it
+  generators:
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  example.com/role: hub
+          - git:
+              repoURL: https://github.com/pitoniak32/gitops-cd
+              revision: main
+              files:
+                - path: rendered/infrastructure/regions/*.json
+  template:
+    metadata:
+      name: argocd-ui-{{.region}}
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+        - repoURL: https://bedag.github.io/helm-charts
+          chart: raw
+          targetRevision: 2.0.2
+          helm:
+            releaseName: argocd-ui-{{.region}}
+            valuesObject:
+              resources:
+                # docker DNS resolves the region container name (stable across restarts, unlike its IP)
+                - apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: argocd-region-{{.region}}
+                    namespace: argocd
+                  spec:
+                    type: ExternalName
+                    externalName: region-{{.region}}-control-plane
+                    ports:
+                      - port: 30081  # argocd-server NodePort (../../infrastructure/argocd-region/values.yaml)
+                - apiVersion: traefik.io/v1alpha1
+                  kind: IngressRoute
+                  metadata:
+                    name: argocd-region-{{.region}}
+                    namespace: argocd
+                  spec:
+                    entryPoints: [websecure]
+                    routes:
+                      - match: Host(`argocd-{{.region}}.localhost`)
+                        kind: Rule
+                        services:
+                          - name: argocd-region-{{.region}}
+                            port: 30081
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
+        retry:
+          limit: 10
+          backoff: {duration: 5s, factor: 2, maxDuration: 1m}

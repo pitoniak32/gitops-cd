@@ -1,0 +1,47 @@
+# hub add-on cert-manager
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # deleting this AppSet must not take the add-on with it
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            example.com/role: hub
+  template:
+    metadata:
+      name: cert-manager
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+        - repoURL: https://charts.jetstack.io
+          chart: cert-manager
+          targetRevision: v1.19.2
+          helm:
+            releaseName: cert-manager
+            valueFiles:
+              - $values/platform/infrastructure/cert-manager/values.yaml
+        - repoURL: https://github.com/pitoniak32/gitops-cd
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: cert-manager
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
+        retry:
+          limit: 10
+          backoff: {duration: 5s, factor: 2, maxDuration: 1m}

@@ -1,0 +1,42 @@
+# hub add-on break-glass: kustomize manifests
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: break-glass
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # deleting this AppSet must not take the add-on with it
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            example.com/role: hub
+  template:
+    metadata:
+      name: break-glass
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      sources:
+        - repoURL: https://github.com/pitoniak32/gitops-cd
+          targetRevision: main
+          path: platform/infrastructure/break-glass/manifests
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kargo
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
+        retry:
+          limit: 10
+          backoff: {duration: 5s, factor: 2, maxDuration: 1m}

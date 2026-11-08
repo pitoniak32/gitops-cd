@@ -1,4 +1,5 @@
-# used for helm bootstrap AND argocd self-managing Application (keep identical; bootstrap skips extraObjects)
+# used for helm bootstrap AND the self-managing Application from ../../appsets/addons/argocd.yaml
+# (bootstrap skips extraObjects)
 global:
   domain: argocd.localhost
 configs:
@@ -22,11 +23,20 @@ configs:
       cliClientID: argocd
       enablePKCEAuthentication: true
       requestedScopes: [openid, profile, email]
+  # labels this Argo CD's own cluster for the cluster generator (ADR 0017): hub add-ons + rendered-kargo
+  clusterCredentials:
+    in-cluster:
+      server: https://kubernetes.default.svc
+      labels:
+        example.com/role: hub
+      config:
+        tlsClientConfig:
+          insecure: false
   rbac:
     # match policies/AppProject role `groups` against the `email` claim only (ADR 0011)
     scopes: "[email]"
     # teams: only apps of capabilities they own, read-only, via the generated AppProject `viewer`
-    # roles (rendered/argocd/<cap>.yaml). Kargo does all syncing.
+    # roles (regional Argo CDs; rendered/argocd/projects/<region>/<cap>.yaml). Kargo does all syncing.
     # platform admins by email: full admin, incl. infrastructure apps (ADR 0009).
     policy.default: ""
     policy.csv: |
