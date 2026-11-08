@@ -16,3 +16,4 @@ capabilities/payments/targets/us-dev/environment-variables/launchdarkly.yml	.bad
 capabilities/payments/targets/us-dev/environment-variables/launchdarkly.yml	.LD_SDK_KEY = "secret:BAD"	^capabilities/payments/targets/us-dev/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: LD_SDK_KEY: .*secret:<gcp-project>
 capabilities/payments/stages/dev.yml	.color = "puce"	^capabilities/payments/stages/dev\.yml:[0-9]+:[0-9]+: .*unknown color; allowed: red
 capabilities/payments/targets/us-dev/target.yml	.config.cluster = "eu"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*unknown cluster; allowed: us, onprem
+capabilities/payments/apps/worker/app.yml	.image = "ghcr.io/pitoniak32/nginx:1.0.0"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+:

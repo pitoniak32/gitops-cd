@@ -35,13 +35,14 @@ Users (password = username):
 
 | User (email `<user>@example.com`) | Listed in | Kargo | Argo CD |
 |---|---|---|---|
-| `doug` | payments `promoters` | view `kargo-payments`; promote verified Freight | view `payments` apps |
-| `alice` | search `promoters` | view `kargo-search`; promote verified Freight | view `search` apps |
+| `doug` | payments `promoters` | view `kargo-payments`; assemble Freight, promote verified Freight | view `payments` apps |
+| `alice` | search `promoters` | view `kargo-search`; assemble Freight, promote verified Freight | view `search` apps |
 | `bob` | payments `viewers` | view `kargo-payments` | view `payments` apps |
 | `oncall` | payments `breakGlass` | view `kargo-payments`; promote, and approve unverified Freight (break-glass, ADR 0013) | view `payments` apps |
 | `admin` | infra values (ADR 0009) | admin: view/promote/approve all projects (edits still gitops-only) | admin: everything, incl. infrastructure apps |
 
 Nobody can create, edit or delete resources through the Kargo or Argo CD UIs; changes go through git.
+The only things created through the Kargo UI are Promotions and Freight (assembled from discovered commits/images).
 Access is by email (OIDC `email` claim), never IdP groups (ADR 0011). Users see only capabilities whose
 `owners.yml` lists them as `promoters` or `viewers`: in Argo CD their apps (read-only, generated AppProject
 `viewer` roles; syncing is done by Kargo), in Kargo their projects (generated `viewers` and per-app
@@ -103,9 +104,13 @@ by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
 1. PR: CI lints every capability (errors annotated on the changed lines), renders, and comments the `rendered/` diff.
 2. Merge: CI commits `rendered/` and `.github/CODEOWNERS` to main (`render: <sha>`).
 3. Hub Argo CD (`platform/bootstrap/rendered.yaml`) syncs `rendered/kargo` from main; each region's own Argo CD (`platform/bootstrap/region.yaml`) syncs `rendered/argocd/<region>/`. The hub runs no workloads.
-4. Kargo: each app's Warehouse watches `rendered/apps/<cap>/<app>/`. Per stage there's a gate
+4. Kargo: each app's Warehouse watches `rendered/apps/<cap>/<app>/` and the app's image repo (SemVer tags).
+   Nothing is promoted automatically from it: a promoter opens the Warehouse in the Kargo UI and
+   **assembles Freight** = a config commit + an image tag (ADR 0016). Per stage there's a gate
    (`<app>-<stage>`) and one Kargo Stage per target (`<app>-<target>`); promoting a target copies its
-   folder to branch `env/<cap>/<app>/<target>`, and Argo CD syncs it from there (ADR 0012).
+   folder to branch `env/<cap>/<app>/<target>`, pins the image digest in its `kustomization.yaml`, and
+   Argo CD syncs it from there (ADR 0012). Promote onward from a **gate** node: gates pass Freight on
+   their own, so "promote to downstream" from a target into the next gate does nothing.
 
 ## How the cluster works
 

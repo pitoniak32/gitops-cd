@@ -8,11 +8,13 @@ import (
 
 // Promotion model (rendered-manifests + Kargo), one Kargo Stage per target (ADR 0012):
 //   CI renders every (app, stage, target) to <repo>@main: rendered/apps/<cap>/<app>/<stage>/<target>/
-//   Kargo Warehouse per app watches that path; Freight = a main commit that changed it.
+//   Kargo Warehouse per app watches that path and the app's image repo (SemVer tags); Freight creation
+//   is Manual: promoters assemble Freight = (config commit, image digest) in the UI (ADR 0016).
 //   Gate Stage <app>-<stage> (control flow, no steps) per gitops stage: the first takes Freight from
 //   the Warehouse, later ones once it's verified in every target Stage of the upstream stage(s).
 //   Target Stage <app>-<target> takes Freight from its gate and copies its target folder from that
-//   commit onto branch env/<cap>/<app>/<target>, then syncs that target's Argo CD app.
+//   commit onto branch env/<cap>/<app>/<target>, pins the Freight's image in its kustomization.yaml,
+//   then syncs that target's Argo CD app.
 //   Argo CD Application <cap>-<app>-<target> tracks that branch, path ".".
 
 _kargoProject: "kargo-\(_cap)"
@@ -65,11 +67,19 @@ _kargoCore: [
 		apiVersion: _kargoAPI
 		kind:       "Warehouse"
 		metadata: {name: an, namespace: _kargoProject}
-		spec: subscriptions: [{git: {
-			repoURL: _repoURL
-			branch:  "main"
-			includePaths: ["regexp:^\(renderedDir)/apps/\(_cap)/\(an)/"]
-		}}]
+		spec: {
+			freightCreationPolicy: "Manual"
+			subscriptions: [{git: {
+				repoURL: _repoURL
+				branch:  "main"
+				includePaths: ["regexp:^\(renderedDir)/apps/\(_cap)/\(an)/"]
+			}}, {image: {
+				repoURL:                apps[an].image
+				imageSelectionStrategy: "SemVer"
+				if apps[an].imageConstraint != _|_ {constraint: apps[an].imageConstraint}
+				discoveryLimit: 10
+			}}]
+		}
 	},
 	// gates: control flow Stages (no promotionTemplate); Freight promoted here is verified at once
 	for an, p in pipelines for sn, s in p.stages {
@@ -113,6 +123,7 @@ _kargoCore: [
 					{name: "repo", value: _repoURL},
 					{name: "src", value: "./src/\(renderedDir)/apps/\(_cap)/\(an)/\(sn)/\(tn)/"},
 					{name: "branch", value: "env/\(_cap)/\(an)/\(tn)"},
+					{name: "image", value: apps[an].image},
 				]
 				steps: [
 					{uses: "git-clone", config: {
@@ -124,9 +135,13 @@ _kargoCore: [
 					}},
 					{uses: "git-clear", config: path: "./out"},
 					{uses: "copy", config: {inPath: "${{ vars.src }}", outPath: "./out/"}},
+					{uses: "kustomize-set-image", config: {
+						path: "./out"
+						images: [{image: "${{ vars.image }}", digest: "${{ imageFrom(vars.image).Digest }}"}]
+					}},
 					{uses: "git-commit", as: "commit", config: {
 						path:    "./out"
-						message: "promote \(_cap)/\(an) to \(sn)/\(tn) from ${{ commitFrom(vars.repo).ID }}"
+						message: "promote \(_cap)/\(an) to \(sn)/\(tn) from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}"
 					}},
 					{uses: "git-push", config: path: "./out"},
 					{uses: "argocd-update", config: apps: [{
@@ -236,6 +251,12 @@ _kargoRBAC: [for an in list.SortStrings([for an, _ in apps {an}]) if len(apps[an
 			apiGroups: ["kargo.akuity.io"]
 			resources: ["promotions"]
 			verbs: ["create", "get", "list", "watch"]
+		}, {
+			// Freight assembly (Warehouses are Manual, ADR 0016). Names are content hashes, so this can't
+			// be limited to the app's Warehouse: any promoter in the project can assemble for any app.
+			apiGroups: ["kargo.akuity.io"]
+			resources: ["freights"]
+			verbs: ["create"]
 		}]
 	}, {
 		apiVersion: "rbac.authorization.k8s.io/v1"

@@ -29,8 +29,13 @@ import (
 // apps/<name>/app.yml
 #App: {
 	#Layer
-	image: string & =~"(:[A-Za-z0-9_.-]+|@sha256:[a-f0-9]{64})$" & !~":latest$"
-	port?: int & >0 & <65536 // set => Service on :80
+
+	// Image repository, no tag or digest: the app's Warehouse discovers SemVer tags, Freight pins one
+	// (by digest) next to the config commit, and promotion writes it into the target (ADR 0016).
+	image: string & =~"^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$"
+	// SemVer range for discovered tags (e.g. ^1, ~1.2); unset: any SemVer tag.
+	imageConstraint?: string & !=""
+	port?:            int & >0 & <65536 // set => Service on :80
 
 	// Subset of the capability's stages. Skipped stages are bypassed in the pipeline
 	// (prod depends on [staging, perf]; without perf, prod depends on staging).

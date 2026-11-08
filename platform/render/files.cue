@@ -12,6 +12,12 @@ import (
 files: {
 	for _, m in manifests {
 		"apps/\(_cap)/\(m.app)/\(m.stage)/\(m.target)/manifests.yaml": yaml.MarshalStream(m.objects)
+		// promotion pins the Freight's image here (kustomize-set-image); Argo CD builds it
+		"apps/\(_cap)/\(m.app)/\(m.stage)/\(m.target)/kustomization.yaml": yaml.Marshal({
+			apiVersion: "kustomize.config.k8s.io/v1beta1"
+			kind:       "Kustomization"
+			resources: ["manifests.yaml"]
+		})
 	}
 	"kargo/\(_cap).yaml": yaml.MarshalStream(kargo)
 	for r, objs in argocd {

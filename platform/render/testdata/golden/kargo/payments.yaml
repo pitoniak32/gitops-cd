@@ -45,12 +45,18 @@ metadata:
   name: my-app
   namespace: kargo-payments
 spec:
+  freightCreationPolicy: Manual
   subscriptions:
     - git:
         repoURL: https://github.com/pitoniak32/gitops-cd
         branch: main
         includePaths:
           - regexp:^rendered/apps/payments/my-app/
+    - image:
+        constraint: ^1
+        repoURL: ghcr.io/pitoniak32/nginx
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 10
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
@@ -58,12 +64,17 @@ metadata:
   name: payments
   namespace: kargo-payments
 spec:
+  freightCreationPolicy: Manual
   subscriptions:
     - git:
         repoURL: https://github.com/pitoniak32/gitops-cd
         branch: main
         includePaths:
           - regexp:^rendered/apps/payments/payments/
+    - image:
+        repoURL: ghcr.io/pitoniak32/nginx
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 10
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
@@ -71,12 +82,17 @@ metadata:
   name: worker
   namespace: kargo-payments
 spec:
+  freightCreationPolicy: Manual
   subscriptions:
     - git:
         repoURL: https://github.com/pitoniak32/gitops-cd
         branch: main
         includePaths:
           - regexp:^rendered/apps/payments/worker/
+    - image:
+        repoURL: ghcr.io/pitoniak32/nginx
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 10
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -338,6 +354,8 @@ spec:
           value: ./src/rendered/apps/payments/my-app/dev/us-dev/
         - name: branch
           value: env/payments/my-app/us-dev
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -355,11 +373,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to dev/us-dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -404,6 +428,8 @@ spec:
           value: ./src/rendered/apps/payments/my-app/dev/onprem-dev/
         - name: branch
           value: env/payments/my-app/onprem-dev
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -421,11 +447,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to dev/onprem-dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to dev/onprem-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -470,6 +502,8 @@ spec:
           value: ./src/rendered/apps/payments/my-app/staging/us-stg/
         - name: branch
           value: env/payments/my-app/us-stg
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -487,11 +521,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to staging/us-stg from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to staging/us-stg from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -536,6 +576,8 @@ spec:
           value: ./src/rendered/apps/payments/my-app/staging/onprem-stg/
         - name: branch
           value: env/payments/my-app/onprem-stg
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -553,11 +595,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to staging/onprem-stg from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to staging/onprem-stg from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -602,6 +650,8 @@ spec:
           value: ./src/rendered/apps/payments/my-app/perf/us-perf/
         - name: branch
           value: env/payments/my-app/us-perf
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -619,11 +669,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to perf/us-perf from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to perf/us-perf from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -668,6 +724,8 @@ spec:
           value: ./src/rendered/apps/payments/my-app/prod/us-prod/
         - name: branch
           value: env/payments/my-app/us-prod
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -685,11 +743,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to prod/us-prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to prod/us-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -734,6 +798,8 @@ spec:
           value: ./src/rendered/apps/payments/my-app/prod/onprem-prod/
         - name: branch
           value: env/payments/my-app/onprem-prod
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -751,11 +817,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to prod/onprem-prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/my-app to prod/onprem-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -800,6 +872,8 @@ spec:
           value: ./src/rendered/apps/payments/payments/dev/us-dev/
         - name: branch
           value: env/payments/payments/us-dev
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -817,11 +891,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to dev/us-dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/payments to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -866,6 +946,8 @@ spec:
           value: ./src/rendered/apps/payments/payments/staging/us-stg/
         - name: branch
           value: env/payments/payments/us-stg
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -883,11 +965,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to staging/us-stg from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/payments to staging/us-stg from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -932,6 +1020,8 @@ spec:
           value: ./src/rendered/apps/payments/payments/prod/us-prod/
         - name: branch
           value: env/payments/payments/us-prod
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -949,11 +1039,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to prod/us-prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/payments to prod/us-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -998,6 +1094,8 @@ spec:
           value: ./src/rendered/apps/payments/worker/dev/us-dev/
         - name: branch
           value: env/payments/worker/us-dev
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -1015,11 +1113,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to dev/us-dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/worker to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -1064,6 +1168,8 @@ spec:
           value: ./src/rendered/apps/payments/worker/staging/us-stg/
         - name: branch
           value: env/payments/worker/us-stg
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -1081,11 +1187,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to staging/us-stg from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/worker to staging/us-stg from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -1130,6 +1242,8 @@ spec:
           value: ./src/rendered/apps/payments/worker/prod/us-prod/
         - name: branch
           value: env/payments/worker/us-prod
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -1147,11 +1261,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to prod/us-prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote payments/worker to prod/us-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -1212,6 +1332,12 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1274,6 +1400,12 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1336,6 +1468,12 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

@@ -36,8 +36,8 @@ for def in App Stage Target EnvironmentVariables Owners Team; do
     else . end)
   # readable messages for pattern-heavy fields
   | walk(
-    if type == "object" and (.pattern? // "" | contains("@sha256:[a-f0-9]{64})")) then
-      .errorMessage = "Pinned image required: name:tag or name@sha256:<digest> (:latest not allowed)"
+    if type == "object" and (.pattern? // "" | contains("(/[a-z0-9._-]+)+$")) then
+      .errorMessage = "Image repository only, no tag or digest (Kargo discovers SemVer tags)"
     elif type == "object" and (.pattern? // "" | test("^\\^\\[a-z0-9._%\\+-\\]\\+@")) then
       .errorMessage = ("Lowercase email in the allowed domain: " + (.pattern | sub("^.*@"; "") | sub("\\$$"; "") | gsub("\\\\"; "")))
     elif type == "object" and has("anyOf") and (.description? // "" | startswith("Plain value, or a Secret")) then
