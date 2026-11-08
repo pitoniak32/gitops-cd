@@ -1,5 +1,6 @@
 # Backstop: kargo-api (acts on behalf of every UI/CLI user) may only create
-# Promotions and touch metadata/status (refresh, abort, freight approval/alias).
+# Promotions and Freight (assembly, ADR 0016: only references existing commits/images)
+# and touch metadata/status (refresh, abort, freight approval/alias).
 # All other creates/edits/deletes must come via gitops, regardless of user RBAC.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
@@ -29,8 +30,8 @@ spec:
       message: deletes only via gitops
     - expression: >-
         request.operation != 'CREATE' ||
-        (request.resource.group == 'kargo.akuity.io' && request.resource.resource == 'promotions')
-      message: only Promotions may be created via kargo UI/API; everything else via gitops
+        (request.resource.group == 'kargo.akuity.io' && request.resource.resource in ['promotions', 'freights'])
+      message: only Promotions and Freight may be created via kargo UI/API; everything else via gitops
     - expression: >-
         request.operation != 'UPDATE' ||
         (request.resource.group == 'kargo.akuity.io' &&

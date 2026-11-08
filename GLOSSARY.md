@@ -99,14 +99,14 @@ _Avoid_: build output, artifacts
 ### Delivery
 
 **Freight**:
-A `main` commit that changed an app's rendered manifests; the unit Kargo promotes.
+A `main` commit with the app's rendered manifests (the config) plus one discovered image (SemVer tag, pinned by digest); the unit Kargo promotes. Promoters assemble it by hand in the Kargo UI (ADR 0016).
 _Avoid_: release, version
 
 **Warehouse**:
-The Kargo resource per app that watches `rendered/apps/<cap>/<app>/` and produces Freight.
+The Kargo resource per app that watches `rendered/apps/<cap>/<app>/` and the app's image repo. Freight creation is Manual: it only discovers commits and image tags.
 
 **Promotion**:
-Copying one target's rendered manifests from a Freight commit onto that target's branch (target stage), or passing Freight through a gate.
+Copying one target's rendered manifests from a Freight commit onto that target's branch and pinning the Freight's image in its `kustomization.yaml` (target stage), or passing Freight through a gate.
 _Avoid_: deploy (as a verb for this step)
 
 **Target branch**:

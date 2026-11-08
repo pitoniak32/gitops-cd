@@ -24,28 +24,29 @@ owners.yml                owners: [team, ..], promoters: [email, ..], viewers: [
 stages/<stage>.yml        dependsOn: [..], autoPromote: bool
 targets/<t>/target.yml    config: {cluster, namespace, environment, auth.wifEmail, billing, platform}
 targets/<t>/environment-variables/<name>.yml   KEY: value (flat)
-apps/<app>/app.yml        image, port, replicas, env, envFrom, resources, stages.<s>.targets.<t>
+apps/<app>/app.yml        image (repo only), imageConstraint, port, replicas, env, envFrom, resources, stages.<s>.targets.<t>
 ```
 
 ## Merge rules
 - `replicas`, `resources.*`: target > stage > app > default.
 - `env`: merged per key, same precedence. Keys can't be removed at a lower layer.
 - `envFrom: [<name>]` (any layer, unioned): adds `targets/<t>/environment-variables/<name>.yml` of each target, below all `env`; between files the most specific layer's `envFrom` wins. Missing file, or one KEY with different values from two files of the same layer = lint error (ADR 0014).
-- `image`, `port`: app level only (image promotes through stages via Kargo).
+- `image`, `imageConstraint`, `port`: app level only. `image` is a repo without tag/digest; Kargo discovers SemVer tags (within `imageConstraint`) and the image promotes through stages in Freight (ADR 0016).
 - An app may skip stages; deps pass through (no perf → prod depends on staging).
 - Each target used once per app; two targets of one app can't share cluster+namespace.
 
 ## Output (`rendered/` in the monorepo)
 ```
-apps/<cap>/<app>/<stage>/<target>/manifests.yaml
+apps/<cap>/<app>/<stage>/<target>/{manifests.yaml,kustomization.yaml}
 kargo/<cap>.yaml      argocd/<region>/<cap>.yaml      pipelines/<cap>.json
 ```
 
 ## Promotion
-Warehouse per app watches `rendered/apps/<cap>/<app>/` on main → Freight = commit.
-Promoting to stage S copies `rendered/apps/<cap>/<app>/S/` from that commit to branch
-`env/<cap>/<app>/S`; Argo CD app `<cap>-<app>-<target>` tracks that branch at `<target>/`.
-Multi-upstream stages use `availabilityStrategy: All`.
+Warehouse per app watches `rendered/apps/<cap>/<app>/` on main and the app's image repo (SemVer);
+Freight creation is Manual: promoters assemble Freight = (commit, image) in the Kargo UI.
+Promoting target T copies `rendered/apps/<cap>/<app>/<stage>/T/` from the Freight commit to branch
+`env/<cap>/<app>/T`, runs `kustomize-set-image` with the Freight's digest, and syncs Argo CD app
+`<cap>-<app>-T` (path `.`, built by kustomize). Gates and `availabilityStrategy: All`: ADR 0012.
 
 ## Editor feedback (two layers)
 - **Editor** — `schemas/*.json` from `cue def -t generic=true`: structure, types, formats, cluster/env enums.

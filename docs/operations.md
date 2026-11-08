@@ -33,7 +33,7 @@ State lives in three places: Kargo (`kargo-<cap>`: Freight, Promotions, Stage st
 ```sh
 kubectl -n kargo-<cap> delete promotions.kargo.akuity.io,freight.kargo.akuity.io,stages.kargo.akuity.io,warehouses.kargo.akuity.io --all
 ```
-Argo CD self-heal recreates the Stages and Warehouses from `rendered/` with empty status. The Warehouse turns the latest commit into new Freight, and auto-promote stages (dev) promote it again. `kubectl` as cluster admin isn't blocked by `gitops-only.yaml`, which only applies to the kargo-api ServiceAccount.
+Argo CD self-heal recreates the Stages and Warehouses from `rendered/` with empty status. Warehouses are Manual (ADR 0016): assemble new Freight in the UI, then auto-promote stages (dev) promote it again. `kubectl` as cluster admin isn't blocked by `gitops-only.yaml`, which only applies to the kargo-api ServiceAccount.
 
 **B. Full reset: A, plus branches and workloads.**
 ```sh

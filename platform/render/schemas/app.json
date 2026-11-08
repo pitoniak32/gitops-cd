@@ -212,9 +212,17 @@
     },
     "image": {
       "type": "string",
-      "pattern": "^(?![\\s\\S]*?(?::latest$))[\\s\\S]*?(?:(:[A-Za-z0-9_.-]+|@sha256:[a-f0-9]{64})$)",
-      "errorMessage": "Pinned image required: name:tag or name@sha256:<digest> (:latest not allowed)",
-      "patternErrorMessage": "Pinned image required: name:tag or name@sha256:<digest> (:latest not allowed)"
+      "description": "Image repository, no tag or digest: the app's Warehouse discovers SemVer tags, Freight pins one\n(by digest) next to the config commit, and promotion writes it into the target (ADR 0016).",
+      "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$",
+      "errorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)",
+      "patternErrorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)"
+    },
+    "imageConstraint": {
+      "type": "string",
+      "description": "SemVer range for discovered tags (e.g. ^1, ~1.2); unset: any SemVer tag.",
+      "not": {
+        "const": ""
+      }
     },
     "port": {
       "allOf": [
@@ -251,11 +259,12 @@
       "env",
       "envFrom",
       "image",
+      "imageConstraint",
       "port",
       "replicas",
       "resources",
       "stages"
     ],
-    "errorMessage": "Unknown key. Allowed: env, envFrom, image, port, replicas, resources, stages"
+    "errorMessage": "Unknown key. Allowed: env, envFrom, image, imageConstraint, port, replicas, resources, stages"
   }
 }

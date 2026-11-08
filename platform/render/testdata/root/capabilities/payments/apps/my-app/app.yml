@@ -1,4 +1,5 @@
-image: ghcr.io/pitoniak32/nginx@sha256:5aca99593157f4ae539a5dec1092a0ad8762f8e2eb1789085a13a0f5622369f6
+image: ghcr.io/pitoniak32/nginx
+imageConstraint: ^1
 port: 80
 replicas: 2
 env:

@@ -27,7 +27,7 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 | You change | Path to the cluster |
 |---|---|
 | `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → hub `rendered-kargo` and each region's `rendered-argocd` sync it. Workloads don't change until a promotion. |
-| Workload manifests | Kargo Warehouse sees new `rendered/apps/<cap>/<app>/` → Freight → gate → target-stage promotion pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
+| Workload manifests | Kargo Warehouse discovers new `rendered/apps/<cap>/<app>/` commits and image tags → promoter assembles Freight → gate → target-stage promotion pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
 | `teams/` | Takes effect on the next render, for CODEOWNERS only. It has no cluster effect (ADR 0011). |
 | `platform/render/**` (renderer logic) | Same as capabilities: lands when CI renders on `main` after the merge. |
 | Drift (manual `kubectl edit` of anything Argo CD manages) | Reverted by `selfHeal`. That includes infrastructure, but it reverts to the **last spec applied by `mise run infra`**, not to git. |
