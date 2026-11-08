@@ -18,6 +18,8 @@ spec:
               selector:
                 matchLabels:
                   example.com/role: region
+                matchExpressions:  # no label = no match (never an empty region)
+                  - {key: example.com/region, operator: Exists}
               values:
                 region: '{{index .metadata.labels "example.com/region"}}'
           - git:

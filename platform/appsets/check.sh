@@ -30,6 +30,27 @@ for f in platform/appsets/addons/*.yaml; do
   [[ "$(yq '.spec.template.spec.syncPolicy.retry.limit' "$f")" == -1 ]] || fail "$f: syncPolicy.retry.limit must be -1 (unlimited)"
 done
 
+# region from cluster labels: the selector must require the label (a missing label would otherwise
+# template an empty region: shard id "", paths deploys//), and the lookup must use exactly that key
+want_region="{{index .metadata.labels \"example.com/region\"}}"
+for f in $(grep -rl --include='*.yaml' 'example.com/role: region' platform/appsets); do
+  [[ "$(yq '[.. | select(has("matchExpressions")) | .matchExpressions[] | select(.key == "example.com/region" and .operator == "Exists")] | length' "$f")" -ge 1 ]] \
+    || fail "$f: region cluster selector needs matchExpressions [{key: example.com/region, operator: Exists}]"
+  for v in $(yq '.. | select(has("values")) | .values.region' "$f" | grep -v '^null$' | tr ' ' '~'); do
+    [[ "${v//\~/ }" == "$want_region" ]] || fail "$f: values.region must be '$want_region', got '${v//\~/ }'"
+  done
+done
+
+# a region may lose its last capability: argocd-projects must be allowed to prune to empty
+[[ "$(yq '.spec.template.spec.syncPolicy.automated.allowEmpty' platform/appsets/projects.yaml)" == true ]] || fail "projects.yaml: automated.allowEmpty must be true"
+
+# mise-tasks/infra reads chart pin + valuesObject from sources[0]: the chart source must come first
+for f in platform/appsets/addons/*.yaml; do
+  if [[ "$(yq '[.spec.template.spec.sources[] | select(has("chart"))] | length' "$f")" -gt 0 ]]; then
+    [[ "$(yq '.spec.template.spec.sources[0] | has("chart")' "$f")" == true ]] || fail "$f: chart source must be sources[0]"
+  fi
+done
+
 # chart pins that must move together
 pin() { yq '.spec.template.spec.sources[] | select(has("chart")) | .targetRevision' "platform/appsets/addons/$1.yaml"; }
 [[ "$(pin kargo)" == "$(pin kargo-shard)" && "$(pin kargo)" == "$(pin kargo-shard-hub)" ]] || fail "kargo chart pin differs: kargo=$(pin kargo) kargo-shard=$(pin kargo-shard) kargo-shard-hub=$(pin kargo-shard-hub)"
