@@ -18,9 +18,16 @@ for f in $(find platform/appsets -name '*.yaml' | sort); do
   [[ "$(yq '.spec.goTemplate' "$f")" == true ]] || fail "$f: goTemplate must be true"
   [[ "$(yq -o=json -I=0 '.spec.goTemplateOptions' "$f")" == '["missingkey=error"]' ]] || fail "$f: goTemplateOptions must be [missingkey=error]"
   [[ "$(yq '.spec.syncPolicy.preserveResourcesOnDeletion' "$f")" == true ]] || fail "$f: syncPolicy.preserveResourcesOnDeletion must be true"
+  # finalizer on a generated App = cascade delete of its resources when the generator stops matching
+  [[ "$(yq '.spec.template.metadata | has("finalizers")' "$f")" == false ]] || fail "$f: template must not set finalizers"
   for v in $(yq '.spec.template.spec.sources[].helm.valueFiles[]' "$f" 2>/dev/null); do
     [[ -f "${v#\$values/}" ]] || fail "$f: valueFile $v missing"
   done
+done
+
+# add-ons are created all at once (ordering = retries until deps exist): retries must never run out
+for f in platform/appsets/addons/*.yaml; do
+  [[ "$(yq '.spec.template.spec.syncPolicy.retry.limit' "$f")" == -1 ]] || fail "$f: syncPolicy.retry.limit must be -1 (unlimited)"
 done
 
 # chart pins that must move together
