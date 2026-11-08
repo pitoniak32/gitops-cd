@@ -11,3 +11,7 @@ tlsStore:
   default:
     defaultCertificate:
       secretName: local-tls
+providers:
+  kubernetesCRD:
+    # regional Argo CD UIs are ExternalName services to the region containers (../argocd-region-hub/)
+    allowExternalNameServices: true

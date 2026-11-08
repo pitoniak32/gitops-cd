@@ -1,9 +1,0 @@
-# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
-config:
-  cluster: in-cluster
-  namespace: search-gcp-prod
-  environment: prod
-  auth:
-    wifEmail: team2-prod@team2-prod.iam.gserviceaccount.com
-  billing: prod
-  platform: K8S

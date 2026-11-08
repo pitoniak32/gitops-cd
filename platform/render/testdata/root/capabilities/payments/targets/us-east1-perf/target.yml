@@ -1,8 +1,0 @@
-config:
-  cluster: in-cluster
-  namespace: payments-us-east1-perf
-  environment: perf
-  auth:
-    wifEmail: team1-perf@team1-perf.iam.gserviceaccount.com
-  billing: nonprod
-  platform: K8S

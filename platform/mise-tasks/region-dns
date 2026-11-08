@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#MISE description="Regions: resolve keycloak.localhost to the hub traefik (CoreDNS rewrite + selectorless Service, idempotent)"
+set -euo pipefail
+# Regional argocd-server must reach the same issuer URL the browser uses (http://keycloak.localhost/realms/kargo).
+# Hub traefik is on the docker network at <hub container IP>:30080 (NodePort, not 80), so: CoreDNS rewrites the
+# name to a selectorless Service (80 -> hub IP:30080). The IP is re-resolved on every run (changes on docker restart).
+
+hubip=$(docker inspect kargo-demo-control-plane -f '{{(index .NetworkSettings.Networks "kargo-demo").IPAddress}}')
+[ -n "$hubip" ] || { echo "no hub container IP" >&2; exit 1; }
+
+for r in $(grep -v '^#' platform/cluster/regions); do
+  ctx="kind-region-$r"
+  kubectl --context "$ctx" apply -f - <<YAML >/dev/null
+apiVersion: v1
+kind: Service
+metadata: {name: hub-traefik, namespace: kube-system}
+spec:
+  ports: [{name: web, port: 80, targetPort: 30080}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: hub-traefik
+  namespace: kube-system
+  labels: {kubernetes.io/service-name: hub-traefik}
+addressType: IPv4
+ports: [{name: web, port: 30080, protocol: TCP}]
+endpoints: [{addresses: ["$hubip"]}]
+YAML
+  corefile=$(kubectl --context "$ctx" -n kube-system get cm coredns -o jsonpath='{.data.Corefile}')
+  if ! grep -q 'keycloak.localhost' <<<"$corefile"; then
+    corefile=$(sed 's/^\( *\)ready$/&\
+\1rewrite name keycloak.localhost hub-traefik.kube-system.svc.cluster.local/' <<<"$corefile")
+    kubectl --context "$ctx" -n kube-system create cm coredns --from-literal=Corefile="$corefile" \
+      --dry-run=client -o yaml | kubectl --context "$ctx" apply -f -
+    kubectl --context "$ctx" -n kube-system rollout restart deploy/coredns
+    kubectl --context "$ctx" -n kube-system rollout status deploy/coredns --timeout=120s
+  fi
+done

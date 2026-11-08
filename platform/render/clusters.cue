@@ -5,18 +5,21 @@ package render
 #Environment: "dev" | "staging" | "perf" | "prod"
 
 #Cluster: {
-	argocdName: string // Argo CD cluster secret name
+	// Region = Kargo shard name = Argo CD instance that deploys to this cluster (rendered/argocd/<region>/)
+	region: =~"^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+	// the cluster's name inside its regional Argo CD (its own cluster by default)
+	argocdName: *"in-cluster" | string
 	kind:       "kind" | "gke" | "onprem"
-	region?:    string
 	environments: [...#Environment]
 	// false: no External Secrets store; secret: env values are validated but not rendered
 	secretStore: *true | bool
 }
 
-clusters: [N=string]: #Cluster & {argocdName: *N | string}
+clusters: [string]: #Cluster
 clusters: {
-	// local kind cluster (platform/cluster/kind.yaml): every environment, one namespace per target
-	"in-cluster": {kind: "kind", environments: ["dev", "staging", "perf", "prod"], secretStore: false}
+	// local kind clusters, one per region (platform/cluster/): every environment, one namespace per target
+	us: {region: "us", kind: "kind", environments: ["dev", "staging", "perf", "prod"], secretStore: false}
+	onprem: {region: "onprem", kind: "kind", environments: ["dev", "staging", "perf", "prod"], secretStore: false}
 }
 
 _clusterNames: [for k, _ in clusters {k}]

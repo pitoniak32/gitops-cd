@@ -12,29 +12,26 @@ stages:
       STAGE_ENV: 'false'
     replicas: 1
     targets:
-      us-east4-dev: {}
-      on-prem-dev:
+      us-dev: {}
+      onprem-dev:
         env:
           APP_ENV: 'false'
         replicas: 3
   staging:
     targets:
-      us-east1-stg: {}
-      on-prem-stg:
+      us-stg: {}
+      onprem-stg:
         env:
           APP_SECRET: 'secret:acme-proj2/my-app-secret@3'
   perf:
     targets:
-      us-east1-perf:
+      us-perf:
         env:
           DIFFERENT_SECRET: '/test@3'
-      on-prem-perf: {}
   prod:
     resources:
       cpu: 500m
       memory: 512Mi
     targets:
-      gcp-us-prod: {}
-      gcp-eu-prod: {}
-      on-prem-prod-1: {}
-      on-prem-prod-2: {}
+      us-prod: {}
+      onprem-prod: {}

@@ -1,0 +1,3 @@
+# one regional kind cluster per line (kind cluster = region-<name>); read by up, down, infra
+us
+onprem

@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  # templated per region: SHARD=<region> mise run infra-render argocd-region (__SHARD__ marks it templated)
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-cd
+    targetRevision: 10.14.0
+    # helm.valuesObject filled from values.yaml / manifests/ by mise-tasks/infra-render
+    helm:
+      releaseName: argocd
+      valuesObject: {}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff: { duration: 5s, factor: 2, maxDuration: 1m }

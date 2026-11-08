@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
+config:
+  cluster: us
+  namespace: payments-us-stg
+  environment: staging
+  auth:
+    wifEmail: team1-staging@team1-staging.iam.gserviceaccount.com
+  billing: nonprod
+  platform: K8S

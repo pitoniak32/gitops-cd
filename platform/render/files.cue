@@ -8,13 +8,15 @@ import (
 )
 
 // Everything render.sh writes, keyed by path under rendered/.
-// render.sh first wipes this capability's paths: apps/<cap>/, {argocd,kargo}/<cap>.yaml, pipelines/<cap>.json, codeowners/<cap>
+// render.sh first wipes this capability's paths: apps/<cap>/, argocd/<region>/<cap>.yaml, kargo/<cap>.yaml, pipelines/<cap>.json, codeowners/<cap>
 files: {
 	for _, m in manifests {
 		"apps/\(_cap)/\(m.app)/\(m.stage)/\(m.target)/manifests.yaml": yaml.MarshalStream(m.objects)
 	}
-	"kargo/\(_cap).yaml":     yaml.MarshalStream(kargo)
-	"argocd/\(_cap).yaml":    yaml.MarshalStream(argocd)
+	"kargo/\(_cap).yaml": yaml.MarshalStream(kargo)
+	for r, objs in argocd {
+		"argocd/\(r)/\(_cap).yaml": yaml.MarshalStream(objs)
+	}
 	"pipelines/\(_cap).json": json.Indent(json.Marshal(pipelines), "", "  ") + "\n"
 	// CODEOWNERS fragment; scripts/codeowners.sh splices all capabilities into .github/CODEOWNERS
 	"codeowners/\(_cap)": strings.Join(_codeowners, "\n") + "\n"

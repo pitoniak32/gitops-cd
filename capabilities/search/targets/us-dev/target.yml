@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
+config:
+  cluster: us
+  namespace: search-us-dev
+  environment: dev
+  auth:
+    wifEmail: team2-dev@team2-dev.iam.gserviceaccount.com
+  billing: dev
+  platform: K8S

@@ -8,23 +8,25 @@ Rule of thumb: Argo CD only reads **`rendered/` on GitHub `main`** and the **`en
 GITOPS LANE (pull: Argo CD, automated + prune + selfHeal)
   capabilities/, teams/, platform/render/
     → PR, merge → CI renders rendered/ on main
-    → rendered-argocd, rendered-kargo sync rendered/{argocd,kargo}
+    → hub rendered-kargo syncs rendered/kargo; each region's rendered-argocd syncs rendered/argocd/<region>/
+      (hub runs no workloads)
     → Kargo: Freight from rendered/apps → gate <app>-<stage> → target stage <app>-<target>
       → env/<cap>/<app>/<target>
     → capability Applications sync the env/* branches
 
 TASK LANE (push: mise run infra / up, from your local checkout)
-  platform/cluster/kind.yaml               → kind (up only)
+  platform/cluster/{kind.yaml,region.yaml,regions} → kind hub + regional clusters (up only)
   platform/infrastructure/<addon>/         → inlined infra Applications → Argo CD installs + self-heals them
-  platform/bootstrap/rendered.yaml         → root Applications of the gitops lane
-  CoreDNS rewrite, fnox creds, mkcert cert → applied directly by kubectl
+  platform/bootstrap/rendered.yaml         → hub root Application (rendered/kargo)
+  platform/bootstrap/region.yaml           → regional root Application template, applied per region
+  CoreDNS rewrites (hub + `region-dns`), fnox creds, mkcert cert → applied directly by kubectl
 ```
 
 ## Argo CD syncs it (merge to `main`, nothing to run)
 
 | You change | Path to the cluster |
 |---|---|
-| `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → `rendered-argocd` / `rendered-kargo` sync it. Workloads don't change until a promotion. |
+| `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → hub `rendered-kargo` and each region's `rendered-argocd` sync it. Workloads don't change until a promotion. |
 | Workload manifests | Kargo Warehouse sees new `rendered/apps/<cap>/<app>/` → Freight → gate → target-stage promotion pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
 | `teams/` | Takes effect on the next render, for CODEOWNERS only. It has no cluster effect (ADR 0011). |
 | `platform/render/**` (renderer logic) | Same as capabilities: lands when CI renders on `main` after the merge. |
@@ -39,9 +41,11 @@ The infrastructure Applications are not git-sourced. `mise run infra-render` inl
 | `platform/infrastructure/<addon>/values.yaml`, `manifests/**`, `app.yaml` (chart version) | Argo CD only knows the Application spec that was last applied. |
 | Keycloak realm (`kargo-realm.json`) | Same, and the configMap hash then restarts Keycloak, which re-imports the realm. |
 | Argo CD's own values (`platform/infrastructure/argocd/`) | Argo CD manages itself, but only from the spec that `infra` applied. |
-| `platform/bootstrap/rendered.yaml` | It is applied by `kubectl`, not synced. |
+| `platform/bootstrap/{rendered,region}.yaml` | Applied by `kubectl`, not synced. `region.yaml` is a template: `infra` fills the region name and applies it to each `kind-region-<r>`. A new region is one line in `platform/cluster/regions`. |
 | CoreDNS `keycloak.localhost` rewrite | Patched by the `infra` script. Argo CD doesn't manage `kube-system`. |
 | Kargo git creds (`mise run creds`) / TLS cert (`mise run certs`) | They come from fnox / mkcert and never touch git. `infra` runs both, or run them alone. |
+| Regional Argo CD (`platform/infrastructure/argocd-region/`) | Applied to each `kind-region-<r>` context by `infra`, inlined like the hub addons. Bootstrapped from the host; the hub holds no credentials to regions. |
+| Kargo shards (`platform/infrastructure/kargo-shard-hub/`, `kargo-shard/`, `mise run kargo-shards`) | Templated per region from `platform/cluster/regions` (`__SHARD__`): hub identity Application, then the hub SA token is copied into each region's `kargo-hub-kubeconfig` Secret (never in git), then the regional controller Application. `infra` runs it last. Chart pin is read from `kargo/app.yaml`. |
 | A new addon | Add it to the ordered list in `platform/mise-tasks/infra`. |
 | Break-glass guard (`platform/infrastructure/break-glass/`: script, admin emails, approve route) | An infra addon like the others. Who is break-glass comes from `owners.yml` and arrives via the gitops lane (Stage annotations). |
 
@@ -49,12 +53,12 @@ The infrastructure Applications are not git-sourced. `mise run infra-render` inl
 
 | You change | Why |
 |---|---|
-| `platform/cluster/kind.yaml` (ports, nodes, network) | kind can't reconfigure a running cluster. |
+| `platform/cluster/` (`kind.yaml`, `region.yaml`, `regions` list: ports, nodes, network, regions) | kind can't reconfigure a running cluster. |
 | Initial Argo CD install (`helm install` in `infra`) | It runs only when no `argocd` release exists. Later changes go through the self-managed `argocd` app instead. |
 | Anything about bootstrap **order** (CRDs, webhooks, OIDC issuer before their users) | `infra` on a live cluster already has everything, so ordering bugs only show up from empty. |
 | Proving a cluster, infrastructure or auth change | CLAUDE.md rule: finish with a clean `up`. |
 
-Also needed outside the cluster: **push first**. `rendered-*` and Kargo read GitHub `main` and `env/*`, so local, unpushed commits never reach the cluster, whatever you run.
+Also needed outside the cluster: **push first**. `rendered-*` (hub and regional) and Kargo read GitHub `main` and `env/*`, so local, unpushed commits never reach the cluster, whatever you run.
 
 ## Quick check: where does my change land?
 

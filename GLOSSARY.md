@@ -63,11 +63,23 @@ The cluster add-ons in `platform/infrastructure/<addon>/` (Argo CD, Traefik, cer
 _Avoid_: platform (overloaded with the platform team)
 
 **Bootstrap**:
-The root Argo CD Applications in `platform/bootstrap/` that sync `rendered/argocd` and `rendered/kargo` from `main`.
+The root Argo CD Applications in `platform/bootstrap/`: on the hub, one syncing `rendered/kargo`; in each region, one syncing `rendered/argocd/<region>` from `main`.
 _Avoid_: app of apps (for this specific file)
 
 **Cluster**:
-A Kubernetes cluster from the platform-owned registry, accepting a fixed set of environments.
+A Kubernetes cluster from the platform-owned registry, accepting a fixed set of environments. Each belongs to one region.
+
+**Hub**:
+The kind cluster `kargo-demo` running the Kargo control plane, Keycloak, Traefik and the platform Argo CD. It runs no workloads and holds no credentials to regions (ADR 0015).
+_Avoid_: management cluster, control cluster
+
+**Region**:
+A workload cluster `region-<r>` (listed in `platform/cluster/regions`) with its own Argo CD and Kargo shard. A cluster's `region` decides which Argo CD and shard deploy its targets.
+_Avoid_: zone, location (a target is a deploy destination; a region is the Argo CD + Kargo shard behind it)
+
+**Shard**:
+The Kargo controller in a region (`shardName` = region). It talks to that region's Argo CD and connects back to the hub Kargo. Target stages run on their cluster's shard; gates and Warehouses run on the hub's default controller.
+_Avoid_: agent (Kargo's docs use it loosely)
 
 **Environment**:
 The policy class of a target (`dev`, `staging`, `perf`, `prod`) that determines rules such as minimum replicas.

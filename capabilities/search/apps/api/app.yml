@@ -5,9 +5,9 @@ stages:
   dev:
     replicas: 1
     targets:
-      gcp-dev: {}
+      us-dev: {}
   prod:
     replicas: 3
     targets:
-      gcp-prod: {}
+      us-prod: {}
       onprem-prod: {}

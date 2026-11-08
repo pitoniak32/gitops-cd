@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: team1-prod@team1-prod.iam.gserviceaccount.com
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: worker
+    example.com/capability: payments
+    example.com/stage: prod
+    example.com/target: us-prod
+    example.com/environment: prod
+    example.com/billing: prod
+  name: worker
+  namespace: payments-us-prod
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: worker
+    example.com/capability: payments
+    example.com/stage: prod
+    example.com/target: us-prod
+    example.com/environment: prod
+    example.com/billing: prod
+  name: worker
+  namespace: payments-us-prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: cue-platform
+        app.kubernetes.io/name: worker
+        example.com/capability: payments
+        example.com/stage: prod
+        example.com/target: us-prod
+        example.com/environment: prod
+        example.com/billing: prod
+    spec:
+      containers:
+        - image: ghcr.io/pitoniak32/nginx@sha256:5aca99593157f4ae539a5dec1092a0ad8762f8e2eb1789085a13a0f5622369f6
+          name: worker
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      serviceAccountName: worker

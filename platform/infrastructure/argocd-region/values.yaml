@@ -1,0 +1,37 @@
+# regional Argo CD (one per region cluster). Used for helm bootstrap AND the self-managing Application
+# (keep identical). Minimal: no dex, notifications or appset controller.
+# Templated per region: __SHARD__ = name in platform/cluster/regions, substituted by mise-tasks/infra-render
+# (and by `infra` for the helm bootstrap). Same chart version as the hub: keep targetRevision in sync
+# with ../argocd/app.yaml.
+global:
+  domain: argocd-__SHARD__.localhost
+configs:
+  params:
+    server.insecure: true  # tls terminated by the hub traefik, which proxies here (../argocd-region-hub/)
+  cm:
+    url: https://argocd-__SHARD__.localhost
+    admin.enabled: false  # keycloak only; break-glass = kubectl (cluster admin)
+    # hub keycloak, public client + PKCE, no secret. Issuer resolves via region CoreDNS (mise-tasks/region-dns)
+    oidc.config: |
+      name: Keycloak
+      issuer: http://keycloak.localhost/realms/kargo
+      clientID: argocd-__SHARD__
+      cliClientID: argocd-__SHARD__
+      enablePKCEAuthentication: true
+      requestedScopes: [openid, profile, email]
+  rbac:
+    # email claim only (ADR 0011); teams read-only via generated AppProject `viewer` roles; admins by email (ADR 0009)
+    scopes: "[email]"
+    policy.default: ""
+    policy.csv: |
+      g, admin@example.com, role:admin
+server:
+  service:
+    type: NodePort
+    nodePortHttp: 30081  # hub traefik proxies https://argocd-<region>.localhost here (../argocd-region-hub/)
+dex:
+  enabled: false
+notifications:
+  enabled: false
+applicationSet:
+  replicas: 0  # chart has no enable switch
