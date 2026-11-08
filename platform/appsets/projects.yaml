@@ -1,0 +1,36 @@
+# each region: Application argocd-projects syncs rendered/argocd/projects/<region>/<cap>.yaml (one AppProject
+# per capability, that region's destinations + viewer roles). AppSets can't create AppProjects themselves.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd-projects
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            example.com/role: region
+        values:
+          region: '{{index .metadata.labels "example.com/region"}}'
+  template:
+    metadata:
+      name: argocd-projects
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/pitoniak32/gitops-cd
+        targetRevision: main
+        path: rendered/argocd/projects/{{.values.region}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
