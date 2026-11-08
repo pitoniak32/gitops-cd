@@ -1,0 +1,11 @@
+{
+  "appName": "payments-worker-us-prod",
+  "capability": "payments",
+  "app": "worker",
+  "stage": "prod",
+  "target": "us-prod",
+  "namespace": "payments-us-prod",
+  "branch": "env/payments/worker/us-prod",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-payments:worker-us-prod"
+}
