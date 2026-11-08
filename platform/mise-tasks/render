@@ -7,10 +7,12 @@ cd "$MISE_PROJECT_ROOT"
 OUT="${usage_out:-rendered}"
 mkdir -p "$OUT"
 # generated paths only
-rm -rf "$OUT/apps" "$OUT/argocd" "$OUT/kargo" "$OUT/pipelines" "$OUT/codeowners"
+rm -rf "$OUT/apps" "$OUT/argocd" "$OUT/kargo" "$OUT/pipelines" "$OUT/codeowners" "$OUT/infrastructure"
 for dir in capabilities/*/; do
   cap="$(basename "$dir")"
   platform/render/scripts/render.sh . "$cap" "$OUT" >/dev/null
   echo "rendered $cap"
 done
+platform/render/scripts/regions.sh "$OUT" >/dev/null  # platform-level: clusters.cue
+echo "rendered regions"
 platform/render/scripts/codeowners.sh . "$OUT"

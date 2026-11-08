@@ -4,8 +4,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 for cap in payments search; do scripts/render.sh testdata/root "$cap" "$tmp" >/dev/null; done
+scripts/regions.sh "$tmp" >/dev/null  # platform-level outputs from clusters.cue
 if [[ "${UPDATE:-}" == 1 ]]; then rm -rf testdata/golden; cp -R "$tmp" testdata/golden; echo updated; exit; fi
 diff -ru testdata/golden "$tmp"; echo "golden ok"
+# regions registry (clusters.cue): one JSON per region for hub-side AppSets; projects dir exists per region
+[[ "$(cat "$tmp/infrastructure/regions/us.json")" == '{"region":"us"}' ]] || { echo "infrastructure/regions/us.json wrong" >&2; exit 1; }
+[[ "$(ls "$tmp/infrastructure/regions" | paste -sd' ' -)" == "onprem.json us.json" ]] || { echo "one regions JSON per clusters.cue region" >&2; exit 1; }
+[[ -f "$tmp/argocd/projects/onprem/.keep" ]] || { echo "argocd/projects/<r>/.keep missing" >&2; exit 1; }
+echo "regions ok"
 # kind: one AppProject per capability; no secret store -> no ExternalSecrets / secret env refs
 yq -e 'select(.kind == "AppProject" and .metadata.name == "payments")' "$tmp/argocd/us/payments.yaml" >/dev/null || { echo "missing AppProject payments" >&2; exit 1; }
 if grep -rqE 'ExternalSecret|secretKeyRef' "$tmp/apps/"; then echo "secret refs rendered for a cluster without a secret store" >&2; exit 1; fi
@@ -41,7 +47,7 @@ yq -e 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[]
 [[ "$(yq 'select(.kind == "Stage") | .metadata.name + "=" + (.spec.shard // "-")' "$k" | grep '^my-app-' | sort | paste -sd' ' -)" == "my-app-dev=- my-app-onprem-dev=onprem my-app-onprem-prod=onprem my-app-onprem-stg=onprem my-app-perf=- my-app-prod=- my-app-staging=- my-app-us-dev=us my-app-us-perf=us my-app-us-prod=us my-app-us-stg=us" ]] || { echo "shard must be set on target Stages only, from the target's cluster region" >&2; exit 1; }
 if yq -e 'select(.kind == "Warehouse") | .spec.shard' "$k" >/dev/null 2>&1; then echo "Warehouses must not be sharded" >&2; exit 1; fi
 # Argo CD output is per region; destination is the regional Argo CD's own cluster
-[[ "$(cd "$tmp/argocd" && find . -type f | sort | paste -sd' ' -)" == "./onprem/payments.yaml ./us/payments.yaml ./us/search.yaml" ]] || { echo "argocd output must be per region" >&2; exit 1; }
+[[ "$(cd "$tmp/argocd" && find . -type f ! -name .keep | sort | paste -sd' ' -)" == "./onprem/payments.yaml ./us/payments.yaml ./us/search.yaml" ]] || { echo "argocd output must be per region" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "AppProject") | .spec.destinations[] | .name + "/" + .namespace' "$tmp/argocd/onprem/payments.yaml" | paste -sd' ' -)" == "in-cluster/payments-onprem-dev in-cluster/payments-onprem-prod in-cluster/payments-onprem-stg" ]] || { echo "onprem AppProject must list only onprem destinations" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Application") | .metadata.name' "$tmp/argocd/us/payments.yaml" | grep -c onprem || true)" == 0 ]] || { echo "us Argo CD file has onprem apps" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Application" and .metadata.name == "payments-my-app-us-dev") | .spec.destination.name + "/" + .spec.destination.namespace' "$tmp/argocd/us/payments.yaml")" == "in-cluster/payments-us-dev" ]] || { echo "app destination must be in-cluster of its regional Argo CD" >&2; exit 1; }
