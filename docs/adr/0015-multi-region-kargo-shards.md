@@ -1,6 +1,6 @@
 # One Kargo control plane, one Argo CD + Kargo shard per region
 
-Status: accepted. Supplements ADR 0012: one Kargo Stage per target, gates unchanged.
+Status: accepted. Supplements ADR 0012: one Kargo Stage per target, gates unchanged. Bootstrap and add-on inlining wiring superseded by ADR 0017 (ApplicationSets).
 
 The demo now mirrors the target setup: a single Kargo instance and several Argo CD instances, one per region. Kargo controllers pair 1:1 with Argo CD control planes. A controller (a **shard**) runs next to its Argo CD and connects back to the central Kargo control plane. The control plane has no privileged access to the shard clusters ([Kargo: distributed configuration](https://docs.kargo.io/operator-guide/architecture#distributed-configuration)).
 

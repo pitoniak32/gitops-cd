@@ -59,12 +59,16 @@ _Avoid_: overlay, values
 ### Platform
 
 **Infrastructure**:
-The cluster add-ons in `platform/infrastructure/<addon>/` (Argo CD, Traefik, cert-manager, Argo Rollouts, Keycloak, Kargo), managed by Argo CD and applied in order by `mise run infra`.
+The cluster add-ons (Argo CD, Traefik, cert-manager, Argo Rollouts, Keycloak, Kargo, shards): one ApplicationSet each in `platform/appsets/addons/`, config in `platform/infrastructure/<addon>/` read from `main`; `mise run infra` waits for them in order.
 _Avoid_: platform (overloaded with the platform team)
 
 **Bootstrap**:
-The root Argo CD Applications in `platform/bootstrap/`: on the hub, one syncing `rendered/kargo`; in each region, one syncing `rendered/argocd/<region>` from `main`.
+The root Application `platform/bootstrap/root.yaml`, identical in every Argo CD (hub + regions), syncing the ApplicationSets in `platform/appsets/` from `main` (ADR 0017).
 _Avoid_: app of apps (for this specific file)
+
+**Cluster labels**:
+Labels on each Argo CD's own `in-cluster` Secret that its ApplicationSets' cluster generators select on: `example.com/role: hub|region`, `example.com/region: <r>`.
+_Avoid_: cluster roles (Kubernetes RBAC term)
 
 **Cluster**:
 A Kubernetes cluster from the platform-owned registry, accepting a fixed set of environments. Each belongs to one region.
