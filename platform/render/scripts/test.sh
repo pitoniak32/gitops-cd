@@ -120,7 +120,7 @@ r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilit
 printf 'LD_RELAY_URL: https://other\nLD_SDK_KEY: secret:acme-dev-us/launchdarkly-sdk-key\n' >"$c/targets/us-dev/environment-variables/flags.yml"
 yq -i '.stages.dev.targets.us-dev.envFrom = ["flags"]' "$c/apps/my-app/app.yml"
 scripts/render.sh "$r" payments "$o" >/dev/null
-v="$(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "LD_RELAY_URL") | .value' "$o/apps/payments/my-app/dev/us-dev/manifests.yaml")"
+v="$(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "LD_RELAY_URL") | .value' "$o/apps/payments/my-app/dev/us-dev/deployment.yaml")"
 [[ $v == https://other ]] || { echo "target-level envFrom must win: LD_RELAY_URL=$v" >&2; exit 1; }
 yq -i '.stages.dev.targets.us-dev.envFrom = ["flags", "launchdarkly"]' "$c/apps/my-app/app.yml"
 got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}" "${o:?}"

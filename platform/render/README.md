@@ -37,7 +37,7 @@ apps/<app>/app.yml        image (repo only), imageConstraint, port, replicas, en
 
 ## Output (`rendered/` in the monorepo)
 ```
-apps/<cap>/<app>/<stage>/<target>/{manifests.yaml,kustomization.yaml}
+apps/<cap>/<app>/<stage>/<target>/{deployment.yaml,manifests.yaml}
 kargo/<cap>.yaml      argocd/<region>/<cap>.yaml      pipelines/<cap>.json
 ```
 
@@ -45,8 +45,8 @@ kargo/<cap>.yaml      argocd/<region>/<cap>.yaml      pipelines/<cap>.json
 Warehouse per app watches `rendered/apps/<cap>/<app>/` on main and the app's image repo (SemVer);
 Freight creation is Manual: promoters assemble Freight = (commit, image) in the Kargo UI.
 Promoting target T copies `rendered/apps/<cap>/<app>/<stage>/T/` from the Freight commit to branch
-`env/<cap>/<app>/T`, runs `kustomize-set-image` with the Freight's digest, and syncs Argo CD app
-`<cap>-<app>-T` (path `.`, built by kustomize). Gates and `availabilityStrategy: All`: ADR 0012.
+`env/<cap>/<app>/T`, sets the Freight's image (`yaml-update` on `deployment.yaml`, `<repo>:<tag>@<digest>`),
+and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availabilityStrategy: All`: ADR 0012.
 
 ## Editor feedback (two layers)
 - **Editor** — `schemas/*.json` from `cue def -t generic=true`: structure, types, formats, cluster/env enums.

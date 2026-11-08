@@ -11,13 +11,12 @@ import (
 // render.sh first wipes this capability's paths: apps/<cap>/, argocd/<region>/<cap>.yaml, kargo/<cap>.yaml, pipelines/<cap>.json, codeowners/<cap>
 files: {
 	for _, m in manifests {
-		"apps/\(_cap)/\(m.app)/\(m.stage)/\(m.target)/manifests.yaml": yaml.MarshalStream(m.objects)
-		// promotion pins the Freight's image here (kustomize-set-image); Argo CD builds it
-		"apps/\(_cap)/\(m.app)/\(m.stage)/\(m.target)/kustomization.yaml": yaml.Marshal({
-			apiVersion: "kustomize.config.k8s.io/v1beta1"
-			kind:       "Kustomization"
-			resources: ["manifests.yaml"]
-		})
+		"apps/\(_cap)/\(m.app)/\(m.stage)/\(m.target)/manifests.yaml": yaml.MarshalStream([for o in m.objects if o.kind != "Deployment" {o}])
+		// own single-document file: promotion pins the Freight's image in it with yaml-update, which
+		// only addresses a file's first document (ADR 0016)
+		for o in m.objects if o.kind == "Deployment" {
+			"apps/\(_cap)/\(m.app)/\(m.stage)/\(m.target)/deployment.yaml": yaml.Marshal(o)
+		}
 	}
 	"kargo/\(_cap).yaml": yaml.MarshalStream(kargo)
 	for r, objs in argocd {

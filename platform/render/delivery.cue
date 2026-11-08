@@ -13,7 +13,7 @@ import (
 //   Gate Stage <app>-<stage> (control flow, no steps) per gitops stage: the first takes Freight from
 //   the Warehouse, later ones once it's verified in every target Stage of the upstream stage(s).
 //   Target Stage <app>-<target> takes Freight from its gate and copies its target folder from that
-//   commit onto branch env/<cap>/<app>/<target>, pins the Freight's image in its kustomization.yaml,
+//   commit onto branch env/<cap>/<app>/<target>, pins the Freight's image in its deployment.yaml,
 //   then syncs that target's Argo CD app.
 //   Argo CD Application <cap>-<app>-<target> tracks that branch, path ".".
 
@@ -135,9 +135,13 @@ _kargoCore: [
 					}},
 					{uses: "git-clear", config: path: "./out"},
 					{uses: "copy", config: {inPath: "${{ vars.src }}", outPath: "./out/"}},
-					{uses: "kustomize-set-image", config: {
-						path: "./out"
-						images: [{image: "${{ vars.image }}", digest: "${{ imageFrom(vars.image).Digest }}"}]
+					// plain YAML on the branch (no kustomize); the tag is informational, the digest pins
+					{uses: "yaml-update", config: {
+						path: "./out/deployment.yaml"
+						updates: [{
+							key:   "spec.template.spec.containers.0.image"
+							value: "${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}"
+						}]
 					}},
 					{uses: "git-commit", as: "commit", config: {
 						path:    "./out"
