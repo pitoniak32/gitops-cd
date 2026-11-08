@@ -282,12 +282,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -356,12 +356,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -430,12 +430,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -504,12 +504,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -578,12 +578,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -652,12 +652,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -726,12 +726,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -800,12 +800,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -874,12 +874,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
@@ -948,12 +948,12 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
-        - uses: kustomize-set-image
+        - uses: yaml-update
           config:
-            path: ./out
-            images:
-              - image: ${{ vars.image }}
-                digest: ${{ imageFrom(vars.image).Digest }}
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
