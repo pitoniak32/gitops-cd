@@ -1,0 +1,78 @@
+# REGION side of a Kargo controller shard (Application `kargo-ctrl` in each region). Needs kargo/kargo-hub-kubeconfig
+# (token handoff by mise-tasks/kargo-shards; retries until it exists). Pin shared with kargo
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kargo-shard
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # deleting this AppSet must not take the add-on with it
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            example.com/role: region
+        values:
+          region: '{{index .metadata.labels "example.com/region"}}'
+  template:
+    metadata:
+      name: kargo-ctrl
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+        - repoURL: ghcr.io/akuity/kargo-charts
+          chart: kargo
+          targetRevision: 1.12.5
+          helm:
+            releaseName: kargo-ctrl-{{.values.region}}
+            valueFiles:
+              - $values/platform/infrastructure/kargo-shard/values.yaml
+            valuesObject:
+              controller:
+                id: "{{.values.region}}"
+                shardName: "{{.values.region}}"
+              extraObjects:
+                # argocd-update records events on the Application; the chart's Argo CD RBAC lacks them
+                - apiVersion: rbac.authorization.k8s.io/v1
+                  kind: Role
+                  metadata:
+                    name: kargo-controller-{{.values.region}}-events
+                    namespace: argocd
+                  rules:
+                    - apiGroups: [""]
+                      resources: [events]
+                      verbs: [create, patch]
+                - apiVersion: rbac.authorization.k8s.io/v1
+                  kind: RoleBinding
+                  metadata:
+                    name: kargo-controller-{{.values.region}}-events
+                    namespace: argocd
+                  roleRef:
+                    apiGroup: rbac.authorization.k8s.io
+                    kind: Role
+                    name: kargo-controller-{{.values.region}}-events
+                  subjects:
+                    - kind: ServiceAccount
+                      name: kargo-controller-{{.values.region}}
+                      namespace: kargo
+        - repoURL: https://github.com/pitoniak32/gitops-cd
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kargo
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
+        retry:
+          limit: 10
+          backoff: {duration: 5s, factor: 2, maxDuration: 1m}

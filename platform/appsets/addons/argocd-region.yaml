@@ -1,0 +1,74 @@
+# regional Argo CD manages itself (Application `argocd` in each region); bootstrapped by `helm install` in
+# mise-tasks/infra with values.yaml + this valuesObject ({{.values.region}} substituted). Pin shared with argocd
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd-region
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # deleting this AppSet must not take the add-on with it
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            example.com/role: region
+        values:
+          region: '{{index .metadata.labels "example.com/region"}}'
+  template:
+    metadata:
+      name: argocd
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+        - repoURL: https://argoproj.github.io/argo-helm
+          chart: argo-cd
+          targetRevision: 10.14.0
+          helm:
+            releaseName: argocd
+            valueFiles:
+              - $values/platform/infrastructure/argocd-region/values.yaml
+            valuesObject:
+              global:
+                domain: argocd-{{.values.region}}.localhost
+              configs:
+                cm:
+                  url: https://argocd-{{.values.region}}.localhost
+                  # hub keycloak, public client argocd-<region> + PKCE. Issuer resolves via region CoreDNS (mise-tasks/region-dns)
+                  oidc.config: |
+                    name: Keycloak
+                    issuer: http://keycloak.localhost/realms/kargo
+                    clientID: argocd-{{.values.region}}
+                    cliClientID: argocd-{{.values.region}}
+                    enablePKCEAuthentication: true
+                    requestedScopes: [openid, profile, email]
+                # labels this Argo CD's own cluster for the cluster generator (ADR 0017)
+                clusterCredentials:
+                  in-cluster:
+                    server: https://kubernetes.default.svc
+                    labels:
+                      example.com/role: region
+                      example.com/region: "{{.values.region}}"
+                    config:
+                      tlsClientConfig:
+                        insecure: false
+        - repoURL: https://github.com/pitoniak32/gitops-cd
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
+        retry:
+          limit: 10
+          backoff: {duration: 5s, factor: 2, maxDuration: 1m}

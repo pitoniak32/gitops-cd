@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Static checks for platform/appsets/ (no cluster needed). Run by `mise run test`.
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+fail() { echo "appsets: $*" >&2; exit 1; }
+
+# every add-on dir has an AppSet; no inlined Application left
+for d in platform/infrastructure/*/; do
+  a=$(basename "$d")
+  [[ -f "platform/appsets/addons/$a.yaml" ]] || fail "no platform/appsets/addons/$a.yaml for $d"
+done
+ls platform/infrastructure/*/app.yaml >/dev/null 2>&1 && fail "platform/infrastructure/*/app.yaml must be gone (AppSets replace them)"
+if grep -rn __SHARD__ platform/infrastructure platform/appsets --exclude=check.sh; then fail "__SHARD__ templating left (use {{.values.region}} / {{.region}})"; fi
+
+# every AppSet: go templates with missingkey=error; never cascade-delete its Applications
+for f in $(find platform/appsets -name '*.yaml' | sort); do
+  [[ "$(yq '.kind' "$f")" == ApplicationSet ]] || fail "$f: not an ApplicationSet"
+  [[ "$(yq '.spec.goTemplate' "$f")" == true ]] || fail "$f: goTemplate must be true"
+  [[ "$(yq -o=json -I=0 '.spec.goTemplateOptions' "$f")" == '["missingkey=error"]' ]] || fail "$f: goTemplateOptions must be [missingkey=error]"
+  [[ "$(yq '.spec.syncPolicy.preserveResourcesOnDeletion' "$f")" == true ]] || fail "$f: syncPolicy.preserveResourcesOnDeletion must be true"
+  for v in $(yq '.spec.template.spec.sources[].helm.valueFiles[]' "$f" 2>/dev/null); do
+    [[ -f "${v#\$values/}" ]] || fail "$f: valueFile $v missing"
+  done
+done
+
+# chart pins that must move together
+pin() { yq '.spec.template.spec.sources[] | select(has("chart")) | .targetRevision' "platform/appsets/addons/$1.yaml"; }
+[[ "$(pin kargo)" == "$(pin kargo-shard)" && "$(pin kargo)" == "$(pin kargo-shard-hub)" ]] || fail "kargo chart pin differs: kargo=$(pin kargo) kargo-shard=$(pin kargo-shard) kargo-shard-hub=$(pin kargo-shard-hub)"
+[[ "$(pin argocd)" == "$(pin argocd-region)" ]] || fail "argo-cd chart pin differs: argocd=$(pin argocd) argocd-region=$(pin argocd-region)"
+echo "appsets ok"

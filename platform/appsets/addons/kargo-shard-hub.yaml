@@ -1,0 +1,68 @@
+# HUB side of each region's Kargo controller shard (Application `kargo-ctrl-<region>` on the hub): identity, RBAC,
+# token Secret. Regions from rendered/infrastructure/regions/ (clusters.cue). Pin shared with kargo
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kargo-shard-hub
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # deleting this AppSet must not take the add-on with it
+  generators:
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  example.com/role: hub
+          - git:
+              repoURL: https://github.com/pitoniak32/gitops-cd
+              revision: main
+              files:
+                - path: rendered/infrastructure/regions/*.json
+  template:
+    metadata:
+      name: kargo-ctrl-{{.region}}
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+        - repoURL: ghcr.io/akuity/kargo-charts
+          chart: kargo
+          targetRevision: 1.12.5
+          helm:
+            releaseName: kargo-ctrl-{{.region}}
+            valueFiles:
+              - $values/platform/infrastructure/kargo-shard-hub/values.yaml
+            valuesObject:
+              controller:
+                id: "{{.region}}"
+              extraObjects:
+                # long-lived token for the SA the chart creates (kargo-controller-<id>); mise-tasks/kargo-shards copies it to the region
+                - apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: kargo-controller-{{.region}}-token
+                    namespace: kargo
+                    annotations:
+                      kubernetes.io/service-account.name: kargo-controller-{{.region}}
+                  type: kubernetes.io/service-account-token
+        - repoURL: https://github.com/pitoniak32/gitops-cd
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kargo
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
+        retry:
+          limit: 10
+          backoff: {duration: 5s, factor: 2, maxDuration: 1m}

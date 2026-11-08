@@ -1,4 +1,5 @@
-# HUB side of a Kargo controller shard (one release per region, templated: __SHARD__ = region name).
+# HUB side of a Kargo controller shard (one release per region): region-independent values. Region bits
+# (controller id, token Secret) are the valuesObject in ../../appsets/addons/kargo-shard-hub.yaml.
 # Renders only the shard identity + RBAC; the controller itself runs in the region (../kargo-shard/).
 # The hub holds no credentials to the region: the region's controller phones home with the SA token below.
 workloads: {install: false}
@@ -7,15 +8,3 @@ argocd:
   dataPlane:
     install: false  # Argo CD lives in the region
     kargoController: {install: false}
-controller:
-  id: __SHARD__
-extraObjects:
-  # long-lived token for the SA the chart creates (kargo-controller-<id>); mise-tasks/kargo-shards copies it to the region
-  - apiVersion: v1
-    kind: Secret
-    metadata:
-      name: kargo-controller-__SHARD__-token
-      namespace: kargo
-      annotations:
-        kubernetes.io/service-account.name: kargo-controller-__SHARD__
-    type: kubernetes.io/service-account-token

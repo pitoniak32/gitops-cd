@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="CUE renderer tests: golden, CODEOWNERS, lint cases (UPDATE=1 accepts golden)"
+#MISE description="Tests: CUE renderer (golden, CODEOWNERS, lint cases; UPDATE=1 accepts golden) + ApplicationSet static checks"
 set -euo pipefail
-exec "$MISE_PROJECT_ROOT/platform/render/scripts/test.sh"
+"$MISE_PROJECT_ROOT/platform/render/scripts/test.sh"
+"$MISE_PROJECT_ROOT/platform/appsets/check.sh"
