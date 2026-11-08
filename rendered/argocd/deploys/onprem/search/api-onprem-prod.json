@@ -1,0 +1,11 @@
+{
+  "appName": "search-api-onprem-prod",
+  "capability": "search",
+  "app": "api",
+  "stage": "prod",
+  "target": "onprem-prod",
+  "namespace": "search-onprem-prod",
+  "branch": "env/search/api/onprem-prod",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-search:api-onprem-prod"
+}

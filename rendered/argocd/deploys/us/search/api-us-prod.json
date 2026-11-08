@@ -1,0 +1,11 @@
+{
+  "appName": "search-api-us-prod",
+  "capability": "search",
+  "app": "api",
+  "stage": "prod",
+  "target": "us-prod",
+  "namespace": "search-us-prod",
+  "branch": "env/search/api/us-prod",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-search:api-us-prod"
+}
