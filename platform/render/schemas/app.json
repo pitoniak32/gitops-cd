@@ -42,7 +42,7 @@
         },
         "envFrom": {
           "type": "array",
-          "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. Lists union across layers; env wins.",
+          "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. A KEY from a more specific layer's\nenvFrom wins; any env wins over all of them.",
           "items": {
             "$ref": "#/$defs/Name"
           }
@@ -102,7 +102,7 @@
         },
         "envFrom": {
           "type": "array",
-          "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. Lists union across layers; env wins.",
+          "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. A KEY from a more specific layer's\nenvFrom wins; any env wins over all of them.",
           "items": {
             "$ref": "#/$defs/Name"
           }
@@ -173,7 +173,7 @@
     },
     "envFrom": {
       "type": "array",
-      "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. Lists union across layers; env wins.",
+      "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. A KEY from a more specific layer's\nenvFrom wins; any env wins over all of them.",
       "items": {
         "$ref": "#/$defs/Name"
       }

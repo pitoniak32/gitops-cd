@@ -33,9 +33,11 @@ _autoStages: list.Concat([for an, p in pipelines for sn, s in p.stages if s.auto
 }])
 // read by the break-glass guard (platform/infrastructure/break-glass): who may approve unverified
 // Freight for this Stage (ADR 0013)
-_breakGlassAnn: {
+_stageAnnotations: {
 	#app:                      string
+	#stage:                    string
 	"example.com/break-glass": json.Marshal(_breakGlass[#app])
+	"kargo.akuity.io/color":   _stageColor[#stage] // same color for a stage's gate and targets
 }
 _stageLabels: {
 	#app:                     string
@@ -75,7 +77,7 @@ _kargoCore: [
 			name: (_gateName & {#app: an, #stage: sn}).out
 			namespace: _kargoProject
 			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "gate"}
-			annotations: _breakGlassAnn & {#app: an}
+			annotations: _stageAnnotations & {#app: an, #stage: sn}
 		}
 		spec: requestedFreight: [{
 			origin: {kind: "Warehouse", name: an}
@@ -95,7 +97,7 @@ _kargoCore: [
 			name: (_tgtName & {#app: an, #target: tn}).out
 			namespace: _kargoProject
 			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn}
-			annotations: _breakGlassAnn & {#app: an}
+			annotations: _stageAnnotations & {#app: an, #stage: sn}
 		}
 		spec: {
 			requestedFreight: [{
