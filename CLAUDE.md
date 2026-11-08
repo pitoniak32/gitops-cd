@@ -14,6 +14,7 @@ App teams own `capabilities/`; everything platform-owned (renderer, cluster, add
 
 ## Commands (`mise tasks` lists all)
 - `mise run up` / `down`: fresh hub + region kind clusters + infrastructure + bootstrap / delete everything.
+- `mise run open [--print]`: open all UIs (Kargo, hub + regional Argo CD, Keycloak); URL list in `README.md`.
 - `mise run infra`: (re)apply infrastructure apps in order, git creds, bootstrap. `mise run infra-render [addon…]`: show the inlined Applications.
 - `mise run lint [cap…]`: full validation → `file:line:col: message`.
 - `mise run render [out]`: render all capabilities + regenerate CODEOWNERS.

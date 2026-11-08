@@ -13,16 +13,21 @@ mise install   # pinned tools (kind, helm, kubectl, cue, jq, yq, fnox)
 #   - a GitHub App installed on that repo with Contents read/write (Kargo pushes
 #     env/<cap>/<app>/<target> branches); store it for fnox:
 #     fnox set GITHUB_APP_ID / GITHUB_APP_INSTALLATION_ID / GITHUB_APP_PRIVATE_KEY
-mise run up    # tear down + fresh cluster + infrastructure + bootstrap (~5 min)
+mise run up    # tear down + fresh hub + region clusters + infrastructure + bootstrap (~9 min)
+mise run open  # open every UI below in the browser (--print: just list the URLs)
 mise run down  # delete everything
 ```
 
-| URL | Login |
-|---|---|
-| https://kargo.localhost | Keycloak user |
-| https://argocd.localhost | "Log in via Keycloak" (no local accounts); hub, infrastructure apps only |
-| https://argocd-us.localhost, https://argocd-onprem.localhost | regional Argo CD (workload apps), "Log in via Keycloak"; one per line in `platform/cluster/regions` |
-| http://keycloak.localhost | console: `admin` / `admin` |
+| UI | URL | Shows | Login |
+|---|---|---|---|
+| Kargo | https://kargo.localhost | all projects, promotions (one control plane on the hub) | Keycloak user |
+| Argo CD (hub) | https://argocd.localhost/applications | infrastructure apps only, no workloads (admin) | "Log in via Keycloak" (no local accounts) |
+| Argo CD (us) | https://argocd-us.localhost/applications | workload apps of targets on cluster `us` | "Log in via Keycloak" |
+| Argo CD (onprem) | https://argocd-onprem.localhost/applications | workload apps of targets on cluster `onprem` | "Log in via Keycloak" |
+| Keycloak | http://keycloak.localhost/admin/master/console/ | users, OIDC clients | `admin` / `admin` |
+
+One regional Argo CD per line in `platform/cluster/regions` (`https://argocd-<region>.localhost`); `mise run open` picks new ones up.
+Kargo's Stage view links each target to its region's Argo CD.
 
 HTTPS uses a local mkcert CA (`mise run certs`, run by `infra`); the first run asks for your macOS password to trust it.
 
