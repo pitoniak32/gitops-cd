@@ -10,7 +10,7 @@ for d in platform/infrastructure/*/; do
   [[ -f "platform/appsets/addons/$a.yaml" ]] || fail "no platform/appsets/addons/$a.yaml for $d"
 done
 ls platform/infrastructure/*/app.yaml >/dev/null 2>&1 && fail "platform/infrastructure/*/app.yaml must be gone (AppSets replace them)"
-if grep -rn __SHARD__ platform/infrastructure platform/appsets --exclude=check.sh; then fail "__SHARD__ templating left (use {{.values.region}} / {{.region}})"; fi
+if grep -rn __SHARD__ platform/ --exclude=check.sh; then fail "__SHARD__ templating left (use {{.values.region}} / {{.region}})"; fi
 
 # every AppSet: go templates with missingkey=error; never cascade-delete its Applications
 for f in $(find platform/appsets -name '*.yaml' | sort); do

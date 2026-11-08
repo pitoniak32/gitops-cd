@@ -9,19 +9,10 @@ HUB=kind-kargo-demo
 HUB_SERVER=https://kargo-demo-control-plane:6443  # hub apiserver on docker network kargo-demo
 regions=$(grep -v '^#' platform/cluster/regions)
 
-wait_app() { # ctx app
-  kubectl --context "$1" -n argocd annotate "app/$2" argocd.argoproj.io/refresh=normal --overwrite >/dev/null
-  for i in $(seq 1 60); do
-    [ -z "$(kubectl --context "$1" -n argocd get "app/$2" -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}')" ] && break
-    sleep 2
-  done
-  kubectl --context "$1" -n argocd wait "app/$2" --for=jsonpath='{.status.sync.status}'=Synced --timeout=600s
-  kubectl --context "$1" -n argocd wait "app/$2" --for=jsonpath='{.status.health.status}'=Healthy --timeout=600s
-}
+. platform/bootstrap/wait-app.sh
 
-# 1. hub: shard identities (SA, RBAC, token Secret)
+# 1. hub: shard identities (SA, RBAC, token Secret), from the kargo-shard-hub ApplicationSet
 for r in $regions; do
-  SHARD=$r mise run infra-render kargo-shard-hub | kubectl --context "$HUB" apply -f -
   wait_app "$HUB" "kargo-ctrl-$r"
 done
 
@@ -61,6 +52,5 @@ KUBECONFIG
       kubectl --context "$ctx" -n kargo rollout restart deploy/kargo-controller-"$r"
   fi
 
-  SHARD=$r mise run infra-render kargo-shard | kubectl --context "$ctx" apply -f -
-  wait_app "$ctx" kargo-ctrl
+  wait_app "$ctx" kargo-ctrl  # regional controller, from the kargo-shard ApplicationSet
 done
