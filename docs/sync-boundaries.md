@@ -50,7 +50,7 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 | Kargo shard token (`mise run kargo-shards`) | The hub SA token is copied into each region's `kargo-hub-kubeconfig` Secret (never in git). The hub and regional shard Applications themselves come from AppSets. `infra` runs it last. |
 | A new hub add-on's position in the bootstrap order | Add it to the ordered wait list in `platform/mise-tasks/infra`. |
 
-`infra` itself doesn't change anything Argo CD manages; it only installs Argo CD if missing, applies the root app and waits for the add-ons in order.
+`infra` itself doesn't change anything Argo CD manages; it only installs Argo CD if missing, applies the root app and waits for the add-ons (regions bootstrap in parallel with the hub).
 
 ## `mise run up` needed (deletes and recreates the cluster)
 
