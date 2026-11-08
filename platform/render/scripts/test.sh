@@ -13,7 +13,7 @@ diff -ru testdata/golden "$tmp"; echo "golden ok"
 [[ -f "$tmp/argocd/projects/onprem/.keep" ]] || { echo "argocd/projects/<r>/.keep missing" >&2; exit 1; }
 echo "regions ok"
 # kind: one AppProject per capability; no secret store -> no ExternalSecrets / secret env refs
-yq -e 'select(.kind == "AppProject" and .metadata.name == "payments")' "$tmp/argocd/us/payments.yaml" >/dev/null || { echo "missing AppProject payments" >&2; exit 1; }
+yq -e 'select(.kind == "AppProject" and .metadata.name == "payments")' "$tmp/argocd/projects/us/payments.yaml" >/dev/null || { echo "missing AppProject payments" >&2; exit 1; }
 if grep -rqE 'ExternalSecret|secretKeyRef' "$tmp/apps/"; then echo "secret refs rendered for a cluster without a secret store" >&2; exit 1; fi
 grep -rq "APP_SECRET" testdata/root/capabilities/payments/apps/my-app/app.yml || { echo "fixture lost its secret: env value" >&2; exit 1; }
 # Argo CD dry-runs all resources first: the project namespace must be rendered (labeled for Kargo
@@ -21,7 +21,7 @@ grep -rq "APP_SECRET" testdata/root/capabilities/payments/apps/my-app/app.yml ||
 [[ "$(yq 'select(documentIndex == 0) | .kind + "/" + .metadata.name + "/" + .metadata.labels."kargo.akuity.io/project"' "$tmp/kargo/payments.yaml")" == "Namespace/kargo-payments/true" ]] || { echo "kargo/payments.yaml must start with labeled Namespace kargo-payments" >&2; exit 1; }
 # Argo CD visibility: promoters + viewers (emails) get read-only access to their capability's apps, nothing else
 want='{"name":"viewer","policies":["p, proj:payments:viewer, applications, get, payments/*, allow"],"groups":["alice@example.com","bob@example.com","carol@example.com","doug@example.com"]}'
-got="$(yq -o=json -I=0 'select(.kind == "AppProject") | .spec.roles[] | {"name": .name, "policies": .policies, "groups": .groups}' "$tmp/argocd/us/payments.yaml")"
+got="$(yq -o=json -I=0 'select(.kind == "AppProject") | .spec.roles[] | {"name": .name, "policies": .policies, "groups": .groups}' "$tmp/argocd/projects/us/payments.yaml")"
 [[ "$got" == "$want" ]] || { printf 'AppProject viewer role\nwant: %s\ngot:  %s\n' "$want" "$got" >&2; exit 1; }
 # Kargo visibility (email claim): promoters + viewers read their project via Kargo's per-project
 # kargo-viewer Role, and list projects via a global SA (kargo-shared-resources) bound to kargo-user
@@ -42,15 +42,18 @@ yq -e 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[]
 [[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec.requestedFreight[0].sources | .availabilityStrategy + ":" + (.stages | join(","))' "$k")" == "All:my-app-onprem-stg,my-app-us-perf,my-app-us-stg" ]] || { echo "prod gate must wait for every upstream target" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec | has("promotionTemplate")' "$k")" == "false" ]] || { echo "gates must be control flow stages" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-onprem-prod") | (.spec.requestedFreight[0].sources.stages | join(",")) + " " + .spec.promotionTemplate.spec.vars[2].value' "$k")" == "my-app-prod env/payments/my-app/onprem-prod" ]] || { echo "target stage must follow its gate and push its own branch" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Application" and .metadata.name == "payments-my-app-onprem-prod") | .spec.source.targetRevision + " " + .spec.source.path + " " + .metadata.annotations."kargo.akuity.io/authorized-stage"' "$tmp/argocd/onprem/payments.yaml")" == "env/payments/my-app/onprem-prod . kargo-payments:my-app-onprem-prod" ]] || { echo "Argo CD app must track its target branch, authorized for its target stage" >&2; exit 1; }
+d="$tmp/argocd/deploys/onprem/payments/my-app-onprem-prod.json"
+[[ "$(jq -r '.appName + " " + .branch + " " + .authorizedStage + " " + .destination + "/" + .namespace' "$d")" == "payments-my-app-onprem-prod env/payments/my-app/onprem-prod kargo-payments:my-app-onprem-prod in-cluster/payments-onprem-prod" ]] || { echo "deploy params must track the target branch, authorized for its target stage" >&2; exit 1; }
+# workloads AppSet (platform/appsets/workloads.yaml) reads exactly these keys; git files gen reserves path/values
+[[ "$(jq -r 'keys | join(",")' "$d")" == "app,appName,authorizedStage,branch,capability,destination,namespace,stage,target" ]] || { echo "deploy params keys changed: $(jq -c keys "$d")" >&2; exit 1; }
 # regions: target Stages run on their cluster's region shard; gates and Warehouses stay on the hub controller
 [[ "$(yq 'select(.kind == "Stage") | .metadata.name + "=" + (.spec.shard // "-")' "$k" | grep '^my-app-' | sort | paste -sd' ' -)" == "my-app-dev=- my-app-onprem-dev=onprem my-app-onprem-prod=onprem my-app-onprem-stg=onprem my-app-perf=- my-app-prod=- my-app-staging=- my-app-us-dev=us my-app-us-perf=us my-app-us-prod=us my-app-us-stg=us" ]] || { echo "shard must be set on target Stages only, from the target's cluster region" >&2; exit 1; }
 if yq -e 'select(.kind == "Warehouse") | .spec.shard' "$k" >/dev/null 2>&1; then echo "Warehouses must not be sharded" >&2; exit 1; fi
 # Argo CD output is per region; destination is the regional Argo CD's own cluster
-[[ "$(cd "$tmp/argocd" && find . -type f ! -name .keep | sort | paste -sd' ' -)" == "./onprem/payments.yaml ./us/payments.yaml ./us/search.yaml" ]] || { echo "argocd output must be per region" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "AppProject") | .spec.destinations[] | .name + "/" + .namespace' "$tmp/argocd/onprem/payments.yaml" | paste -sd' ' -)" == "in-cluster/payments-onprem-dev in-cluster/payments-onprem-prod in-cluster/payments-onprem-stg" ]] || { echo "onprem AppProject must list only onprem destinations" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Application") | .metadata.name' "$tmp/argocd/us/payments.yaml" | grep -c onprem || true)" == 0 ]] || { echo "us Argo CD file has onprem apps" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Application" and .metadata.name == "payments-my-app-us-dev") | .spec.destination.name + "/" + .spec.destination.namespace' "$tmp/argocd/us/payments.yaml")" == "in-cluster/payments-us-dev" ]] || { echo "app destination must be in-cluster of its regional Argo CD" >&2; exit 1; }
+[[ "$(cd "$tmp/argocd" && find . -type f ! -name .keep | sort | paste -sd' ' -)" == "./deploys/onprem/payments/my-app-onprem-dev.json ./deploys/onprem/payments/my-app-onprem-prod.json ./deploys/onprem/payments/my-app-onprem-stg.json ./deploys/us/payments/my-app-us-dev.json ./deploys/us/payments/my-app-us-perf.json ./deploys/us/payments/my-app-us-prod.json ./deploys/us/payments/my-app-us-stg.json ./deploys/us/payments/payments-us-dev.json ./deploys/us/payments/payments-us-prod.json ./deploys/us/payments/payments-us-stg.json ./deploys/us/payments/worker-us-dev.json ./deploys/us/payments/worker-us-prod.json ./deploys/us/payments/worker-us-stg.json ./deploys/us/search/api-us-dev.json ./projects/onprem/payments.yaml ./projects/us/payments.yaml ./projects/us/search.yaml" ]] || { echo "argocd output must be per region: deploys/<r>/<cap>/ + projects/<r>/<cap>.yaml" >&2; exit 1; }
+if grep -rq 'kind: Application$' "$tmp/argocd"; then echo "renderer must not emit Applications (workloads AppSet does)" >&2; exit 1; fi
+[[ "$(yq 'select(.kind == "AppProject") | .spec.destinations[] | .name + "/" + .namespace' "$tmp/argocd/projects/onprem/payments.yaml" | paste -sd' ' -)" == "in-cluster/payments-onprem-dev in-cluster/payments-onprem-prod in-cluster/payments-onprem-stg" ]] || { echo "onprem AppProject must list only onprem destinations" >&2; exit 1; }
+if grep -l onprem "$tmp"/argocd/deploys/us/*/*.json >/dev/null 2>&1; then echo "us deploys contain onprem targets" >&2; exit 1; fi
 if grep -q '"groups"' "$tmp"/kargo/*.yaml; then echo "no Kargo claim may use groups" >&2; exit 1; fi
 echo "kind cluster ok"
 
@@ -133,3 +136,9 @@ got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}" "${o:?}"
 grep -qE '^capabilities/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.us-dev\.envFrom: .*LD_RELAY_URL differs between environment-variables/\{flags,launchdarkly\}\.yml \(both in target-level' <<<"$got" || { printf 'same-layer clash not rejected:\n%s\n' "$got" >&2; exit 1; }
 grep -q LD_SDK_KEY <<<"$got" && { printf 'equal values must not clash:\n%s\n' "$got" >&2; exit 1; }
 echo "envFrom clash ok"
+
+# capability names that prefix each other (pay vs payments): re-rendering one must not wipe the other's deploys
+r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; cp -R "$r/capabilities/payments" "$r/capabilities/pay"
+scripts/render.sh "$r" payments "$o" >/dev/null; scripts/render.sh "$r" pay "$o" >/dev/null; scripts/render.sh "$r" pay "$o" >/dev/null
+[[ -f "$o/argocd/deploys/us/payments/my-app-us-dev.json" && -f "$o/argocd/deploys/us/pay/my-app-us-dev.json" ]] || { echo "re-render of pay wiped payments deploys" >&2; exit 1; }
+rm -rf "${r:?}" "${o:?}"; echo "prefix caps ok"

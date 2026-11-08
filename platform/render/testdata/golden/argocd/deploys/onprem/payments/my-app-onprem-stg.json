@@ -1,0 +1,11 @@
+{
+  "appName": "payments-my-app-onprem-stg",
+  "capability": "payments",
+  "app": "my-app",
+  "stage": "staging",
+  "target": "onprem-stg",
+  "namespace": "payments-onprem-stg",
+  "branch": "env/payments/my-app/onprem-stg",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-payments:my-app-onprem-stg"
+}

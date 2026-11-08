@@ -1,0 +1,11 @@
+{
+  "appName": "payments-my-app-onprem-prod",
+  "capability": "payments",
+  "app": "my-app",
+  "stage": "prod",
+  "target": "onprem-prod",
+  "namespace": "payments-onprem-prod",
+  "branch": "env/payments/my-app/onprem-prod",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-payments:my-app-onprem-prod"
+}
