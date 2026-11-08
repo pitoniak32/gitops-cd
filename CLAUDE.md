@@ -18,6 +18,7 @@ App teams own `capabilities/`; everything platform-owned (renderer, cluster, add
 - `mise run open [--print]`: open all UIs (Kargo, hub + regional Argo CD, Keycloak); URL list in `README.md`.
 - `mise run infra`: helm-bootstrap Argo CD (hub + regions), apply root app, wait for add-ons in order, git creds, certs, Kargo shard tokens.
 - `mise run regions`: regenerate region-derived config from `clusters.cue` (`platform/cluster/regions`, Keycloak `argocd-<r>` clients, Kargo `api.argocd.urls`); CI checks drift.
+- `mise run kargo-restore [cap…]`: after a cluster rebuild, restore each target Stage's current Freight from its `env/*` branch head (idempotent; `docs/operations.md`).
 - `mise run lint [cap…]`: full validation → `file:line:col: message`.
 - `mise run render [out]`: render all capabilities + regenerate CODEOWNERS.
 - `mise run test`: golden + CODEOWNERS + lint cases (`UPDATE=1` accepts golden) + `platform/appsets/check.sh`.
