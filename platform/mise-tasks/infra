@@ -21,39 +21,75 @@ HUB=kind-kargo-demo
 appset_values() { yq '.spec.template.spec.sources[0].helm.valuesObject' "platform/appsets/addons/$1.yaml"; }
 appset_pin() { yq '.spec.template.spec.sources[0].targetRevision' "platform/appsets/addons/$1.yaml"; }
 
-# bootstrap the hub argocd once; afterwards the root app's `argocd` ApplicationSet manages it (ADR 0017).
-# values.yaml labels its in-cluster Secret example.com/role=hub for the cluster generators.
+regions=$(grep -v '^#' platform/cluster/regions)
+
+# apply the root app once Argo CD's controllers run and force its first refresh: a root created before the
+# application-controller is up otherwise idles until the next periodic reconcile (~2-3 min)
+apply_root() { # ctx
+  kubectl --context "$1" -n argocd rollout status statefulset/argocd-application-controller --timeout=300s
+  kubectl --context "$1" -n argocd rollout status deploy/argocd-repo-server deploy/argocd-applicationset-controller --timeout=300s
+  kubectl --context "$1" apply -f platform/bootstrap/root.yaml
+  wait_app "$1" root
+}
+
+# kargo pods start before cert-manager has issued their TLS Secrets; kubelet then backs off retrying the
+# mount (~2 min after the Secret exists). Once the Certificates are Ready, recreate pods still stuck.
+kick_kargo_cert_pods() {
+  local i
+  for i in $(seq 1 300); do
+    [ "$(kubectl --context "$HUB" -n kargo get certificates.cert-manager.io -o name 2>/dev/null | wc -l)" -ge 3 ] && break
+    sleep 2
+  done
+  kubectl --context "$HUB" -n kargo wait certificates.cert-manager.io --all --for=condition=Ready --timeout=600s
+  kubectl --context "$HUB" -n kargo get pod -o json |
+    jq -r '.items[] | select(.status.phase == "Pending") | select(any(.spec.volumes[]?; ([.secret.secretName?, .projected.sources[]?.secret.name?] | map(select(. != null)) | any(endswith("-cert"))))) | .metadata.name' |
+    xargs -r kubectl --context "$HUB" -n kargo delete pod --wait=false
+}
+
+# Regions need nothing from the hub to bootstrap their Argo CD (OIDC DNS only needs the hub container IP),
+# so they run in the background while the hub add-ons come up. Only kargo-shards needs both sides.
+mise run region-dns  # keycloak.localhost -> hub traefik inside each region (OIDC issuer)
+bootstrap_region() { # minimal Argo CD per region from the host (hub holds no region creds), then self-managed
+  local r=$1 ctx="kind-region-$1"
+  if ! helm status argocd -n argocd --kube-context "$ctx" >/dev/null 2>&1; then
+    # same values as the argocd-region AppSet: values.yaml + its valuesObject for this region (labels the
+    # in-cluster Secret example.com/role=region, example.com/region=<r>). No --wait: wait_app argocd below.
+    helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$(appset_pin argocd-region)" \
+      --kube-context "$ctx" -n argocd --create-namespace -f platform/infrastructure/argocd-region/values.yaml \
+      -f <(appset_values argocd-region | sed "s/{{\.values\.region}}/$r/g")
+  fi
+  apply_root "$ctx"
+  wait_app "$ctx" argocd
+}
+pids=()
+trap 'kill ${pids[@]+"${pids[@]}"} 2>/dev/null || true' EXIT  # hub failure: stop region jobs too
+for r in $regions; do
+  bootstrap_region "$r" > >(sed -u "s/^/[region-$r] /") 2>&1 &
+  pids+=($!)
+done
+
+# hub argocd once; afterwards the root app's `argocd` ApplicationSet manages it (ADR 0017). values.yaml
+# labels its in-cluster Secret example.com/role=hub. No --wait: the root app only needs the CRDs.
 if ! helm status argocd -n argocd >/dev/null 2>&1; then
   helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$(appset_pin argocd)" \
     -n argocd --create-namespace -f platform/infrastructure/argocd/values.yaml \
-    --set-json 'extraObjects=[]' --wait  # IngressRoute needs traefik CRDs; added later by argocd app
+    --set-json 'extraObjects=[]'  # IngressRoute needs traefik CRDs; added later by argocd app
 fi
 
-# root app: platform/appsets/ from GitHub main (push first). AppSets create every add-on at once; wait in
-# dependency order (CRDs, webhooks, issuer before their users; argocd last). Retries + SkipDryRun absorb races.
-kubectl apply -f platform/bootstrap/root.yaml
-for app in traefik cert-manager argo-rollouts keycloak kargo kargo-config break-glass argocd; do
+# root app: platform/appsets/ from GitHub main (push first). AppSets create every add-on at once (retries +
+# SkipDryRun absorb ordering races). Host steps wait only for what they need, then the rest is checked.
+apply_root "$HUB"
+wait_app "$HUB" traefik
+mise run certs  # browser-trusted TLS (traefik namespace + TLSStore)
+kick_kargo_cert_pods
+wait_app "$HUB" kargo
+mise run creds  # git creds (Kargo pushes env/* branches; GitHub App creds from fnox)
+for app in cert-manager argo-rollouts keycloak kargo-config break-glass argocd; do
   wait_app "$HUB" "$app"
 done
 
-# git creds (Kargo pushes env/* branches; GitHub App creds from fnox), browser-trusted TLS
-mise run creds
-mise run certs
-
-# regions: minimal Argo CD per region cluster, bootstrapped from the host with each kube context
-# (hub holds no credentials to regions), then self-managed by the same root app (argocd-region AppSet)
-mise run region-dns  # keycloak.localhost -> hub traefik inside each region (OIDC issuer)
-for r in $(grep -v '^#' platform/cluster/regions); do
-  ctx="kind-region-$r"
-  if ! helm status argocd -n argocd --kube-context "$ctx" >/dev/null 2>&1; then
-    # same values as the argocd-region AppSet: values.yaml + its valuesObject for this region (labels the
-    # in-cluster Secret example.com/role=region, example.com/region=<r>)
-    helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$(appset_pin argocd-region)" \
-      --kube-context "$ctx" -n argocd --create-namespace -f platform/infrastructure/argocd-region/values.yaml \
-      -f <(appset_values argocd-region | sed "s/{{\.values\.region}}/$r/g") --wait
-  fi
-  kubectl --context "$ctx" apply -f platform/bootstrap/root.yaml
-  wait_app "$ctx" argocd
+for p in "${pids[@]}"; do wait "$p"; done  # region bootstrap failures fail infra
+for r in $regions; do
   wait_app "$HUB" "argocd-ui-$r"  # hub IngressRoute for https://argocd-<r>.localhost
 done
 

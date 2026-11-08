@@ -38,7 +38,7 @@ App teams own `capabilities/`; everything platform-owned (renderer, cluster, add
 - Manual runbooks (break-glass, resetting Kargo state): `docs/operations.md`.
 - What Argo CD pulls from git vs what needs `mise run infra` / `up`: `docs/sync-boundaries.md`. Add-ons are git-sourced from `main` (ADR 0017): **push** before they take effect.
 - Edit `platform/infrastructure/<addon>/` or `platform/appsets/`, push to `main`; Argo CD syncs it. `mise run infra` only bootstraps/waits.
-- **New addon**: `platform/infrastructure/<addon>/` (values/manifests) + `platform/appsets/addons/<addon>.yaml` (copy one with the same cluster selector), and add it to the ordered wait list in `platform/mise-tasks/infra` if hub-side. Order matters: CRDs, webhooks and the OIDC issuer before their users; `argocd` last.
+- **New addon**: `platform/infrastructure/<addon>/` (values/manifests) + `platform/appsets/addons/<addon>.yaml` (copy one with the same cluster selector), and add it to the hub wait list in `platform/mise-tasks/infra` if hub-side. All add-ons start together: dependencies (CRDs, webhooks, OIDC issuer) are absorbed by unlimited sync retries; only host steps wait on specific apps.
 - **Regional addons** (`argocd-region`, `kargo-shard`): cluster gen selecting `example.com/role: region`, region bits in `valuesObject` with `{{.values.region}}`. Hub side per region (`kargo-shard-hub`, `argocd-region-hub`): matrix hub × `rendered/infrastructure/regions/*.json` (`{{.region}}`). The hub never gets region credentials (ADR 0015).
 - **New region**: add a cluster in `platform/render/clusters.cue`, `mise run regions`, merge (CI renders), then a clean `mise run up`.
 - **Expose a UI**: Traefik `IngressRoute`, not `Ingress`.
