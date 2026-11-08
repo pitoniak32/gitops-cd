@@ -39,6 +39,44 @@
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "https://argocd.localhost/*"
       }
+    },
+    {
+      "clientId": "argocd-onprem",
+      "name": "Argo CD (onprem)",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://argocd-onprem.localhost/pkce/verify",
+        "https://argocd-onprem.localhost/auth/callback",
+        "http://localhost:8085/auth/callback"
+      ],
+      "webOrigins": [
+        "https://argocd-onprem.localhost"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://argocd-onprem.localhost/*"
+      }
+    },
+    {
+      "clientId": "argocd-us",
+      "name": "Argo CD (us)",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://argocd-us.localhost/pkce/verify",
+        "https://argocd-us.localhost/auth/callback",
+        "http://localhost:8085/auth/callback"
+      ],
+      "webOrigins": [
+        "https://argocd-us.localhost"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://argocd-us.localhost/*"
+      }
     }
   ],
   "users": [
