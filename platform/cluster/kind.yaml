@@ -1,6 +1,11 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: kargo-demo
+# kubelet pulls images in parallel (default is one at a time: one slow image stalls every pod behind it)
+kubeadmConfigPatches:
+  - |
+    kind: KubeletConfiguration
+    serializeImagePulls: false
 nodes:
   - role: control-plane
     # host (loopback v4+v6 only; tailscale etc. may hold *:443) -> traefik NodePorts

@@ -3,5 +3,10 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: region
+# kubelet pulls images in parallel (default is one at a time: one slow image stalls every pod behind it)
+kubeadmConfigPatches:
+  - |
+    kind: KubeletConfiguration
+    serializeImagePulls: false
 nodes:
   - role: control-plane
