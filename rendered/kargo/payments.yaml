@@ -69,6 +69,9 @@ metadata:
     example.com/app: my-app
     example.com/kind: gate
     example.com/stage: dev
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: blue
 spec:
   requestedFreight:
     - origin:
@@ -87,6 +90,9 @@ metadata:
     example.com/app: my-app
     example.com/kind: gate
     example.com/stage: staging
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: green
 spec:
   requestedFreight:
     - origin:
@@ -108,6 +114,9 @@ metadata:
     example.com/app: my-app
     example.com/kind: gate
     example.com/stage: perf
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: amber
 spec:
   requestedFreight:
     - origin:
@@ -129,6 +138,9 @@ metadata:
     example.com/app: my-app
     example.com/kind: gate
     example.com/stage: prod
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: violet
 spec:
   requestedFreight:
     - origin:
@@ -152,6 +164,9 @@ metadata:
     example.com/app: worker
     example.com/kind: gate
     example.com/stage: dev
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: blue
 spec:
   requestedFreight:
     - origin:
@@ -170,6 +185,9 @@ metadata:
     example.com/app: worker
     example.com/kind: gate
     example.com/stage: staging
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: green
 spec:
   requestedFreight:
     - origin:
@@ -190,6 +208,9 @@ metadata:
     example.com/app: worker
     example.com/kind: gate
     example.com/stage: prod
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: violet
 spec:
   requestedFreight:
     - origin:
@@ -211,6 +232,9 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: us-east4-dev
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: blue
 spec:
   requestedFreight:
     - origin:
@@ -273,6 +297,9 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: on-prem-dev
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: blue
 spec:
   requestedFreight:
     - origin:
@@ -335,6 +362,9 @@ metadata:
     example.com/kind: target
     example.com/stage: staging
     example.com/target: us-east1-stg
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: green
 spec:
   requestedFreight:
     - origin:
@@ -397,6 +427,9 @@ metadata:
     example.com/kind: target
     example.com/stage: staging
     example.com/target: on-prem-stg
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: green
 spec:
   requestedFreight:
     - origin:
@@ -459,6 +492,9 @@ metadata:
     example.com/kind: target
     example.com/stage: perf
     example.com/target: us-east1-perf
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: amber
 spec:
   requestedFreight:
     - origin:
@@ -521,6 +557,9 @@ metadata:
     example.com/kind: target
     example.com/stage: perf
     example.com/target: on-prem-perf
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: amber
 spec:
   requestedFreight:
     - origin:
@@ -583,6 +622,9 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: gcp-us-prod
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: violet
 spec:
   requestedFreight:
     - origin:
@@ -645,6 +687,9 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: gcp-eu-prod
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: violet
 spec:
   requestedFreight:
     - origin:
@@ -707,6 +752,9 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: on-prem-prod-1
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: violet
 spec:
   requestedFreight:
     - origin:
@@ -769,6 +817,9 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: on-prem-prod-2
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: violet
 spec:
   requestedFreight:
     - origin:
@@ -831,6 +882,9 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: us-east4-dev
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: blue
 spec:
   requestedFreight:
     - origin:
@@ -893,6 +947,9 @@ metadata:
     example.com/kind: target
     example.com/stage: staging
     example.com/target: us-east1-stg
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: green
 spec:
   requestedFreight:
     - origin:
@@ -955,6 +1012,9 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: gcp-us-prod
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: violet
 spec:
   requestedFreight:
     - origin:
@@ -1015,7 +1075,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","oncall@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1085,7 +1145,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","oncall@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1147,7 +1207,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","doug@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","doug@example.com","oncall@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1176,7 +1236,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","doug@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","doug@example.com","oncall@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

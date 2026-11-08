@@ -41,6 +41,7 @@ spec:
       groups:
         - bob@example.com
         - doug@example.com
+        - oncall@example.com
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
