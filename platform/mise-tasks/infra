@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Bootstrap argocd, then let it install/upgrade infrastructure apps (idempotent)"
+#MISE description="Bootstrap Argo CD + root app of ApplicationSets on hub and regions, wait for add-ons in order (idempotent)"
 set -euo pipefail
 
 # hub tasks below use the current context; regions use explicit --context
@@ -16,75 +16,45 @@ if ! grep -q 'keycloak.localhost' <<<"$corefile"; then
   kubectl -n kube-system rollout status deploy/coredns --timeout=120s
 fi
 
-# bootstrap argocd once; afterwards it manages itself (platform/infrastructure/argocd/app.yaml)
+. platform/bootstrap/wait-app.sh
+HUB=kind-kargo-demo
+appset_values() { yq '.spec.template.spec.sources[0].helm.valuesObject' "platform/appsets/addons/$1.yaml"; }
+appset_pin() { yq '.spec.template.spec.sources[0].targetRevision' "platform/appsets/addons/$1.yaml"; }
+
+# bootstrap the hub argocd once; afterwards the root app's `argocd` ApplicationSet manages it (ADR 0017).
+# values.yaml labels its in-cluster Secret example.com/role=hub for the cluster generators.
 if ! helm status argocd -n argocd >/dev/null 2>&1; then
-  version=$(yq '.spec.source.targetRevision' platform/infrastructure/argocd/app.yaml)
-  helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$version" \
+  helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$(appset_pin argocd)" \
     -n argocd --create-namespace -f platform/infrastructure/argocd/values.yaml \
     --set-json 'extraObjects=[]' --wait  # IngressRoute needs traefik CRDs; added later by argocd app
 fi
 
-# order matters (CRDs, webhooks, issuer); argocd last
+# root app: platform/appsets/ from GitHub main (push first). AppSets create every add-on at once; wait in
+# dependency order (CRDs, webhooks, issuer before their users; argocd last). Retries + SkipDryRun absorb races.
+kubectl apply -f platform/bootstrap/root.yaml
 for app in traefik cert-manager argo-rollouts keycloak kargo kargo-config break-glass argocd; do
-  mise run infra-render "$app" | kubectl apply -f -
-  # force compare against new spec, else wait sees stale Synced status
-  kubectl -n argocd annotate "app/$app" argocd.argoproj.io/refresh=normal --overwrite >/dev/null
-  for i in $(seq 1 60); do
-    [ -z "$(kubectl -n argocd get "app/$app" -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}')" ] && break
-    sleep 2
-  done
-  kubectl -n argocd wait "app/$app" --for=jsonpath='{.status.sync.status}'=Synced --timeout=600s
-  kubectl -n argocd wait "app/$app" --for=jsonpath='{.status.health.status}'=Healthy --timeout=600s
+  wait_app "$HUB" "$app"
 done
 
-# upgrade path: the hub used to sync rendered/argocd (workload apps). It runs no workloads now; drop the
-# old root with cascade. Children carry no finalizer, so add one first or their workloads would be orphaned.
-if kubectl -n argocd get app/rendered-argocd >/dev/null 2>&1; then
-  fin='{"metadata":{"finalizers":["resources-finalizer.argocd.argoproj.io"]}}'
-  for a in $(kubectl -n argocd get app -o json | yq -p=json '.items[] | select((.metadata.annotations["argocd.argoproj.io/tracking-id"] // "") | test("^rendered-argocd:")) | .metadata.name'); do
-    kubectl -n argocd patch "app/$a" --type merge -p "$fin" >/dev/null
-  done
-  kubectl -n argocd patch app/rendered-argocd --type merge -p "$fin" >/dev/null
-  kubectl -n argocd delete app/rendered-argocd --ignore-not-found --timeout=300s
-fi
-
-# generated capabilities: hub root Application syncing rendered/kargo from GitHub main (public repo needs
-# no creds), then git creds (Kargo pushes env/* branches; GitHub App creds from fnox)
-kubectl apply -f platform/bootstrap/rendered.yaml
+# git creds (Kargo pushes env/* branches; GitHub App creds from fnox), browser-trusted TLS
 mise run creds
 mise run certs
 
 # regions: minimal Argo CD per region cluster, bootstrapped from the host with each kube context
-# (hub holds no credentials to regions), then self-managed from the inlined Application
+# (hub holds no credentials to regions), then self-managed by the same root app (argocd-region AppSet)
 mise run region-dns  # keycloak.localhost -> hub traefik inside each region (OIDC issuer)
 for r in $(grep -v '^#' platform/cluster/regions); do
   ctx="kind-region-$r"
   if ! helm status argocd -n argocd --kube-context "$ctx" >/dev/null 2>&1; then
-    version=$(yq '.spec.source.targetRevision' platform/infrastructure/argocd-region/app.yaml)
-    helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$version" \
-      --kube-context "$ctx" -n argocd --create-namespace \
-      -f <(sed "s/__SHARD__/$r/g" platform/infrastructure/argocd-region/values.yaml) --wait
+    # same values as the argocd-region AppSet: values.yaml + its valuesObject for this region (labels the
+    # in-cluster Secret example.com/role=region, example.com/region=<r>)
+    helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version "$(appset_pin argocd-region)" \
+      --kube-context "$ctx" -n argocd --create-namespace -f platform/infrastructure/argocd-region/values.yaml \
+      -f <(appset_values argocd-region | sed "s/{{\.values\.region}}/$r/g") --wait
   fi
-  SHARD=$r mise run infra-render argocd-region | kubectl --context "$ctx" apply -f -
-  kubectl --context "$ctx" -n argocd annotate app/argocd argocd.argoproj.io/refresh=normal --overwrite >/dev/null
-  for i in $(seq 1 60); do
-    [ -z "$(kubectl --context "$ctx" -n argocd get app/argocd -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/refresh}')" ] && break
-    sleep 2
-  done
-  kubectl --context "$ctx" -n argocd wait app/argocd --for=jsonpath='{.status.sync.status}'=Synced --timeout=600s
-  kubectl --context "$ctx" -n argocd wait app/argocd --for=jsonpath='{.status.health.status}'=Healthy --timeout=600s
-done
-
-# hub: IngressRoute + ExternalName service per regional Argo CD UI (https://argocd-<region>.localhost)
-for r in $(grep -v '^#' platform/cluster/regions); do
-  SHARD=$r mise run infra-render argocd-region-hub | kubectl apply -f -
-done
-
-# regional root Applications (need the regional Argo CD above): each region syncs only its own
-# rendered/argocd/<region>/ from GitHub main (template: platform/bootstrap/region.yaml)
-for r in $(grep -v '^#' platform/cluster/regions); do
-  REGION="$r" yq '.spec.source.path |= sub("__REGION__"; strenv(REGION))' platform/bootstrap/region.yaml |
-    kubectl --context "kind-region-$r" apply -f -
+  kubectl --context "$ctx" apply -f platform/bootstrap/root.yaml
+  wait_app "$ctx" argocd
+  wait_app "$HUB" "argocd-ui-$r"  # hub IngressRoute for https://argocd-<r>.localhost
 done
 
 # Kargo controller shard per region (hub identity, token handoff, regional controller)
