@@ -7,6 +7,78 @@
       "type": "boolean",
       "description": "promote automatically once upstream stages are verified"
     },
+    "color": {
+      "description": "Kargo UI color for all of this stage's Kargo Stages (gate + targets); default picked per stage",
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "const": "red"
+            },
+            {
+              "const": "salmon"
+            },
+            {
+              "const": "orange"
+            },
+            {
+              "const": "amber"
+            },
+            {
+              "const": "yellow"
+            },
+            {
+              "const": "lime"
+            },
+            {
+              "const": "avocado"
+            },
+            {
+              "const": "green"
+            },
+            {
+              "const": "teal"
+            },
+            {
+              "const": "cyan"
+            },
+            {
+              "const": "sky"
+            },
+            {
+              "const": "blue"
+            },
+            {
+              "const": "indigo"
+            },
+            {
+              "const": "periwinkle"
+            },
+            {
+              "const": "violet"
+            },
+            {
+              "const": "purple"
+            },
+            {
+              "const": "fuchsia"
+            },
+            {
+              "const": "pink"
+            },
+            {
+              "const": "rose"
+            },
+            {
+              "const": "dragonfruit"
+            },
+            {
+              "const": "gray"
+            }
+          ]
+        }
+      ]
+    },
     "dependsOn": {
       "type": "array",
       "items": {
@@ -17,8 +89,9 @@
   "propertyNames": {
     "enum": [
       "autoPromote",
+      "color",
       "dependsOn"
     ],
-    "errorMessage": "Unknown key. Allowed: autoPromote, dependsOn"
+    "errorMessage": "Unknown key. Allowed: autoPromote, color, dependsOn"
   }
 }

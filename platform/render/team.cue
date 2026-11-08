@@ -10,6 +10,17 @@ import (
 	dependsOn: [...[if generic {#Name}, or(_stageNames) | error("unknown stage; allowed: \(_stageList)")][0]]
 	// promote automatically once upstream stages are verified
 	autoPromote: *false | bool
+	// Kargo UI color for all of this stage's Kargo Stages (gate + targets); default picked per stage
+	color?: or(_kargoColors) | error("unknown color; allowed: \(strings.Join(_kargoColors, ", "))")
+}
+
+// Kargo UI named stage colors (kargo.akuity.io/color)
+_kargoColors: ["red", "salmon", "orange", "amber", "yellow", "lime", "avocado", "green", "teal", "cyan", "sky", "blue", "indigo", "periwinkle", "violet", "purple", "fuchsia", "pink", "rose", "dragonfruit", "gray"]
+// default: spread sorted stage names across the palette
+_defaultColors: ["blue", "amber", "violet", "green", "red", "teal", "pink", "orange", "indigo", "lime"]
+_stageColor: {
+	let names = list.SortStrings(_stageNames)
+	for i, n in names {(n): [if stages[n].color != _|_ {stages[n].color}, _defaultColors[mod(i, len(_defaultColors))]][0]}
 }
 
 // targets/<name>/target.yml — where a stage deploys. Reusable across apps.
