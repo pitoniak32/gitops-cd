@@ -30,12 +30,17 @@ metadata:
   name: api
   namespace: kargo-search
 spec:
+  freightCreationPolicy: Manual
   subscriptions:
     - git:
         repoURL: https://github.com/pitoniak32/gitops-cd
         branch: main
         includePaths:
           - regexp:^rendered/apps/search/api/
+    - image:
+        repoURL: ghcr.io/pitoniak32/nginx
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 10
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -113,6 +118,8 @@ spec:
           value: ./src/rendered/apps/search/api/dev/us-dev/
         - name: branch
           value: env/search/api/us-dev
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -130,11 +137,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote search/api to dev/us-dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote search/api to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -179,6 +192,8 @@ spec:
           value: ./src/rendered/apps/search/api/prod/us-prod/
         - name: branch
           value: env/search/api/us-prod
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -196,11 +211,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote search/api to prod/us-prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote search/api to prod/us-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -245,6 +266,8 @@ spec:
           value: ./src/rendered/apps/search/api/prod/onprem-prod/
         - name: branch
           value: env/search/api/onprem-prod
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
       steps:
         - uses: git-clone
           config:
@@ -262,11 +285,17 @@ spec:
           config:
             inPath: ${{ vars.src }}
             outPath: ./out/
+        - uses: kustomize-set-image
+          config:
+            path: ./out
+            images:
+              - image: ${{ vars.image }}
+                digest: ${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote search/api to prod/onprem-prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote search/api to prod/onprem-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -321,6 +350,12 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
