@@ -2,17 +2,17 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   annotations:
-    iam.gke.io/gcp-service-account: team1-prod@team1-prod.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: team1-staging@team1-staging.iam.gserviceaccount.com
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
     example.com/capability: payments
-    example.com/stage: prod
-    example.com/target: gcp-us-prod
-    example.com/environment: prod
-    example.com/billing: prod
+    example.com/stage: staging
+    example.com/target: onprem-stg
+    example.com/environment: staging
+    example.com/billing: nonprod
   name: my-app
-  namespace: payments-gcp-us-prod
+  namespace: payments-onprem-stg
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -21,12 +21,12 @@ metadata:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
     example.com/capability: payments
-    example.com/stage: prod
-    example.com/target: gcp-us-prod
-    example.com/environment: prod
-    example.com/billing: prod
+    example.com/stage: staging
+    example.com/target: onprem-stg
+    example.com/environment: staging
+    example.com/billing: nonprod
   name: my-app
-  namespace: payments-gcp-us-prod
+  namespace: payments-onprem-stg
 spec:
   replicas: 1
   selector:
@@ -38,10 +38,10 @@ spec:
         app.kubernetes.io/managed-by: cue-platform
         app.kubernetes.io/name: my-app
         example.com/capability: payments
-        example.com/stage: prod
-        example.com/target: gcp-us-prod
-        example.com/environment: prod
-        example.com/billing: prod
+        example.com/stage: staging
+        example.com/target: onprem-stg
+        example.com/environment: staging
+        example.com/billing: nonprod
     spec:
       containers:
         - env:
@@ -54,10 +54,10 @@ spec:
               name: http
           resources:
             limits:
-              memory: 512Mi
+              memory: 128Mi
             requests:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 100m
+              memory: 128Mi
       serviceAccountName: my-app
 ---
 apiVersion: v1
@@ -67,12 +67,12 @@ metadata:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
     example.com/capability: payments
-    example.com/stage: prod
-    example.com/target: gcp-us-prod
-    example.com/environment: prod
-    example.com/billing: prod
+    example.com/stage: staging
+    example.com/target: onprem-stg
+    example.com/environment: staging
+    example.com/billing: nonprod
   name: my-app
-  namespace: payments-gcp-us-prod
+  namespace: payments-onprem-stg
 spec:
   ports:
     - name: http

@@ -8,11 +8,11 @@ metadata:
     app.kubernetes.io/name: worker
     example.com/capability: payments
     example.com/stage: staging
-    example.com/target: us-east1-stg
+    example.com/target: us-stg
     example.com/environment: staging
     example.com/billing: nonprod
   name: worker
-  namespace: payments-us-east1-stg
+  namespace: payments-us-stg
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -22,11 +22,11 @@ metadata:
     app.kubernetes.io/name: worker
     example.com/capability: payments
     example.com/stage: staging
-    example.com/target: us-east1-stg
+    example.com/target: us-stg
     example.com/environment: staging
     example.com/billing: nonprod
   name: worker
-  namespace: payments-us-east1-stg
+  namespace: payments-us-stg
 spec:
   replicas: 2
   selector:
@@ -39,7 +39,7 @@ spec:
         app.kubernetes.io/name: worker
         example.com/capability: payments
         example.com/stage: staging
-        example.com/target: us-east1-stg
+        example.com/target: us-stg
         example.com/environment: staging
         example.com/billing: nonprod
     spec:

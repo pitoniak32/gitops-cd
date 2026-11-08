@@ -21,7 +21,7 @@ spec:
         name: api-dev
       autoPromotionEnabled: true
     - stageSelector:
-        name: api-gcp-dev
+        name: api-us-dev
       autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -78,24 +78,25 @@ spec:
         name: api
       sources:
         stages:
-          - api-gcp-dev
+          - api-us-dev
         availabilityStrategy: All
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: api-gcp-dev
+  name: api-us-dev
   namespace: kargo-search
   labels:
     example.com/capability: search
     example.com/app: api
     example.com/kind: target
     example.com/stage: dev
-    example.com/target: gcp-dev
+    example.com/target: us-dev
   annotations:
     example.com/break-glass: '[]'
     kargo.akuity.io/color: blue
 spec:
+  shard: us
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -109,9 +110,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/search/api/dev/gcp-dev/
+          value: ./src/rendered/apps/search/api/dev/us-dev/
         - name: branch
-          value: env/search/api/gcp-dev
+          value: env/search/api/us-dev
       steps:
         - uses: git-clone
           config:
@@ -133,14 +134,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote search/api to dev/gcp-dev from ${{ commitFrom(vars.repo).ID }}
+            message: promote search/api to dev/us-dev from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: search-api-gcp-dev
+              - name: search-api-us-dev
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -149,18 +150,19 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: api-gcp-prod
+  name: api-us-prod
   namespace: kargo-search
   labels:
     example.com/capability: search
     example.com/app: api
     example.com/kind: target
     example.com/stage: prod
-    example.com/target: gcp-prod
+    example.com/target: us-prod
   annotations:
     example.com/break-glass: '[]'
     kargo.akuity.io/color: amber
 spec:
+  shard: us
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -174,9 +176,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/search/api/prod/gcp-prod/
+          value: ./src/rendered/apps/search/api/prod/us-prod/
         - name: branch
-          value: env/search/api/gcp-prod
+          value: env/search/api/us-prod
       steps:
         - uses: git-clone
           config:
@@ -198,14 +200,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote search/api to prod/gcp-prod from ${{ commitFrom(vars.repo).ID }}
+            message: promote search/api to prod/us-prod from ${{ commitFrom(vars.repo).ID }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: search-api-gcp-prod
+              - name: search-api-us-prod
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -226,6 +228,7 @@ metadata:
     example.com/break-glass: '[]'
     kargo.akuity.io/color: amber
 spec:
+  shard: onprem
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -303,10 +306,10 @@ rules:
       - stages
     resourceNames:
       - api-dev
-      - api-gcp-dev
-      - api-gcp-prod
       - api-onprem-prod
       - api-prod
+      - api-us-dev
+      - api-us-prod
     verbs:
       - promote
   - apiGroups:

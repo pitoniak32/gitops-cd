@@ -8,11 +8,11 @@ metadata:
     app.kubernetes.io/name: api
     example.com/capability: search
     example.com/stage: prod
-    example.com/target: gcp-prod
+    example.com/target: us-prod
     example.com/environment: prod
     example.com/billing: prod
   name: api
-  namespace: search-gcp-prod
+  namespace: search-us-prod
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -22,11 +22,11 @@ metadata:
     app.kubernetes.io/name: api
     example.com/capability: search
     example.com/stage: prod
-    example.com/target: gcp-prod
+    example.com/target: us-prod
     example.com/environment: prod
     example.com/billing: prod
   name: api
-  namespace: search-gcp-prod
+  namespace: search-us-prod
 spec:
   replicas: 3
   selector:
@@ -39,7 +39,7 @@ spec:
         app.kubernetes.io/name: api
         example.com/capability: search
         example.com/stage: prod
-        example.com/target: gcp-prod
+        example.com/target: us-prod
         example.com/environment: prod
         example.com/billing: prod
     spec:
@@ -65,11 +65,11 @@ metadata:
     app.kubernetes.io/name: api
     example.com/capability: search
     example.com/stage: prod
-    example.com/target: gcp-prod
+    example.com/target: us-prod
     example.com/environment: prod
     example.com/billing: prod
   name: api
-  namespace: search-gcp-prod
+  namespace: search-us-prod
 spec:
   ports:
     - name: http
