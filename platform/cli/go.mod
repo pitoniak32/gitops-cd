@@ -1,4 +1,4 @@
-module github.com/dvd/gitops-cd/platform/cli
+module github.com/pitoniak32/gitops-cd/platform/cli
 
 go 1.27.2
 

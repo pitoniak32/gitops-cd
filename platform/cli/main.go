@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/dvd/gitops-cd/platform/cli/internal/cmd"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/cmd"
 )
 
 func main() {
