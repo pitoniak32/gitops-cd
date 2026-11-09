@@ -24,8 +24,8 @@ var (
 
 const refreshAnnotation = "argocd.argoproj.io/refresh"
 
-func poll(ctx context.Context, every, timeout time.Duration, what string, f func() (bool, error)) error {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+func poll(parent context.Context, every, timeout time.Duration, what string, f func() (bool, error)) error {
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	t := time.NewTicker(every)
 	defer t.Stop()
@@ -40,6 +40,9 @@ func poll(ctx context.Context, every, timeout time.Duration, what string, f func
 		}
 		select {
 		case <-ctx.Done():
+			if err := parent.Err(); err != nil { // cancelled from outside (e.g. another unit failed)
+				return fmt.Errorf("waiting for %s: %w", what, err)
+			}
 			if last != nil {
 				return fmt.Errorf("timed out waiting for %s (last error: %w)", what, last)
 			}
