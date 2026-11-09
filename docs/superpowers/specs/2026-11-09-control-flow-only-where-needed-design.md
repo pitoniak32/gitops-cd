@@ -27,7 +27,9 @@ target whose stage has exactly that dependency set.
   downstream Stages. Every stage D with more than one target must be the exact downstream set of a single
   node. If the node feeding D's targets (shared control-flow Stage, or a single upstream target) also feeds
   targets of other stages, D gets its own entry control-flow Stage `<app>-<D>` requesting from that node;
-  D's targets request from the entry instead. Single-target stages never get one.
+  D's targets request from the entry instead. Single-target stages never get one. The Warehouse is not a
+  one-click source, so a first stage with more than one target always gets an entry `<app>-<D>` (direct
+  from the Warehouse).
 
 ## Naming
 
@@ -53,11 +55,12 @@ target whose stage has exactly that dependency set.
 
 - worker `dev[us-dev] → staging[us-stg] → prod[us-prod]`: no control flow; us-stg ← us-dev, us-prod ← us-stg.
 - search/api `dev[us-dev] → prod[us-prod, onprem-prod]`: no control flow; both prod targets ← api-us-dev.
-- my-app `dev[2] → staging[2] + perf[1] → prod[2]`: `my-app-dev-done` ← {us-dev, onprem-dev} All;
+- my-app `dev[2] → staging[2] + perf[1] → prod[2]`: `my-app-dev` (entry) ← Warehouse direct; us-dev,
+  onprem-dev ← my-app-dev; `my-app-dev-done` ← {us-dev, onprem-dev} All;
   `my-app-staging` (entry) ← my-app-dev-done; us-stg, onprem-stg ← my-app-staging; us-perf ←
   my-app-dev-done; `my-app-prod` ← {us-stg, onprem-stg, us-perf} All; us-prod, onprem-prod ← my-app-prod.
-  dev targets ← Warehouse direct (the Warehouse feeds only dev, so no dev entry node).
-- One-click check: staging via my-app-staging, prod via my-app-prod, api prod via api-us-dev.
+- One-click check: dev via my-app-dev, staging via my-app-staging, prod via my-app-prod, api prod via
+  api-us-dev; worker and api dev are single-target.
 
 ## Migration
 
