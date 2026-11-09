@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-#MISE description="Kargo git credentials from the GitHub App (fnox), shared by all projects"
+#MISE description="Kargo git credentials (GitHub App) + GitHub Actions token (PAT) from fnox, shared by all projects"
 #MISE depends=["cli"]
 exec "$MISE_PROJECT_ROOT/.bin/gcd" creds "$@"
