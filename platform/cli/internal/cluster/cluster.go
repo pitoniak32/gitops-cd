@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/logx"
@@ -19,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	kindlog "sigs.k8s.io/kind/pkg/log"
 )
@@ -46,7 +48,13 @@ func Up(ctx context.Context, root string, regions []string, log io.Writer) error
 	if err := os.Setenv("KIND_EXPERIMENTAL_DOCKER_NETWORK", Network); err != nil {
 		return fmt.Errorf("set KIND_EXPERIMENTAL_DOCKER_NETWORK: %w", err)
 	}
-	if err := create(ctx, Hub, kind.CreateWithConfigFile(filepath.Join(root, "platform/cluster/kind.yaml")), logx.Prefix(log, "[hub] ")); err != nil {
+	tmp, err := os.MkdirTemp("", "gcd-kubeconfig-")
+	if err != nil {
+		return fmt.Errorf("temp kubeconfig dir: %w", err)
+	}
+	defer os.RemoveAll(tmp)
+	m := &merger{dst: kubeconfigPath(), tmp: tmp}
+	if err := m.create(ctx, Hub, kind.CreateWithConfigFile(filepath.Join(root, "platform/cluster/kind.yaml")), logx.Prefix(log, "[hub] ")); err != nil {
 		return err
 	}
 	tmpl, err := os.ReadFile(filepath.Join(root, "platform/cluster/region.yaml"))
@@ -60,15 +68,15 @@ func Up(ctx context.Context, root string, regions []string, log io.Writer) error
 		if err != nil {
 			return err
 		}
-		// kind merges the kubeconfig under a lock, so parallel creates are safe
+		// each create writes its own kubeconfig (kind's file lock fails fast instead of waiting); merged serially
 		g.Go(func() error {
-			return create(gctx, name, kind.CreateWithRawConfig(raw), logx.Prefix(log, "["+name+"] "))
+			return m.create(gctx, name, kind.CreateWithRawConfig(raw), logx.Prefix(log, "["+name+"] "))
 		})
 	}
 	if err := g.Wait(); err != nil {
 		return err
 	}
-	return useContext("kind-" + Hub)
+	return useContext(m.dst, "kind-"+Hub)
 }
 
 // Down deletes the hub and region clusters, the docker network (ignored if missing) and $KUBECONFIG.
@@ -111,22 +119,80 @@ func provider(log io.Writer) *kind.Provider {
 	return kind.NewProvider(kind.ProviderWithDocker(), kind.ProviderWithLogger(logger{log}))
 }
 
-func create(ctx context.Context, name string, cfg kind.CreateOption, log io.Writer) error {
+// merger creates clusters with per-cluster kubeconfigs under tmp and merges them into dst one at a time.
+type merger struct {
+	mu  sync.Mutex
+	dst string
+	tmp string
+}
+
+func (m *merger) create(ctx context.Context, name string, cfg kind.CreateOption, log io.Writer) error {
+	kc := filepath.Join(m.tmp, name+".kubeconfig")
 	err := provider(log).Create(name, cfg,
-		kind.CreateWithKubeconfigPath(os.Getenv("KUBECONFIG")),
+		kind.CreateWithKubeconfigPath(kc),
 		kind.CreateWithWaitForReady(ReadyTimeout),
 		kind.CreateWithDisplayUsage(false),
 		kind.CreateWithDisplaySalutation(false))
 	if err != nil {
 		return fmt.Errorf("create cluster %s: %w", name, err)
 	}
-	return waitNodesReady(ctx, "kind-"+name, log)
+	if err := waitNodesReady(ctx, kc, "kind-"+name, log); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return mergeKubeconfig(m.dst, kc)
 }
 
-// waitNodesReady polls until every node of the context is Ready (ReadyTimeout).
-func waitNodesReady(ctx context.Context, kubeCtx string, log io.Writer) error {
+// kubeconfigPath is the kubeconfig file gcd writes: first $KUBECONFIG entry, else ~/.kube/config.
+func kubeconfigPath() string {
+	if l := filepath.SplitList(os.Getenv("KUBECONFIG")); len(l) > 0 && l[0] != "" {
+		return l[0]
+	}
+	return clientcmd.RecommendedHomeFile
+}
+
+// mergeKubeconfig adds src's clusters, users and contexts to dst (created if missing), replacing entries
+// with the same name. Not safe for concurrent use on the same dst.
+func mergeKubeconfig(dst, src string) error {
+	in, err := clientcmd.LoadFromFile(src)
+	if err != nil {
+		return fmt.Errorf("load kubeconfig %s: %w", src, err)
+	}
+	out, err := loadOrNew(dst)
+	if err != nil {
+		return err
+	}
+	for k, v := range in.Clusters {
+		out.Clusters[k] = v
+	}
+	for k, v := range in.AuthInfos {
+		out.AuthInfos[k] = v
+	}
+	for k, v := range in.Contexts {
+		out.Contexts[k] = v
+	}
+	if err := clientcmd.WriteToFile(*out, dst); err != nil {
+		return fmt.Errorf("write kubeconfig %s: %w", dst, err)
+	}
+	return nil
+}
+
+func loadOrNew(path string) (*clientcmdapi.Config, error) {
+	cfg, err := clientcmd.LoadFromFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return clientcmdapi.NewConfig(), nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load kubeconfig %s: %w", path, err)
+	}
+	return cfg, nil
+}
+
+// waitNodesReady polls until every node of the context (in that kubeconfig file) is Ready (ReadyTimeout).
+func waitNodesReady(ctx context.Context, kubeconfig, kubeCtx string, log io.Writer) error {
 	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
 		&clientcmd.ConfigOverrides{CurrentContext: kubeCtx}).ClientConfig()
 	if err != nil {
 		return fmt.Errorf("kube config %s: %w", kubeCtx, err)
@@ -166,18 +232,17 @@ func allReady(nodes []corev1.Node) bool {
 	return true
 }
 
-// useContext sets current-context in $KUBECONFIG.
-func useContext(name string) error {
-	po := clientcmd.NewDefaultPathOptions()
-	cfg, err := po.GetStartingConfig()
+// useContext sets current-context in the kubeconfig file.
+func useContext(path, name string) error {
+	cfg, err := clientcmd.LoadFromFile(path)
 	if err != nil {
-		return fmt.Errorf("load kubeconfig: %w", err)
+		return fmt.Errorf("load kubeconfig %s: %w", path, err)
 	}
 	if _, ok := cfg.Contexts[name]; !ok {
-		return fmt.Errorf("kubeconfig: no context %s", name)
+		return fmt.Errorf("kubeconfig %s: no context %s", path, name)
 	}
 	cfg.CurrentContext = name
-	if err := clientcmd.ModifyConfig(po, *cfg, true); err != nil {
+	if err := clientcmd.WriteToFile(*cfg, path); err != nil {
 		return fmt.Errorf("set current-context %s: %w", name, err)
 	}
 	return nil

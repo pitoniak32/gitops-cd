@@ -65,12 +65,8 @@ func Run(ctx context.Context, root string, out io.Writer) error {
 	if hubErr != nil {
 		cancel() // stop region jobs too
 	}
-	regErr := <-done
-	switch {
-	case regErr != nil && (hubErr == nil || errors.Is(hubErr, context.Canceled)):
-		return fmt.Errorf("region bootstrap: %w", regErr)
-	case hubErr != nil:
-		return fmt.Errorf("hub bootstrap: %w", hubErr)
+	if err := bootstrapErr(<-done, hubErr); err != nil {
+		return err
 	}
 
 	for _, r := range rs {
@@ -84,6 +80,18 @@ func Run(ctx context.Context, root string, out io.Writer) error {
 		return fmt.Errorf("kargo shards: %w", err)
 	}
 	return nil
+}
+
+// bootstrapErr combines the region and hub results. Either side's failure cancels the other, whose error
+// (often a cancel or timeout) then only follows the real cause: region first, then hub.
+func bootstrapErr(regErr, hubErr error) error {
+	if regErr != nil {
+		regErr = fmt.Errorf("region bootstrap: %w", regErr)
+	}
+	if hubErr != nil {
+		hubErr = fmt.Errorf("hub bootstrap: %w", hubErr)
+	}
+	return errors.Join(regErr, hubErr)
 }
 
 // runRegions runs fn for every region in parallel; the first error cancels ctx for the others and is returned.

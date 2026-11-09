@@ -3,6 +3,7 @@ package infra
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -40,5 +41,26 @@ func TestRunRegionsOK(t *testing.T) {
 	}
 	if len(done) != 2 {
 		t.Fatalf("ran %d regions", len(done))
+	}
+}
+
+func TestBootstrapErr(t *testing.T) {
+	reg := errors.New("region us: helm failed")
+	hub := errors.New("timed out waiting for app/traefik")
+	err := bootstrapErr(reg, hub)
+	if !errors.Is(err, reg) || !errors.Is(err, hub) {
+		t.Fatalf("want both: %v", err)
+	}
+	if s := err.Error(); strings.Index(s, reg.Error()) > strings.Index(s, hub.Error()) {
+		t.Fatalf("region error must come first: %q", s)
+	}
+	if err := bootstrapErr(nil, hub); !errors.Is(err, hub) {
+		t.Fatalf("hub-only: %v", err)
+	}
+	if err := bootstrapErr(reg, nil); !errors.Is(err, reg) {
+		t.Fatalf("region-only: %v", err)
+	}
+	if err := bootstrapErr(nil, nil); err != nil {
+		t.Fatalf("none: %v", err)
 	}
 }
