@@ -77,7 +77,8 @@ platform/                     platform team only; app teams never edit
   appsets/                    ApplicationSets (cluster generator): addons/<addon>.yaml, rendered-kargo, projects, workloads
   infrastructure/<addon>/     add-on config read from git by its ApplicationSet (values.yaml, manifests/)
   cluster/kind.yaml           hub kind cluster (region.yaml + regions: regional clusters, no host ports)
-  mise-tasks/                 up, down, infra, regions, creds, render, lint, test, schemas
+  cli/                        Go CLI `gcd` (ADR 0018): up, down, infra, regions, certs, creds, kargo-shards, kargo-restore, open
+  mise-tasks/                 one-line wrappers for gcd + render, lint, test, schemas
 ```
 
 ## Editing (any editor, Mac or Windows)

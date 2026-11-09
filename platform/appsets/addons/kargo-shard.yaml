@@ -1,5 +1,5 @@
 # REGION side of a Kargo controller shard (Application `kargo-ctrl` in each region). Needs kargo/kargo-hub-kubeconfig
-# (token handoff by mise-tasks/kargo-shards; retries until it exists). Pin shared with kargo
+# (token handoff by `gcd kargo-shards`; retries until it exists). Pin shared with kargo
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:

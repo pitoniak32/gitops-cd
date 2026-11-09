@@ -40,7 +40,7 @@ spec:
               controller:
                 id: "{{.region}}"
               extraObjects:
-                # long-lived token for the SA the chart creates (kargo-controller-<id>); mise-tasks/kargo-shards copies it to the region
+                # long-lived token for the SA the chart creates (kargo-controller-<id>); `gcd kargo-shards` copies it to the region
                 - apiVersion: v1
                   kind: Secret
                   metadata:

@@ -48,7 +48,7 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 | CoreDNS `keycloak.localhost` rewrite | Patched by the `infra` script. Argo CD doesn't manage `kube-system`. |
 | Kargo git creds (`mise run creds`) / TLS cert (`mise run certs`) | They come from fnox / mkcert and never touch git. `infra` runs both, or run them alone. |
 | Kargo shard token (`mise run kargo-shards`) | The hub SA token is copied into each region's `kargo-hub-kubeconfig` Secret (never in git). The hub and regional shard Applications themselves come from AppSets. `infra` runs it last. |
-| A new hub add-on's position in the bootstrap order | Add it to the ordered wait list in `platform/mise-tasks/infra`. |
+| A new hub add-on's position in the bootstrap order | Add it to the hub wait list `infra.HubWaitRest` in `platform/cli/internal/infra`. |
 
 `infra` itself doesn't change anything Argo CD manages; it only installs Argo CD if missing, applies the root app and waits for the add-ons (regions bootstrap in parallel with the hub).
 
