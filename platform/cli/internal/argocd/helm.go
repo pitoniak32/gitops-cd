@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"time"
 
 	"helm.sh/helm/v4/pkg/action"
 	"helm.sh/helm/v4/pkg/chart/v2/loader"
@@ -55,13 +56,7 @@ func HelmInstallIfMissing(ctx context.Context, kubeCtx, ns, release string, root
 		merge(vals, RegionValues(valuesObject, region))
 	}
 
-	inst := action.NewInstall(cfg)
-	inst.ReleaseName = release
-	inst.Namespace = ns
-	inst.CreateNamespace = true
-	inst.WaitStrategy = kube.HookOnlyStrategy
-	inst.RepoURL = repo
-	inst.Version = version
+	inst := newInstall(cfg, ns, release, repo, version)
 	path, err := inst.LocateChart(chart, settings)
 	if err != nil {
 		return fmt.Errorf("locate chart %s %s: %w", chart, version, err)
@@ -75,6 +70,24 @@ func HelmInstallIfMissing(ctx context.Context, kubeCtx, ns, release string, root
 	}
 	fmt.Fprintf(log, "helm installed %s/%s %s in %s\n", ns, release, version, kubeCtx)
 	return nil
+}
+
+const defaultHelmTimeout = 5 * time.Minute
+
+// HelmTimeout bounds the install, including pre-install hooks (argo-cd's redis-secret-init Job) which
+// HookOnlyStrategy still waits for. Same as the helm CLI's --timeout default.
+var HelmTimeout = defaultHelmTimeout
+
+func newInstall(cfg *action.Configuration, ns, release, repo, version string) *action.Install {
+	inst := action.NewInstall(cfg)
+	inst.ReleaseName = release
+	inst.Namespace = ns
+	inst.CreateNamespace = true
+	inst.WaitStrategy = kube.HookOnlyStrategy
+	inst.Timeout = HelmTimeout
+	inst.RepoURL = repo
+	inst.Version = version
+	return inst
 }
 
 // merge deep-merges src into dst (maps recurse, everything else replaces).
