@@ -1,23 +1,4 @@
 #!/usr/bin/env bash
 #MISE description="Kargo git credentials from the GitHub App (fnox), shared by all projects"
-set -euo pipefail
-# kargo-shared-resources: Kargo chart's global.sharedResources.namespace (created by the chart);
-# a cred-type=git Secret there serves every project. The App needs Contents read/write on the repo
-# (Kargo pushes env/<cap>/<app>/<target>). Argo CD needs no creds: the repo is public.
-fnox exec -- bash -euo pipefail -c '
-  kubectl -n kargo-shared-resources create secret generic github-gitops-cd \
-    --from-literal=repoURL=https://github.com/pitoniak32/gitops-cd \
-    --from-literal=githubAppID="$GITHUB_APP_ID" \
-    --from-literal=githubAppInstallationID="$GITHUB_APP_INSTALLATION_ID" \
-    --from-literal=githubAppPrivateKey="$GITHUB_APP_PRIVATE_KEY" \
-    --dry-run=client -o yaml |
-    yq ".metadata.labels.\"kargo.akuity.io/cred-type\" = \"git\"" |
-    kubectl apply -f -
-'
-# replace=apply keeps old PAT keys (username/password); drop them so only App auth remains
-kubectl -n kargo-shared-resources get secret github-gitops-cd -o json |
-  jq -e '.data | has("password")' >/dev/null 2>&1 &&
-  kubectl -n kargo-shared-resources patch secret github-gitops-cd --type=json \
-    -p '[{"op":"remove","path":"/data/username"},{"op":"remove","path":"/data/password"}]'
-# earlier versions created an Argo CD repo secret; public repo needs none
-kubectl -n argocd delete secret repo-gitops-cd --ignore-not-found
+#MISE depends=["cli"]
+exec "$MISE_PROJECT_ROOT/.bin/gcd" creds "$@"
