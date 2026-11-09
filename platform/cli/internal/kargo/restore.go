@@ -1,0 +1,305 @@
+package kargo
+
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"os/exec"
+	"regexp"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
+	"gopkg.in/yaml.v3"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+)
+
+var (
+	stageGVR     = schema.GroupVersionResource{Group: "kargo.akuity.io", Version: "v1alpha1", Resource: "stages"}
+	freightGVR   = schema.GroupVersionResource{Group: "kargo.akuity.io", Version: "v1alpha1", Resource: "freights"}
+	promotionGVR = schema.GroupVersionResource{Group: "kargo.akuity.io", Version: "v1alpha1", Resource: "promotions"}
+)
+
+// Promotion wait knobs (vars so tests can shorten them).
+var (
+	PromotionPoll    = 2 * time.Second
+	PromotionTimeout = 600 * time.Second
+)
+
+var (
+	promoteMsg = regexp.MustCompile(`(?m)^promote [^ ]+ to [^ ]+ from ([0-9a-f]{40})(,.*)?$`)
+	pinnedImg  = regexp.MustCompile(`^(.+):([^:@/]+)@(sha256:[0-9a-f]+)$`)
+)
+
+// FreightFromBranch rebuilds the Freight a target's env branch was promoted from: the source commit from
+// Kargo's commit message ("promote <cap>/<app> to <stage>/<target> from <sha>[, image <tag>]") and the
+// pinned image (<repo>:<tag>@<digest>) from the branch's deployment.yaml. Same artifacts -> Kargo
+// computes the same Freight ID. The error is the reason the branch can't be restored.
+func FreightFromBranch(warehouse, repoURL, imageRepo, headMessage, deploymentImage string) (*unstructured.Unstructured, error) {
+	m := promoteMsg.FindStringSubmatch(headMessage)
+	if m == nil {
+		first, _, _ := strings.Cut(headMessage, "\n")
+		return nil, fmt.Errorf("head is not a Kargo promotion commit: %s", first)
+	}
+	im := pinnedImg.FindStringSubmatch(deploymentImage)
+	if im == nil {
+		return nil, fmt.Errorf("no pinned image (<repo>:<tag>@<digest>) in deployment.yaml (promoted before ADR 0016?)")
+	}
+	if im[1] != imageRepo {
+		return nil, fmt.Errorf("deployment image %s is not %s", im[1], imageRepo)
+	}
+	return &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "kargo.akuity.io/v1alpha1", "kind": "Freight",
+		"metadata": map[string]any{},
+		"origin":   map[string]any{"kind": "Warehouse", "name": warehouse},
+		"commits":  []any{map[string]any{"repoURL": repoURL, "id": m[1]}},
+		"images":   []any{map[string]any{"repoURL": imageRepo, "tag": im[2], "digest": im[3]}},
+	}}, nil
+}
+
+// BranchReader reads an env branch head.
+type BranchReader interface {
+	// Head returns the head commit message and the image in the branch's deployment.yaml ("" if
+	// unreadable); exists is false when the branch doesn't exist.
+	Head(repoURL, branch string) (msg string, deployImage string, exists bool, err error)
+}
+
+// GHReader reads branches through the gh CLI.
+type GHReader struct{}
+
+func (GHReader) Head(repoURL, branch string) (string, string, bool, error) {
+	slug := strings.TrimPrefix(repoURL, "https://github.com/")
+	ref := url.PathEscape(branch)
+	msg, err := exec.Command("gh", "api", "repos/"+slug+"/commits/"+ref, "--jq", ".commit.message").Output()
+	if err != nil {
+		return "", "", false, nil
+	}
+	img := ""
+	if b, err := exec.Command("gh", "api", "repos/"+slug+"/contents/deployment.yaml?ref="+ref, "--jq", ".content").Output(); err == nil {
+		if raw, err := base64.StdEncoding.DecodeString(strings.Join(strings.Fields(string(b)), "")); err == nil {
+			img = deploymentImage(raw)
+		}
+	}
+	return strings.TrimRight(string(msg), "\n"), img, true, nil
+}
+
+func deploymentImage(raw []byte) string {
+	var d struct {
+		Spec struct {
+			Template struct {
+				Spec struct {
+					Containers []struct {
+						Image string `yaml:"image"`
+					} `yaml:"containers"`
+				} `yaml:"spec"`
+			} `yaml:"template"`
+		} `yaml:"spec"`
+	}
+	if yaml.Unmarshal(raw, &d) != nil || len(d.Spec.Template.Spec.Containers) == 0 {
+		return ""
+	}
+	return d.Spec.Template.Spec.Containers[0].Image
+}
+
+func allCaps(root string) ([]string, error) {
+	es, err := os.ReadDir(root + "/capabilities")
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, e := range es {
+		out = append(out, e.Name())
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+type target struct {
+	stage, warehouse, repo, branch, imageRepo string
+	hasFreight                                bool
+}
+
+func targets(stages []unstructured.Unstructured) []target {
+	var out []target
+	for _, s := range stages {
+		tmpl, found, _ := unstructured.NestedMap(s.Object, "spec", "promotionTemplate")
+		if !found || tmpl == nil {
+			continue // gate Stages are not restored
+		}
+		vars := map[string]string{}
+		vs, _, _ := unstructured.NestedSlice(s.Object, "spec", "promotionTemplate", "spec", "vars")
+		for _, v := range vs {
+			m, _ := v.(map[string]any)
+			n, _ := m["name"].(string)
+			val, _ := m["value"].(string)
+			vars[n] = val
+		}
+		rf, _, _ := unstructured.NestedSlice(s.Object, "spec", "requestedFreight")
+		wh := ""
+		if len(rf) > 0 {
+			wh, _, _ = unstructured.NestedString(rf[0].(map[string]any), "origin", "name")
+		}
+		hist, _, _ := unstructured.NestedSlice(s.Object, "status", "freightHistory")
+		has := false
+		if len(hist) > 0 {
+			items, _, _ := unstructured.NestedMap(hist[0].(map[string]any), "items")
+			has = len(items) > 0
+		}
+		out = append(out, target{s.GetName(), wh, vars["repo"], vars["branch"], vars["image"], has})
+	}
+	return out
+}
+
+func findFreight(items []unstructured.Unstructured, f *unstructured.Unstructured) string {
+	key := func(u *unstructured.Unstructured) [3]string {
+		o, _, _ := unstructured.NestedString(u.Object, "origin", "name")
+		c, _, _ := unstructured.NestedSlice(u.Object, "commits")
+		i, _, _ := unstructured.NestedSlice(u.Object, "images")
+		var id, dg string
+		if len(c) > 0 {
+			id, _ = c[0].(map[string]any)["id"].(string)
+		}
+		if len(i) > 0 {
+			dg, _ = i[0].(map[string]any)["digest"].(string)
+		}
+		return [3]string{o, id, dg}
+	}
+	want := key(f)
+	for i := range items {
+		if key(&items[i]) == want {
+			return items[i].GetName()
+		}
+	}
+	return ""
+}
+
+// Restore recreates Kargo's record of what runs where after a cluster rebuild, from the env/* branches.
+// For each target Stage with no current Freight it recreates the Freight the branch was promoted from,
+// approves it for the Stage and promotes it (identical manifests: the workload doesn't change).
+// Branches it can't reproduce are skipped with a reason. Gate Stages are not restored.
+func Restore(ctx context.Context, root string, hub *kube.Clients, caps []string, branches BranchReader, out io.Writer) error {
+	if len(caps) == 0 {
+		var err error
+		if caps, err = allCaps(root); err != nil {
+			return err
+		}
+	}
+	type promo struct{ ns, name string }
+	var promos []promo
+	for _, cap := range caps {
+		pns := "kargo-" + cap
+		if _, err := hub.Core.CoreV1().Namespaces().Get(ctx, pns, metav1.GetOptions{}); err != nil {
+			if apierrors.IsNotFound(err) {
+				fmt.Fprintf(out, "%s: no Kargo project %s (not rendered/synced yet?), skipped\n", cap, pns)
+				continue
+			}
+			return fmt.Errorf("get namespace %s: %w", pns, err)
+		}
+		stages, err := hub.Dyn.Resource(stageGVR).Namespace(pns).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("list stages in %s: %w", pns, err)
+		}
+		fr := hub.Dyn.Resource(freightGVR).Namespace(pns)
+		for _, t := range targets(stages.Items) {
+			label := cap + "/" + t.stage
+			if t.hasFreight {
+				fmt.Fprintf(out, "%s: already has Freight, skipped\n", label)
+				continue
+			}
+			msg, img, exists, err := branches.Head(t.repo, t.branch)
+			if err != nil {
+				return fmt.Errorf("%s: read %s: %w", label, t.branch, err)
+			}
+			if !exists {
+				fmt.Fprintf(out, "%s: %s doesn't exist (never promoted), skipped\n", label, t.branch)
+				continue
+			}
+			f, err := FreightFromBranch(t.warehouse, t.repo, t.imageRepo, msg, img)
+			if err != nil {
+				fmt.Fprintf(out, "%s: %s, skipped\n", label, err)
+				continue
+			}
+			// existing Freight with the same artifacts (re-run, or another target of the same app) else create it
+			existing, err := fr.List(ctx, metav1.ListOptions{})
+			if err != nil {
+				return fmt.Errorf("list freight in %s: %w", pns, err)
+			}
+			name := findFreight(existing.Items, f)
+			if name == "" {
+				// Kargo's mutating webhook names the Freight from its artifacts, so no name is sent.
+				created, err := fr.Create(ctx, f, metav1.CreateOptions{FieldManager: kube.FieldManager})
+				if err != nil {
+					return fmt.Errorf("%s: create freight: %w", label, err)
+				}
+				name = created.GetName()
+			}
+			// available to the target Stage without re-running the gates (same as a break-glass approval)
+			patch := fmt.Sprintf(`{"status":{"approvedFor":{%q:{"approvedAt":%q}}}}`, t.stage, time.Now().UTC().Format(time.RFC3339))
+			if _, err := fr.Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{FieldManager: kube.FieldManager}, "status"); err != nil {
+				return fmt.Errorf("%s: approve freight %s: %w", label, name, err)
+			}
+			p := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "kargo.akuity.io/v1alpha1", "kind": "Promotion",
+				"metadata": map[string]any{"generateName": t.stage + "-restore-", "namespace": pns},
+				"spec":     map[string]any{"stage": t.stage, "freight": name},
+			}}
+			cp, err := hub.Dyn.Resource(promotionGVR).Namespace(pns).Create(ctx, p, metav1.CreateOptions{FieldManager: kube.FieldManager})
+			if err != nil {
+				return fmt.Errorf("%s: create promotion: %w", label, err)
+			}
+			promos = append(promos, promo{pns, cp.GetName()})
+			im := f.Object["images"].([]any)[0].(map[string]any)
+			cm := f.Object["commits"].([]any)[0].(map[string]any)
+			fmt.Fprintf(out, "%s: promoting %s from %s (Freight %s)\n", label, im["tag"], cm["id"].(string)[:7], name)
+		}
+	}
+
+	// wait for every restore promotion; any failure fails the task
+	failed := 0
+	for _, p := range promos {
+		phase, msg := waitPromotion(ctx, hub, p.ns, p.name)
+		if phase == "" {
+			phase = "timed out"
+		}
+		fmt.Fprintf(out, "%s: %s\n", p.name, phase)
+		if phase != "Succeeded" {
+			failed++
+			if msg != "" {
+				fmt.Fprintln(out, msg)
+			}
+		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("%d restore promotion(s) did not succeed", failed)
+	}
+	return nil
+}
+
+func waitPromotion(ctx context.Context, hub *kube.Clients, ns, name string) (phase, msg string) {
+	ctx, cancel := context.WithTimeout(ctx, PromotionTimeout)
+	defer cancel()
+	for {
+		u, err := hub.Dyn.Resource(promotionGVR).Namespace(ns).Get(ctx, name, metav1.GetOptions{})
+		if err == nil {
+			phase, _, _ = unstructured.NestedString(u.Object, "status", "phase")
+			msg, _, _ = unstructured.NestedString(u.Object, "status", "message")
+			switch phase {
+			case "Succeeded", "Failed", "Errored", "Aborted":
+				return phase, msg
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return phase, msg
+		case <-time.After(PromotionPoll):
+		}
+	}
+}
