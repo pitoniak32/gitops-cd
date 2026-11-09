@@ -179,6 +179,7 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: us-dev
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: blue
@@ -253,6 +254,7 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: onprem-dev
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: blue
@@ -327,6 +329,7 @@ metadata:
     example.com/kind: target
     example.com/stage: staging
     example.com/target: us-stg
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: green
@@ -401,6 +404,7 @@ metadata:
     example.com/kind: target
     example.com/stage: staging
     example.com/target: onprem-stg
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: green
@@ -475,6 +479,7 @@ metadata:
     example.com/kind: target
     example.com/stage: perf
     example.com/target: us-perf
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: amber
@@ -549,6 +554,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: us-prod
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: violet
@@ -623,6 +629,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: onprem-prod
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: violet
@@ -697,6 +704,7 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: us-dev
+    example.com/deploy-with: gha
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: blue
@@ -719,6 +727,12 @@ spec:
           value: env/payments/worker/us-dev
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - uses: git-clone
           config:
@@ -750,14 +764,46 @@ spec:
         - uses: git-push
           config:
             path: ./out
-        - uses: argocd-update
+        - uses: http
+          as: dispatch
           config:
-            apps:
-              - name: payments-worker-us-dev
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+            method: POST
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+              - name: Content-Type
+                value: application/json
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''worker'', ''stage'': ''dev'', ''target'': ''us-dev'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            successExpression: response.status == 200
+            failureExpression: response.status != 200
+            errorExpression: response.body.message
+            outputs:
+              - name: runID
+                fromExpression: response.body.workflow_run_id
+              - name: runURL
+                fromExpression: response.body.html_url
+        - uses: http
+          as: wait
+          retry:
+            timeout: 30m
+          config:
+            method: GET
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
+            failureExpression: response.status != 200 || (response.body.status == 'completed' && response.body.conclusion != 'success')
+            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -770,6 +816,7 @@ metadata:
     example.com/kind: target
     example.com/stage: staging
     example.com/target: us-stg
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: green
@@ -844,6 +891,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: us-prod
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: violet

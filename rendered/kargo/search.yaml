@@ -50,6 +50,7 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: us-dev
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '[]'
     kargo.akuity.io/color: blue
@@ -123,6 +124,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: us-prod
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '[]'
     kargo.akuity.io/color: amber
@@ -197,6 +199,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: onprem-prod
+    example.com/deploy-with: argocd
   annotations:
     example.com/break-glass: '[]'
     kargo.akuity.io/color: amber

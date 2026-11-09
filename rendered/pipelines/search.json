@@ -12,7 +12,8 @@
             "cluster": "us",
             "namespace": "search-us-dev",
             "environment": "dev",
-            "path": "apps/search/api/dev/us-dev"
+            "path": "apps/search/api/dev/us-dev",
+            "deployWith": "argocd"
           }
         }
       },
@@ -27,13 +28,15 @@
             "cluster": "us",
             "namespace": "search-us-prod",
             "environment": "prod",
-            "path": "apps/search/api/prod/us-prod"
+            "path": "apps/search/api/prod/us-prod",
+            "deployWith": "argocd"
           },
           "onprem-prod": {
             "cluster": "onprem",
             "namespace": "search-onprem-prod",
             "environment": "prod",
-            "path": "apps/search/api/prod/onprem-prod"
+            "path": "apps/search/api/prod/onprem-prod",
+            "deployWith": "argocd"
           }
         }
       }
