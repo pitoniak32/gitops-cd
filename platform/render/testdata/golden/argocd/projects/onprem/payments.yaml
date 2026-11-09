@@ -11,8 +11,6 @@ spec:
       namespace: payments-onprem-dev
     - name: in-cluster
       namespace: payments-onprem-prod
-    - name: in-cluster
-      namespace: payments-onprem-stg
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace

@@ -4,6 +4,7 @@ stages:
   dev:
     targets:
       us-dev: {}
+    deployWith: gha
   staging:
     targets:
       us-stg: {}
