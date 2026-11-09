@@ -168,7 +168,8 @@ _kargoCore: [
 						method: "POST"
 						url:    "\(_ghAPI)/actions/workflows/${{ vars.workflowFile }}/dispatches"
 						headers: list.Concat([_ghHeaders, [{name: "Content-Type", value: "application/json"}]])
-						body:              "${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': '\(_cap)', 'app': '\(an)', 'stage': '\(sn)', 'target': '\(tn)', 'commit': outputs.commit.commit, 'image': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest}}) }}"
+						// "} }": Kargo ends an expression at the first "}}"
+						body:              "${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': '\(_cap)', 'app': '\(an)', 'stage': '\(sn)', 'target': '\(tn)', 'commit': outputs.commit.commit, 'image': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest} }) }}"
 						successExpression: "response.status == 200"
 						failureExpression: "response.status != 200"
 						errorExpression:   "response.body.message"

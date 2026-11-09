@@ -500,7 +500,7 @@ spec:
                 value: "2022-11-28"
               - name: Content-Type
                 value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''my-app'', ''stage'': ''staging'', ''target'': ''onprem-stg'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest}}) }}'
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''my-app'', ''stage'': ''staging'', ''target'': ''onprem-stg'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
             successExpression: response.status == 200
             failureExpression: response.status != 200
             errorExpression: response.body.message
@@ -1061,7 +1061,7 @@ spec:
                 value: "2022-11-28"
               - name: Content-Type
                 value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''worker'', ''stage'': ''dev'', ''target'': ''us-dev'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest}}) }}'
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''worker'', ''stage'': ''dev'', ''target'': ''us-dev'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
             successExpression: response.status == 200
             failureExpression: response.status != 200
             errorExpression: response.body.message
