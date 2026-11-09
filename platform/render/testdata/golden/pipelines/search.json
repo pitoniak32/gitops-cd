@@ -12,7 +12,8 @@
             "cluster": "us",
             "namespace": "search-us-dev",
             "environment": "dev",
-            "path": "apps/search/api/dev/us-dev"
+            "path": "apps/search/api/dev/us-dev",
+            "deployWith": "argocd"
           }
         }
       }

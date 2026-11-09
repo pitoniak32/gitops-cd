@@ -37,6 +37,17 @@
       "type": "object",
       "description": "Settings that can be set at app, stage, or target level. Most specific wins;\nenv is merged per key.",
       "properties": {
+        "deployWith": {
+          "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020).",
+          "anyOf": [
+            {
+              "const": "argocd"
+            },
+            {
+              "const": "gha"
+            }
+          ]
+        },
         "env": {
           "$ref": "#/$defs/EnvironmentVariables"
         },
@@ -78,16 +89,55 @@
             ],
             "errorMessage": "Unknown key. Allowed: cpu, memory"
           }
+        },
+        "workflow": {
+          "type": "object",
+          "description": "GitHub Actions workflow for gha targets (ignored where deployWith is argocd); each field\ndefaults separately: repo this repo, file deploy.yaml, ref main.",
+          "properties": {
+            "file": {
+              "description": "file name under <repo>/.github/workflows/",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$"
+                }
+              ]
+            },
+            "ref": {
+              "type": "string",
+              "not": {
+                "const": ""
+              }
+            },
+            "repo": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+                }
+              ]
+            }
+          },
+          "propertyNames": {
+            "enum": [
+              "file",
+              "ref",
+              "repo"
+            ],
+            "errorMessage": "Unknown key. Allowed: file, ref, repo"
+          }
         }
       },
       "propertyNames": {
         "enum": [
+          "deployWith",
           "env",
           "envFrom",
           "replicas",
-          "resources"
+          "resources",
+          "workflow"
         ],
-        "errorMessage": "Unknown key. Allowed: env, envFrom, replicas, resources"
+        "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, replicas, resources, workflow"
       }
     },
     "Name": {
@@ -97,6 +147,17 @@
     "StageLayer": {
       "type": "object",
       "properties": {
+        "deployWith": {
+          "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020).",
+          "anyOf": [
+            {
+              "const": "argocd"
+            },
+            {
+              "const": "gha"
+            }
+          ]
+        },
         "env": {
           "$ref": "#/$defs/EnvironmentVariables"
         },
@@ -137,6 +198,43 @@
               "memory"
             ],
             "errorMessage": "Unknown key. Allowed: cpu, memory"
+          }
+        },
+        "workflow": {
+          "type": "object",
+          "description": "GitHub Actions workflow for gha targets (ignored where deployWith is argocd); each field\ndefaults separately: repo this repo, file deploy.yaml, ref main.",
+          "properties": {
+            "file": {
+              "description": "file name under <repo>/.github/workflows/",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$"
+                }
+              ]
+            },
+            "ref": {
+              "type": "string",
+              "not": {
+                "const": ""
+              }
+            },
+            "repo": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+                }
+              ]
+            }
+          },
+          "propertyNames": {
+            "enum": [
+              "file",
+              "ref",
+              "repo"
+            ],
+            "errorMessage": "Unknown key. Allowed: file, ref, repo"
           }
         },
         "targets": {
@@ -155,19 +253,32 @@
       },
       "propertyNames": {
         "enum": [
+          "deployWith",
           "env",
           "envFrom",
           "replicas",
           "resources",
-          "targets"
+          "targets",
+          "workflow"
         ],
-        "errorMessage": "Unknown key. Allowed: env, envFrom, replicas, resources, targets"
+        "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, replicas, resources, targets, workflow"
       }
     }
   },
   "type": "object",
   "description": "apps/<name>/app.yml",
   "properties": {
+    "deployWith": {
+      "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020).",
+      "anyOf": [
+        {
+          "const": "argocd"
+        },
+        {
+          "const": "gha"
+        }
+      ]
+    },
     "env": {
       "$ref": "#/$defs/EnvironmentVariables"
     },
@@ -208,6 +319,43 @@
           "memory"
         ],
         "errorMessage": "Unknown key. Allowed: cpu, memory"
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "description": "GitHub Actions workflow for gha targets (ignored where deployWith is argocd); each field\ndefaults separately: repo this repo, file deploy.yaml, ref main.",
+      "properties": {
+        "file": {
+          "description": "file name under <repo>/.github/workflows/",
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$"
+            }
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "not": {
+            "const": ""
+          }
+        },
+        "repo": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+            }
+          ]
+        }
+      },
+      "propertyNames": {
+        "enum": [
+          "file",
+          "ref",
+          "repo"
+        ],
+        "errorMessage": "Unknown key. Allowed: file, ref, repo"
       }
     },
     "image": {
@@ -256,6 +404,7 @@
   ],
   "propertyNames": {
     "enum": [
+      "deployWith",
       "env",
       "envFrom",
       "image",
@@ -263,8 +412,9 @@
       "port",
       "replicas",
       "resources",
-      "stages"
+      "stages",
+      "workflow"
     ],
-    "errorMessage": "Unknown key. Allowed: env, envFrom, image, imageConstraint, port, replicas, resources, stages"
+    "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, image, imageConstraint, port, replicas, resources, stages, workflow"
   }
 }

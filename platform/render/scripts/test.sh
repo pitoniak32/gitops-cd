@@ -88,6 +88,14 @@ if grep -rq 'kind: Application$' "$tmp/argocd"; then echo "renderer must not emi
 if grep -l onprem "$tmp"/argocd/deploys/us/*/*.json >/dev/null 2>&1; then echo "us deploys contain onprem targets" >&2; exit 1; fi
 if grep -q '"groups"' "$tmp"/kargo/*.yaml; then echo "no Kargo claim may use groups" >&2; exit 1; fi
 echo "kind cluster ok"
+# deployWith/workflow resolve per field, target > stage > app > default
+r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
+yq -i '.workflow.ref = "release" | .stages.dev.deployWith = "gha" | .stages.dev.targets.onprem-dev = {"deployWith": "argocd", "workflow": {"file": "x.yml"}} | .stages.dev.targets.us-dev.workflow.repo = "acme/deploys"' "$c"
+scripts/lint.sh "$r" payments >/dev/null || { echo "app-level workflow with argocd targets must lint clean" >&2; exit 1; }
+scripts/render.sh "$r" payments "$o" >/dev/null
+pt() { jq -r ".\"my-app\".stages.$1.targets.\"$2\".deployWith" "$o/pipelines/payments.json"; }
+[[ "$(pt dev us-dev) $(pt dev onprem-dev) $(pt prod us-prod)" == "gha argocd argocd" ]] || { echo "deployWith resolution: $(pt dev us-dev) $(pt dev onprem-dev) $(pt prod us-prod)" >&2; exit 1; }
+rm -rf "${r:?}" "${o:?}"; echo "deployWith resolution ok"
 
 # CODEOWNERS: assemble from the fragments into a copy of root
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
