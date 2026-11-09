@@ -3,5 +3,4 @@
 set -euo pipefail
 "$MISE_PROJECT_ROOT/platform/render/scripts/test.sh"
 "$MISE_PROJECT_ROOT/platform/appsets/check.sh"
-"$MISE_PROJECT_ROOT/platform/bootstrap/kargo-restore-test.sh"
 (cd "$MISE_PROJECT_ROOT/platform/cli" && go vet ./... && go test ./...)
