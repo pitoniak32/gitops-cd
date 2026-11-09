@@ -12,13 +12,15 @@
             "cluster": "us",
             "namespace": "payments-us-dev",
             "environment": "dev",
-            "path": "apps/payments/my-app/dev/us-dev"
+            "path": "apps/payments/my-app/dev/us-dev",
+            "deployWith": "argocd"
           },
           "onprem-dev": {
             "cluster": "onprem",
             "namespace": "payments-onprem-dev",
             "environment": "dev",
-            "path": "apps/payments/my-app/dev/onprem-dev"
+            "path": "apps/payments/my-app/dev/onprem-dev",
+            "deployWith": "argocd"
           }
         }
       },
@@ -33,13 +35,15 @@
             "cluster": "us",
             "namespace": "payments-us-stg",
             "environment": "staging",
-            "path": "apps/payments/my-app/staging/us-stg"
+            "path": "apps/payments/my-app/staging/us-stg",
+            "deployWith": "argocd"
           },
           "onprem-stg": {
             "cluster": "onprem",
             "namespace": "payments-onprem-stg",
             "environment": "staging",
-            "path": "apps/payments/my-app/staging/onprem-stg"
+            "path": "apps/payments/my-app/staging/onprem-stg",
+            "deployWith": "argocd"
           }
         }
       },
@@ -54,7 +58,8 @@
             "cluster": "us",
             "namespace": "payments-us-perf",
             "environment": "perf",
-            "path": "apps/payments/my-app/perf/us-perf"
+            "path": "apps/payments/my-app/perf/us-perf",
+            "deployWith": "argocd"
           }
         }
       },
@@ -70,13 +75,15 @@
             "cluster": "us",
             "namespace": "payments-us-prod",
             "environment": "prod",
-            "path": "apps/payments/my-app/prod/us-prod"
+            "path": "apps/payments/my-app/prod/us-prod",
+            "deployWith": "argocd"
           },
           "onprem-prod": {
             "cluster": "onprem",
             "namespace": "payments-onprem-prod",
             "environment": "prod",
-            "path": "apps/payments/my-app/prod/onprem-prod"
+            "path": "apps/payments/my-app/prod/onprem-prod",
+            "deployWith": "argocd"
           }
         }
       }
@@ -107,7 +114,8 @@
             "cluster": "us",
             "namespace": "payments-us-dev",
             "environment": "dev",
-            "path": "apps/payments/worker/dev/us-dev"
+            "path": "apps/payments/worker/dev/us-dev",
+            "deployWith": "gha"
           }
         }
       },
@@ -122,7 +130,8 @@
             "cluster": "us",
             "namespace": "payments-us-stg",
             "environment": "staging",
-            "path": "apps/payments/worker/staging/us-stg"
+            "path": "apps/payments/worker/staging/us-stg",
+            "deployWith": "argocd"
           }
         }
       },
@@ -137,7 +146,8 @@
             "cluster": "us",
             "namespace": "payments-us-prod",
             "environment": "prod",
-            "path": "apps/payments/worker/prod/us-prod"
+            "path": "apps/payments/worker/prod/us-prod",
+            "deployWith": "argocd"
           }
         }
       }
