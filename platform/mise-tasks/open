@@ -1,16 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Open every UI in the browser: Kargo, hub Argo CD, each regional Argo CD, Keycloak"
+#MISE depends=["cli"]
 #USAGE flag "--print" help="only print the URLs"
-set -euo pipefail
-cd "$MISE_CONFIG_ROOT"
-
-urls=(https://kargo.localhost https://argocd.localhost/applications)
-for r in $(grep -v '^#' platform/cluster/regions); do
-  urls+=("https://argocd-$r.localhost/applications")
-done
-urls+=(http://keycloak.localhost/admin/master/console/)
-
-for u in "${urls[@]}"; do
-  echo "$u"
-  [[ ${usage_print:-false} == true ]] || open "$u"
-done
+exec "$MISE_PROJECT_ROOT/.bin/gcd" open "$@"
