@@ -1,6 +1,6 @@
 # GitHub Actions deployer — design
 
-Status: approved in chat 2026-11-09. Next: implementation plan.
+Status: approved in chat 2026-11-09. Implemented (ADR 0020). Renamed `deployer` → `deployWith` (label `example.com/deploy-with`): GLOSSARY avoids "deployer" (it means promoter).
 
 ## Goal
 
@@ -25,29 +25,29 @@ runners can't reach local kind clusters, so the example workflow only proves the
 New `#Layer` fields:
 
 ```yaml
-deployer: gha            # argocd (default) | gha
-workflow:                # read only where deployer resolves to gha
+deployWith: gha            # argocd (default) | gha
+workflow:                # read only where deployWith resolves to gha
   repo: pitoniak32/gitops-cd   # owner/name; default this repo
   file: deploy.yaml            # file in <repo>/.github/workflows; default deploy.yaml
   ref: main                    # default main
 ```
 
-- `deployer?: "argocd" | "gha"` with `error("deployer: expected argocd or gha")`.
+- `deployWith?: "argocd" | "gha"` with `error("deployWith: expected argocd or gha")`.
 - `workflow?: {repo?: =~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", file?: =~"^[A-Za-z0-9_.-]+\\.ya?ml$", ref?: !=""}`, each with an `error(...)` message.
-- Merge: per field (`deployer`, `workflow.repo`, `workflow.file`, `workflow.ref`), target > stage > app > default, same pattern as `cpu`/`memory`.
-- `workflow` set where deployer resolves to argocd: allowed, ignored (an app-level `workflow` serves its GHA targets only).
-- `deploys[*]` gains `deployer` and `workflow: {repo, file, ref}` (always resolved).
-- `pipelines[*].stages[*].targets[*]` gains `deployer`.
+- Merge: per field (`deployWith`, `workflow.repo`, `workflow.file`, `workflow.ref`), target > stage > app > default, same pattern as `cpu`/`memory`.
+- `workflow` set where deployWith resolves to argocd: allowed, ignored (an app-level `workflow` serves its GHA targets only).
+- `deploys[*]` gains `deployWith` and `workflow: {repo, file, ref}` (always resolved).
+- `pipelines[*].stages[*].targets[*]` gains `deployWith`.
 - `mise run schemas` regenerates `platform/render/schemas/`.
 
 Default repo: `pitoniak32/gitops-cd`, derived from `_repoURL`.
 
 ## 2. Rendering (`platform/render/delivery.cue`)
 
-- `rendered/apps/...`: unchanged. Every target folder is rendered regardless of deployer.
-- `argocdDeploys`: only deploys with `deployer == "argocd"` → no Application for GHA targets.
+- `rendered/apps/...`: unchanged. Every target folder is rendered regardless of deployWith.
+- `argocdDeploys`: only deploys with `deployWith == "argocd"` → no Application for GHA targets.
 - `_appProject` destinations / `_deployRegion`: only argocd deploys. A region with no argocd deploys for a capability gets no AppProject.
-- Target Stage: label `example.com/deployer: <argocd|gha>`. Shared steps `git-clone` … `git-push` unchanged. Then:
+- Target Stage: label `example.com/deploy-with: <argocd|gha>`. Shared steps `git-clone` … `git-push` unchanged. Then:
   - **argocd**: `argocd-update` (unchanged).
   - **gha**:
 
@@ -89,13 +89,13 @@ Neither expression true → step Running → Kargo retries until `retry.timeout`
   - `run-name: deploy ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }}`.
   - `permissions: contents: read`.
   - Steps: checkout `inputs.commit`; print `deployment.yaml` image + `manifests.yaml`; job summary (cap/app/stage/target, commit, image); exit 0.
-- **Example config**: `capabilities/payments/apps/worker/app.yml`: `stages.dev.deployer: gha` (staging, prod stay argocd).
-- **Docs**: ADR 0020 "GitHub Actions deployer"; GLOSSARY *Deployer*; `docs/sync-boundaries.md` (workflow file is read from GitHub at dispatch; PAT via `mise run creds`); README/`docs/operations.md` creds note if they list secrets.
+- **Example config**: `capabilities/payments/apps/worker/app.yml`: `stages.dev.deployWith: gha` (staging, prod stay argocd).
+- **Docs**: ADR 0020 "GitHub Actions as a deploy method"; GLOSSARY *Deploy with*; `docs/sync-boundaries.md` (workflow file is read from GitHub at dispatch; PAT via `mise run creds`); README/`docs/operations.md` creds note if they list secrets.
 
 ## 4. Testing
 
 - Golden (`platform/render/testdata/root`): an app with app-level argocd and one target overridden to gha with a custom `workflow`, one stage-level gha. `UPDATE=1 mise run test`, review diff: Stage steps, missing params file, AppProject destinations.
-- Lint cases (`testdata/lint-cases.tsv`): bad `deployer`, bad `workflow.repo`, bad `workflow.file`.
+- Lint cases (`testdata/lint-cases.tsv`): bad `deployWith`, bad `workflow.repo`, bad `workflow.file`.
 - `creds_test.go`: secret created with label + key; re-run idempotent.
 - `go vet`/`go test`, `platform/appsets/check.sh` via `mise run test`.
 - E2E (after push + CI render): `mise run creds`; assemble Freight for `payments/worker`; promote `worker-us-dev`; expect Stage verified, GHA run green with matching commit, `env/payments/worker/us-dev` head == dispatched commit. Negative: revoke/blank token → promotion fails at dispatch.

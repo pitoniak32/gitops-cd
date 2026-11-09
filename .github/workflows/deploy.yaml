@@ -1,0 +1,49 @@
+# Example deploy workflow for targets with `deployWith: gha` (ADR 0020). Kargo's target Stage pushes the
+# target branch, dispatches this workflow with the pushed commit + pinned image, and waits for the run;
+# its conclusion passes or fails the Promotion. Demo only: nothing is deployed (GitHub-hosted runners
+# can't reach the local kind clusters).
+name: deploy (example)
+run-name: "deploy ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }} (${{ inputs.image }})"
+on:
+  workflow_dispatch:
+    inputs:
+      capability: {description: capability, required: true, type: string}
+      app: {description: app, required: true, type: string}
+      stage: {description: stage, required: true, type: string}
+      target: {description: target, required: true, type: string}
+      commit: {description: "env/<cap>/<app>/<target> commit Kargo pushed", required: true, type: string}
+      image: {description: "<repo>:<tag>@<digest> from the Freight", required: true, type: string}
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:  # inputs via env, never inline in run: (script injection)
+      CAPABILITY: ${{ inputs.capability }}
+      APP: ${{ inputs.app }}
+      STAGE: ${{ inputs.stage }}
+      TARGET: ${{ inputs.target }}
+      COMMIT: ${{ inputs.commit }}
+      IMAGE: ${{ inputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+      - name: show what would be deployed
+        run: |
+          cat deployment.yaml manifests.yaml
+          got="$(yq '.spec.template.spec.containers[0].image' deployment.yaml)"
+          if [[ "$got" != "$IMAGE" ]]; then
+            echo "::error file=deployment.yaml::image $got != dispatched $IMAGE"; exit 1
+          fi
+      - name: summary
+        run: |
+          {
+            echo "### $CAPABILITY/$APP → $TARGET"
+            echo "| stage | target | commit | image |"
+            echo "|---|---|---|---|"
+            echo "| $STAGE | $TARGET | \`$COMMIT\` | \`$IMAGE\` |"
+            echo
+            echo "_demo: nothing deployed_"
+          } >> "$GITHUB_STEP_SUMMARY"

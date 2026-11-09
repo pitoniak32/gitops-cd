@@ -3,6 +3,7 @@
 image: ghcr.io/pitoniak32/nginx
 stages:
   dev:
+    deployWith: gha  # dev deploys via GitHub Actions (.github/workflows/deploy.yaml); staging, prod via Argo CD
     targets:
       us-dev: {}
   staging:

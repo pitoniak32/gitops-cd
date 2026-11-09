@@ -32,7 +32,7 @@ Setup tasks call `.bin/gcd` (`mise run cli` builds it; tasks depend on it).
 - **Break-glass (ADR 0013, `docs/break-glass.md`)**: Kargo checks `promote` for approving unverified Freight too, so the approve endpoint goes through a Traefik ForwardAuth guard (`platform/infrastructure/break-glass/`) that allows only the Stage's `example.com/break-glass` emails (from `owners.yml` `breakGlass`) + admins.
 - **Pin versions**: tools in `.mise.toml`, charts in `platform/appsets/addons/<addon>.yaml` `targetRevision`, infra images by tag or digest. App images: `app.yml` `image` is a repo only; Kargo discovers SemVer tags and Freight pins the digest (ADR 0016).
 - **Idempotent tasks**: every command in `platform/cli` (and any remaining `platform/mise-tasks/*` script) must be safe to re-run. `go vet` + `go test` in `platform/cli` run in `mise run test` and CI.
-- **Secrets** come from fnox (`.fnox.toml`, macOS keychain); `mise run creds` puts GitHub App creds in `kargo-shared-resources` (Argo CD needs none: public repo). Nothing secret in git.
+- **Secrets** come from fnox (`.fnox.toml`, macOS keychain); `mise run creds` puts GitHub App creds + the GHA dispatch PAT (`github-actions`, ADR 0020) in `kargo-shared-resources` (Argo CD needs none: public repo). Nothing secret in git.
 - Teams never write CUE (ADR 0006); every option is a YAML field in `#App`/`#Stage`/`#Target`/`#Owners`/`#Team`. User-facing validation messages come from `error("...")` in CUE.
 - Watch for field shadowing in CUE (`x: x`); use the `_cap`/`_capStages`/`_capTargets`/`_repoURL` aliases.
 - **VCS is jj.** No git mutations, no pushes.

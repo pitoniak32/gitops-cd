@@ -112,7 +112,8 @@ by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
    Nothing is promoted automatically from it: a promoter opens the Warehouse in the Kargo UI and
    **assembles Freight** = a config commit + an image tag (ADR 0016). There's one Kargo Stage per target
    (`<app>-<target>`); promoting a target copies its folder to branch `env/<cap>/<app>/<target>`, pins
-   the image digest in its `deployment.yaml`, and Argo CD syncs it from there (ADR 0012). Control-flow
+   the image digest in its `deployment.yaml`, and Argo CD syncs it from there (ADR 0012), or, for
+   `deployWith: gha` targets, Kargo dispatches a GitHub Actions workflow and waits for it (ADR 0020). Control-flow
    Stages (no steps, always auto) appear only where they help (ADR 0019): `<app>-<S>-done` where
    several targets fan out to several, `<app>-<D>` where several fan into a multi-target stage or a stage
    needs a one-click release. To release a whole stage, use **Promote to downstream** on its `<app>-<D>`
