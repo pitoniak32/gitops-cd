@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 )
 
 const (
@@ -117,19 +118,29 @@ func handoff(ctx context.Context, hub, reg *kube.Clients, r string, log io.Write
 	fmt.Fprintf(log, "kargo-hub-kubeconfig updated in %s\n", reg.Ctx)
 	// token changed: running controller still has the old one
 	deps := reg.Core.AppsV1().Deployments(ns)
-	d, err := deps.Get(ctx, "kargo-controller-"+r, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		return nil
-	}
+	ctrl := "kargo-controller-" + r
+	found := true
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		d, err := deps.Get(ctx, ctrl, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			found = false
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if d.Spec.Template.Annotations == nil {
+			d.Spec.Template.Annotations = map[string]string{}
+		}
+		d.Spec.Template.Annotations[restarted] = time.Now().Format(time.RFC3339)
+		_, err = deps.Update(ctx, d, metav1.UpdateOptions{FieldManager: kube.FieldManager})
+		return err
+	})
 	if err != nil {
-		return fmt.Errorf("get deploy kargo-controller-%s in %s: %w", r, reg.Ctx, err)
+		return fmt.Errorf("restart %s in %s: %w", ctrl, reg.Ctx, err)
 	}
-	if d.Spec.Template.Annotations == nil {
-		d.Spec.Template.Annotations = map[string]string{}
-	}
-	d.Spec.Template.Annotations[restarted] = time.Now().Format(time.RFC3339)
-	if _, err := deps.Update(ctx, d, metav1.UpdateOptions{FieldManager: kube.FieldManager}); err != nil {
-		return fmt.Errorf("restart kargo-controller-%s in %s: %w", r, reg.Ctx, err)
+	if !found {
+		return nil
 	}
 	fmt.Fprintf(log, "restarted kargo-controller-%s in %s\n", r, reg.Ctx)
 	return nil

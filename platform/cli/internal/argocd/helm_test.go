@@ -21,3 +21,21 @@ func TestNewInstallTimeout(t *testing.T) {
 		t.Errorf("install = %+v", in)
 	}
 }
+
+func TestInstallDecision(t *testing.T) {
+	for _, c := range []struct {
+		exists bool
+		status string
+		want   installAction
+	}{
+		{false, "", actInstall},
+		{true, "deployed", actSkip},
+		{true, "failed", actReinstall},
+		{true, "pending-install", actReinstall},
+		{true, "uninstalling", actReinstall},
+	} {
+		if got := decideInstall(c.exists, c.status); got != c.want {
+			t.Errorf("decideInstall(%v,%q) = %v, want %v", c.exists, c.status, got, c.want)
+		}
+	}
+}

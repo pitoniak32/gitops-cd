@@ -9,6 +9,7 @@ import (
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -103,7 +104,7 @@ func KickCertPods(ctx context.Context, hub *kube.Clients, log io.Writer) error {
 		return fmt.Errorf("list pods in %s: %w", hub.Ctx, err)
 	}
 	for _, name := range StuckCertPods(pods.Items) {
-		if err := hub.Core.CoreV1().Pods(ns).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		if err := hub.Core.CoreV1().Pods(ns).Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("delete pod %s: %w", name, err)
 		}
 		fmt.Fprintf(log, "deleted stuck pod %s/%s\n", ns, name)

@@ -3,9 +3,9 @@ package regions
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
-	"path/filepath"
 	"testing"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
@@ -136,5 +136,15 @@ func TestWriteSynthetic(t *testing.T) {
 	vals, _ := os.ReadFile(filepath.Join(tmp, kargoValues))
 	if !strings.Contains(string(vals), "      a: https://a\n      b: https://b\n") || strings.Contains(string(vals), "old") {
 		t.Fatalf("values: %s", vals)
+	}
+}
+
+func TestWriteKargoValuesEmptyDocument(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "values.yaml")
+	if err := os.WriteFile(p, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeKargoValues(p, Config{}); err == nil {
+		t.Fatal("want error for empty values file")
 	}
 }

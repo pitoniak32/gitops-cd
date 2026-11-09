@@ -179,6 +179,9 @@ func writeKargoValues(path string, c Config) error {
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		return err
 	}
+	if len(doc.Content) == 0 || doc.Content[0].Kind != yaml.MappingNode {
+		return fmt.Errorf("%s: empty or non-mapping document", path)
+	}
 	api := mapping(doc.Content[0], "api")
 	if api == nil {
 		return fmt.Errorf("%s: no api", path)
