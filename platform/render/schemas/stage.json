@@ -8,7 +8,7 @@
       "description": "promote automatically once upstream stages are verified"
     },
     "color": {
-      "description": "Kargo UI color for all of this stage's Kargo Stages (gate + targets); default picked per stage",
+      "description": "Kargo UI color for all of this stage's Kargo Stages (control flow + targets); default picked per stage",
       "anyOf": [
         {
           "anyOf": [
