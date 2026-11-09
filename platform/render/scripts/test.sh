@@ -35,19 +35,38 @@ yq -e 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[]
 # promoters are per app: worker's app owners.yml replaces promoters; my-app inherits the capability's
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-worker") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["alice@example.com","carol@example.com","doug@example.com"]}' ]] || { echo "promote-worker must use the app's promoters + inherited break-glass" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-my-app") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["carol@example.com","doug@example.com"]}' ]] || { echo "promote-my-app must inherit the capability's promoters + break-glass" >&2; exit 1; }
-# break-glass (ADR 0013): every gate and target Stage carries the app's list for the approve guard
+# break-glass (ADR 0013): every control-flow and target Stage carries the app's list for the approve guard
 [[ "$(yq 'select(.kind == "Stage" and .metadata.labels."example.com/app" == "my-app") | .metadata.annotations."example.com/break-glass"' "$k" | sort -u | grep -v '^---$')" == '["carol@example.com"]' ]] || { echo "every my-app Stage needs the break-glass annotation" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[0].resourceNames | join(",")' "$k")" == "worker-dev,worker-prod,worker-staging,worker-us-dev,worker-us-prod,worker-us-stg" ]] || { echo "promote-worker must cover only worker's gate + target stages" >&2; exit 1; }
-# Kargo graph: gate <app>-<stage> per gitops stage, target Stage <app>-<target> per target, own env branch
-[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec.requestedFreight[0].sources | .availabilityStrategy + ":" + (.stages | join(","))' "$k")" == "All:my-app-onprem-stg,my-app-us-perf,my-app-us-stg" ]] || { echo "prod gate must wait for every upstream target" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-prod") | .spec | has("promotionTemplate")' "$k")" == "false" ]] || { echo "gates must be control flow stages" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-onprem-prod") | (.spec.requestedFreight[0].sources.stages | join(",")) + " " + .spec.promotionTemplate.spec.vars[2].value' "$k")" == "my-app-prod env/payments/my-app/onprem-prod" ]] || { echo "target stage must follow its gate and push its own branch" >&2; exit 1; }
+# Kargo graph (ADR 0019): control-flow Stages only for fan-in/out and one-click stage release; targets <app>-<target>
+src() { yq "select(.kind==\"Stage\" and .metadata.name==\"$1\") | .spec.requestedFreight[0].sources | ((.direct // false) | tostring) + \":\" + (.availabilityStrategy // \"\") + \":\" + ((.stages // []) | join(\",\"))" "$2"; }
+want() { [[ "$(src "$1" "$3")" == "$2" ]] || { echo "Stage $1 sources: want '$2' got '$(src "$1" "$3")'" >&2; exit 1; }; }
+stages_of() { yq "select(.kind==\"Stage\" and .metadata.labels.\"example.com/app\"==\"$1\") | .metadata.name" "$2" | grep -v '^---$' | sort | paste -sd' ' -; }
+[[ "$(stages_of my-app "$k")" == "my-app-dev my-app-dev-done my-app-onprem-dev my-app-onprem-prod my-app-onprem-stg my-app-prod my-app-staging my-app-us-dev my-app-us-perf my-app-us-prod my-app-us-stg" ]] || { echo "my-app Stage set: $(stages_of my-app "$k")" >&2; exit 1; }
+want my-app-dev "true::" "$k"; want my-app-us-dev "false::my-app-dev" "$k"; want my-app-onprem-dev "false::my-app-dev" "$k"
+want my-app-dev-done "false:All:my-app-onprem-dev,my-app-us-dev" "$k"
+want my-app-staging "false::my-app-dev-done" "$k"; want my-app-us-stg "false::my-app-staging" "$k"; want my-app-onprem-stg "false::my-app-staging" "$k"
+want my-app-us-perf "false::my-app-dev-done" "$k"
+want my-app-prod "false:All:my-app-onprem-stg,my-app-us-perf,my-app-us-stg" "$k"
+want my-app-us-prod "false::my-app-prod" "$k"; want my-app-onprem-prod "false::my-app-prod" "$k"
+[[ "$(stages_of worker "$k")" == "worker-us-dev worker-us-prod worker-us-stg" ]] || { echo "worker must have no control flow: $(stages_of worker "$k")" >&2; exit 1; }
+want worker-us-dev "true::" "$k"; want worker-us-stg "false::worker-us-dev" "$k"; want worker-us-prod "false::worker-us-stg" "$k"
+s="$tmp/kargo/search.yaml"
+[[ "$(stages_of api "$s")" == "api-us-dev" ]] || { echo "search api must be one target Stage" >&2; exit 1; }
+want api-us-dev "true::" "$s"
+for n in my-app-dev my-app-dev-done my-app-prod my-app-staging; do
+  [[ "$(yq "select(.kind==\"Stage\" and .metadata.name==\"$n\") | .metadata.labels.\"example.com/kind\" + \" \" + (.spec | has(\"promotionTemplate\") | tostring) + \" \" + (.spec.shard // \"-\")" "$k")" == "control-flow false -" ]] || { echo "$n must be control-flow: no steps, no shard" >&2; exit 1; }
+done
+[[ "$(yq 'select(.kind=="Stage" and .metadata.name=="my-app-dev-done") | .metadata.labels."example.com/stage"' "$k") $(yq 'select(.kind=="Stage" and .metadata.name=="my-app-staging") | .metadata.labels."example.com/stage"' "$k")" == "dev staging" ]] || { echo "control-flow stage labels" >&2; exit 1; }
+[[ "$(yq 'select(.kind=="ProjectConfig") | .spec.promotionPolicies[] | .stageSelector.name' "$k" | sort | paste -sd' ' -)" == "my-app-dev my-app-dev-done my-app-onprem-dev my-app-prod my-app-staging my-app-us-dev payments-us-dev worker-us-dev" ]] || { echo "auto-promotion: every control-flow Stage + targets of autoPromote stages only" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-dev,worker-us-prod,worker-us-stg" ]] || { echo "promote-worker must cover exactly worker's Stages" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-my-app") | .rules[0].resourceNames | join(",")' "$k")" == "my-app-dev,my-app-dev-done,my-app-onprem-dev,my-app-onprem-prod,my-app-onprem-stg,my-app-prod,my-app-staging,my-app-us-dev,my-app-us-perf,my-app-us-prod,my-app-us-stg" ]] || { echo "promote-my-app must cover targets + control flow" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-onprem-prod") | .spec.promotionTemplate.spec.vars[2].value' "$k")" == "env/payments/my-app/onprem-prod" ]] || { echo "target stage must push its own branch" >&2; exit 1; }
 d="$tmp/argocd/deploys/onprem/payments/my-app-onprem-prod.json"
 [[ "$(jq -r '.appName + " " + .branch + " " + .authorizedStage + " " + .destination + "/" + .namespace' "$d")" == "payments-my-app-onprem-prod env/payments/my-app/onprem-prod kargo-payments:my-app-onprem-prod in-cluster/payments-onprem-prod" ]] || { echo "deploy params must track the target branch, authorized for its target stage" >&2; exit 1; }
 # workloads AppSet (platform/appsets/workloads.yaml) reads exactly these keys; git files gen reserves path/values
 [[ "$(jq -r 'keys | join(",")' "$d")" == "app,appName,authorizedStage,branch,capability,destination,namespace,stage,target" ]] || { echo "deploy params keys changed: $(jq -c keys "$d")" >&2; exit 1; }
-# regions: target Stages run on their cluster's region shard; gates and Warehouses stay on the hub controller
-[[ "$(yq 'select(.kind == "Stage") | .metadata.name + "=" + (.spec.shard // "-")' "$k" | grep '^my-app-' | sort | paste -sd' ' -)" == "my-app-dev=- my-app-onprem-dev=onprem my-app-onprem-prod=onprem my-app-onprem-stg=onprem my-app-perf=- my-app-prod=- my-app-staging=- my-app-us-dev=us my-app-us-perf=us my-app-us-prod=us my-app-us-stg=us" ]] || { echo "shard must be set on target Stages only, from the target's cluster region" >&2; exit 1; }
+# regions: target Stages run on their cluster's region shard; control-flow Stages and Warehouses stay on the hub controller
+[[ "$(yq 'select(.kind == "Stage") | .metadata.name + "=" + (.spec.shard // "-")' "$k" | grep '^my-app-' | sort | paste -sd' ' -)" == "my-app-dev-done=- my-app-dev=- my-app-onprem-dev=onprem my-app-onprem-prod=onprem my-app-onprem-stg=onprem my-app-prod=- my-app-staging=- my-app-us-dev=us my-app-us-perf=us my-app-us-prod=us my-app-us-stg=us" ]] || { echo "shard must be set on target Stages only, from the target's cluster region" >&2; exit 1; }
 if yq -e 'select(.kind == "Warehouse") | .spec.shard' "$k" >/dev/null 2>&1; then echo "Warehouses must not be sharded" >&2; exit 1; fi
 # Argo CD output is per region; destination is the regional Argo CD's own cluster
 [[ "$(cd "$tmp/argocd" && find . -type f ! -name .keep | sort | paste -sd' ' -)" == "./deploys/onprem/payments/my-app-onprem-dev.json ./deploys/onprem/payments/my-app-onprem-prod.json ./deploys/onprem/payments/my-app-onprem-stg.json ./deploys/us/payments/my-app-us-dev.json ./deploys/us/payments/my-app-us-perf.json ./deploys/us/payments/my-app-us-prod.json ./deploys/us/payments/my-app-us-stg.json ./deploys/us/payments/payments-us-dev.json ./deploys/us/payments/payments-us-prod.json ./deploys/us/payments/payments-us-stg.json ./deploys/us/payments/worker-us-dev.json ./deploys/us/payments/worker-us-prod.json ./deploys/us/payments/worker-us-stg.json ./deploys/us/search/api-us-dev.json ./projects/onprem/payments.yaml ./projects/us/payments.yaml ./projects/us/search.yaml" ]] || { echo "argocd output must be per region: deploys/<r>/<cap>/ + projects/<r>/<cap>.yaml" >&2; exit 1; }
@@ -150,3 +169,44 @@ mkdir -p "$o/argocd/deploys/us/payments-my"; cp "$o/argocd/deploys/us/payments/m
 got="$(scripts/unique-apps.sh "$o" 2>&1 || true)"; rm -rf "${o:?}"
 grep -q 'duplicate workload Application name payments-my-app-us-dev' <<<"$got" || { printf 'duplicate appName not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "unique app names ok"
+
+# Kargo graph rules on synthetic variants (ADR 0019): skipped stage, 1->N, shared upstream target, multi-upstream naming
+synth() { # <cap> <setup cmds...>: copy testdata/root to $r, run setup in it, render <cap> into $o
+  r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
+  (cd "$r/capabilities" && eval "$2")
+  scripts/render.sh "$r" "$1" "$o" >/dev/null; kk="$o/kargo/$1.yaml"
+}
+# a) app skips perf: dev fans into staging alone (fan-in node named for staging), staging fans into prod
+synth payments 'yq -i "del(.stages.perf)" payments/apps/my-app/app.yml'
+[[ -z "$(yq 'select(.kind=="Stage" and .metadata.name=="my-app-dev-done") | .metadata.name' "$kk")" ]] || { echo "a) no dev-done without fan-out" >&2; exit 1; }
+want my-app-staging "false:All:my-app-onprem-dev,my-app-us-dev" "$kk"; want my-app-prod "false:All:my-app-onprem-stg,my-app-us-stg" "$kk"
+rm -rf "${r:?}" "${o:?}"
+# b) 1->N: single dev target feeds both prod targets directly
+synth search 'printf "dependsOn: [dev]\n" > search/stages/prod.yml
+  for t in us-prod onprem-prod; do cp -R payments/targets/$t search/targets/$t; yq -i ".config.namespace = \"search-$t\"" search/targets/$t/target.yml; yq -i ".stages.prod.targets.\"$t\" = {}" search/apps/api/app.yml; done'
+[[ "$(stages_of api "$kk")" == "api-onprem-prod api-us-dev api-us-prod" ]] || { echo "b) 1->N needs no control flow: $(stages_of api "$kk")" >&2; exit 1; }
+want api-us-prod "false::api-us-dev" "$kk"; want api-onprem-prod "false::api-us-dev" "$kk"
+rm -rf "${r:?}" "${o:?}"
+# c) worker-us-dev feeds staging (2 targets) and perf: staging needs its own entry; prod joins 3 sources directly (M->1)
+synth payments 'yq -i ".stages.perf.targets.us-perf = {} | .stages.staging.targets.onprem-stg = {}" payments/apps/worker/app.yml'
+want worker-staging "false::worker-us-dev" "$kk"; want worker-us-stg "false::worker-staging" "$kk"; want worker-us-perf "false::worker-us-dev" "$kk"
+want worker-us-prod "false:All:worker-onprem-stg,worker-us-perf,worker-us-stg" "$kk"
+rm -rf "${r:?}" "${o:?}"
+# d) qa and prod both depend on staging+perf: one shared node named after both upstream stages
+synth payments 'printf "dependsOn: [staging, perf]\n" > payments/stages/qa.yml
+  for t in us onprem; do cp -R payments/targets/$t-stg payments/targets/$t-qa; yq -i ".config.namespace = \"payments-$t-qa\"" payments/targets/$t-qa/target.yml; yq -i ".stages.qa.targets.\"$t-qa\" = {}" payments/apps/my-app/app.yml; done'
+want my-app-perf-staging-done "false:All:my-app-onprem-stg,my-app-us-perf,my-app-us-stg" "$kk"
+want my-app-prod "false::my-app-perf-staging-done" "$kk"; want my-app-qa "false::my-app-perf-staging-done" "$kk"
+rm -rf "${r:?}" "${o:?}"
+# e) one-click: every stage with >1 target is exactly the downstream set of one Stage
+for app in my-app worker payments; do
+  for st in $(yq "select(.kind==\"Stage\" and .metadata.labels.\"example.com/app\"==\"$app\" and .metadata.labels.\"example.com/kind\"==\"target\") | .metadata.labels.\"example.com/stage\"" "$k" | grep -v '^---$' | sort | uniq -d); do
+    tg="$(yq "select(.kind==\"Stage\" and .metadata.labels.\"example.com/app\"==\"$app\" and .metadata.labels.\"example.com/kind\"==\"target\" and .metadata.labels.\"example.com/stage\"==\"$st\") | .metadata.name" "$k" | grep -v '^---$' | sort | paste -sd, -)"
+    ok=""; for n in $(stages_of "$app" "$k"); do
+      ch="$(yq "select(.kind==\"Stage\" and ((.spec.requestedFreight[0].sources.stages // []) | any_c(. == \"$n\"))) | .metadata.name" "$k" | { grep -v '^---$' || true; } | sort | paste -sd, -)"
+      [[ "$ch" == "$tg" ]] && ok=1
+    done
+    [[ -n "$ok" ]] || { echo "e) $app stage $st ($tg) has no one-click node" >&2; exit 1; }
+  done
+done
+echo "control-flow graph ok"
