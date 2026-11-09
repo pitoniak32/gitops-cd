@@ -104,10 +104,14 @@
               ]
             },
             "ref": {
-              "type": "string",
-              "not": {
-                "const": ""
-              }
+              "anyOf": [
+                {
+                  "type": "string",
+                  "not": {
+                    "const": ""
+                  }
+                }
+              ]
             },
             "repo": {
               "anyOf": [
@@ -214,10 +218,14 @@
               ]
             },
             "ref": {
-              "type": "string",
-              "not": {
-                "const": ""
-              }
+              "anyOf": [
+                {
+                  "type": "string",
+                  "not": {
+                    "const": ""
+                  }
+                }
+              ]
             },
             "repo": {
               "anyOf": [
@@ -335,10 +343,14 @@
           ]
         },
         "ref": {
-          "type": "string",
-          "not": {
-            "const": ""
-          }
+          "anyOf": [
+            {
+              "type": "string",
+              "not": {
+                "const": ""
+              }
+            }
+          ]
         },
         "repo": {
           "anyOf": [

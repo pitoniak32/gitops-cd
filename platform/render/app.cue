@@ -26,14 +26,14 @@ import (
 	}
 	// How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches
 	// `workflow` with the promoted commit and image and waits for the run (ADR 0020).
-	deployWith?: "argocd" | "gha" | error("deployWith: expected argocd or gha")
+	deployWith?: "argocd" | "gha" | error("expected argocd or gha")
 	// GitHub Actions workflow for gha targets (ignored where deployWith is argocd); each field
 	// defaults separately: repo this repo, file deploy.yaml, ref main.
 	workflow?: {
-		repo?: =~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" | error("workflow.repo: expected <owner>/<name>")
+		repo?: =~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" | error("expected <owner>/<name>")
 		// file name under <repo>/.github/workflows/
-		file?: =~"^[A-Za-z0-9_.-]+\\.ya?ml$" | error("workflow.file: expected a .yml or .yaml file name")
-		ref?:  string & !=""
+		file?: =~"^[A-Za-z0-9_.-]+\\.ya?ml$" | error("expected a .yml or .yaml file name")
+		ref?:  string & !="" | error("expected a non-empty git ref")
 	}
 }
 

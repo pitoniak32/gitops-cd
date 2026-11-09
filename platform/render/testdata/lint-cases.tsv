@@ -17,6 +17,7 @@ capabilities/payments/targets/us-dev/environment-variables/launchdarkly.yml	.LD_
 capabilities/payments/stages/dev.yml	.color = "puce"	^capabilities/payments/stages/dev\.yml:[0-9]+:[0-9]+: .*unknown color; allowed: red
 capabilities/payments/targets/us-dev/target.yml	.config.cluster = "eu"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*unknown cluster; allowed: us, onprem
 capabilities/payments/apps/worker/app.yml	.image = "ghcr.io/pitoniak32/nginx:1.0.0"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+:
-capabilities/payments/apps/worker/app.yml	.deployWith = "jenkins"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*deployWith: expected argocd or gha
-capabilities/payments/apps/worker/app.yml	.workflow.repo = "not-a-repo"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*workflow\.repo: expected <owner>/<name>
 capabilities/payments/apps/worker/app.yml	.stages.dev.workflow.file = "deploy.sh"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*workflow\.file: expected a \.yml or \.yaml file name
+capabilities/payments/apps/worker/app.yml	.deployWith = "jenkins"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: deployWith: expected argocd or gha$
+capabilities/payments/apps/worker/app.yml	.workflow.repo = "not-a-repo"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: workflow\.repo: expected <owner>/<name>$
+capabilities/payments/apps/worker/app.yml	.workflow.ref = ""	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: workflow\.ref: expected a non-empty git ref$

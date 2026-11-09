@@ -110,6 +110,8 @@ w1='.spec.promotionTemplate.spec.steps[] | select(.as == "wait")'
 [[ "$(st worker-us-dev "$w1 | .config.successExpression")" == "response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'" ]] || { echo "wait success" >&2; exit 1; }
 [[ "$(st worker-us-dev "$w1 | .config.failureExpression")" == "response.status != 200 || (response.body.status == 'completed' && response.body.conclusion != 'success')" ]] || { echo "wait failure" >&2; exit 1; }
 [[ "$(st worker-us-dev "$w1 | .config.errorExpression")" == "response.status != 200 ? response.body.message : 'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url" ]] || { echo "wait error message (non-200 has no run fields)" >&2; exit 1; }
+# Kargo ends a ${{ }} expression at the first "}}": a nested map literal must not close with "}}"
+if grep -nE '[^ ]\}\}' "$k" testdata/golden/kargo/*.yaml; then echo 'Kargo expression cut short: "}}" not preceded by a space' >&2; exit 1; fi
 echo "gha targets ok"
 # deployWith/workflow resolve per field, target > stage > app > default
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
