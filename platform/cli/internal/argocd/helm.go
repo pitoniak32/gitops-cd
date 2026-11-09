@@ -14,6 +14,7 @@ import (
 	"helm.sh/helm/v4/pkg/cli/values"
 	"helm.sh/helm/v4/pkg/getter"
 	"helm.sh/helm/v4/pkg/kube"
+	releaseutil "helm.sh/helm/v4/pkg/release"
 	"helm.sh/helm/v4/pkg/storage/driver"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -41,10 +42,32 @@ func HelmInstallIfMissing(ctx context.Context, kubeCtx, ns, release string, root
 		return fmt.Errorf("helm init: %w", err)
 	}
 
-	if _, err := action.NewStatus(cfg).Run(release); err == nil {
-		return nil // release exists
-	} else if !errors.Is(err, driver.ErrReleaseNotFound) {
+	exists, status := true, ""
+	rel, err := action.NewStatus(cfg).Run(release)
+	switch {
+	case errors.Is(err, driver.ErrReleaseNotFound):
+		exists = false
+	case err != nil:
 		return fmt.Errorf("helm status %s: %w", release, err)
+	default:
+		acc, aerr := releaseutil.NewAccessor(rel)
+		if aerr != nil {
+			return fmt.Errorf("helm status %s: %w", release, aerr)
+		}
+		status = acc.Status()
+	}
+	switch decideInstall(exists, status) {
+	case actSkip:
+		return nil
+	case actReinstall:
+		// a failed hook or interrupted install leaves a release with no resources; a skip would hang later
+		fmt.Fprintf(log, "helm release %s/%s is %s, uninstalling before reinstall\n", ns, release, status)
+		un := action.NewUninstall(cfg)
+		un.WaitStrategy = kube.HookOnlyStrategy
+		un.Timeout = HelmTimeout
+		if _, err := un.Run(release); err != nil {
+			return fmt.Errorf("helm uninstall %s: %w", release, err)
+		}
 	}
 
 	vals, err := (&values.Options{ValueFiles: valueFiles}).MergeValues(getter.All(settings))
@@ -70,6 +93,25 @@ func HelmInstallIfMissing(ctx context.Context, kubeCtx, ns, release string, root
 	}
 	fmt.Fprintf(log, "helm installed %s/%s %s in %s\n", ns, release, version, kubeCtx)
 	return nil
+}
+
+type installAction int
+
+const (
+	actInstall   installAction = iota // no release
+	actSkip                           // deployed
+	actReinstall                      // present but not deployed (failed, pending, ...)
+)
+
+func decideInstall(exists bool, status string) installAction {
+	switch {
+	case !exists:
+		return actInstall
+	case status == "deployed":
+		return actSkip
+	default:
+		return actReinstall
+	}
 }
 
 const defaultHelmTimeout = 5 * time.Minute

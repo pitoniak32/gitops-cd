@@ -1,6 +1,7 @@
 package kargo
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -78,9 +79,15 @@ type GHReader struct{}
 func (GHReader) Head(repoURL, branch string) (string, string, bool, error) {
 	slug := strings.TrimPrefix(repoURL, "https://github.com/")
 	ref := url.PathEscape(branch)
-	msg, err := exec.Command("gh", "api", "repos/"+slug+"/commits/"+ref, "--jq", ".commit.message").Output()
+	var stderr bytes.Buffer
+	c := exec.Command("gh", "api", "repos/"+slug+"/commits/"+ref, "--jq", ".commit.message")
+	c.Stderr = &stderr
+	msg, err := c.Output()
 	if err != nil {
-		return "", "", false, nil
+		if ghNotFound(stderr.String()) {
+			return "", "", false, nil
+		}
+		return "", "", false, fmt.Errorf("gh api commits/%s: %w: %s", branch, err, strings.TrimSpace(stderr.String()))
 	}
 	img := ""
 	if b, err := exec.Command("gh", "api", "repos/"+slug+"/contents/deployment.yaml?ref="+ref, "--jq", ".content").Output(); err == nil {
@@ -90,6 +97,10 @@ func (GHReader) Head(repoURL, branch string) (string, string, bool, error) {
 	}
 	return strings.TrimRight(string(msg), "\n"), img, true, nil
 }
+
+// ghNotFound reports whether gh's stderr says the ref doesn't exist (HTTP 404), as opposed to an
+// auth/network/rate-limit failure.
+func ghNotFound(stderr string) bool { return strings.Contains(stderr, "HTTP 404") }
 
 func deploymentImage(raw []byte) string {
 	var d struct {
@@ -145,13 +156,17 @@ func targets(stages []unstructured.Unstructured) []target {
 		rf, _, _ := unstructured.NestedSlice(s.Object, "spec", "requestedFreight")
 		wh := ""
 		if len(rf) > 0 {
-			wh, _, _ = unstructured.NestedString(rf[0].(map[string]any), "origin", "name")
+			if m, ok := rf[0].(map[string]any); ok {
+				wh, _, _ = unstructured.NestedString(m, "origin", "name")
+			}
 		}
 		hist, _, _ := unstructured.NestedSlice(s.Object, "status", "freightHistory")
 		has := false
 		if len(hist) > 0 {
-			items, _, _ := unstructured.NestedMap(hist[0].(map[string]any), "items")
-			has = len(items) > 0
+			if m, ok := hist[0].(map[string]any); ok {
+				items, _, _ := unstructured.NestedMap(m, "items")
+				has = len(items) > 0
+			}
 		}
 		out = append(out, target{s.GetName(), wh, vars["repo"], vars["branch"], vars["image"], has})
 	}
@@ -165,10 +180,12 @@ func findFreight(items []unstructured.Unstructured, f *unstructured.Unstructured
 		i, _, _ := unstructured.NestedSlice(u.Object, "images")
 		var id, dg string
 		if len(c) > 0 {
-			id, _ = c[0].(map[string]any)["id"].(string)
+			m, _ := c[0].(map[string]any)
+			id, _ = m["id"].(string)
 		}
 		if len(i) > 0 {
-			dg, _ = i[0].(map[string]any)["digest"].(string)
+			m, _ := i[0].(map[string]any)
+			dg, _ = m["digest"].(string)
 		}
 		return [3]string{o, id, dg}
 	}
@@ -212,6 +229,10 @@ func Restore(ctx context.Context, root string, hub *kube.Clients, caps []string,
 			label := cap + "/" + t.stage
 			if t.hasFreight {
 				fmt.Fprintf(out, "%s: already has Freight, skipped\n", label)
+				continue
+			}
+			if t.warehouse == "" {
+				fmt.Fprintf(out, "%s: no requestedFreight origin (unexpected Stage shape), skipped\n", label)
 				continue
 			}
 			msg, img, exists, err := branches.Head(t.repo, t.branch)

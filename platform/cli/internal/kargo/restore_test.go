@@ -196,3 +196,43 @@ func TestRestoreDefaultCaps(t *testing.T) {
 		t.Fatalf("%v %v", got, err)
 	}
 }
+
+func TestClassifyGHStderr(t *testing.T) {
+	for _, c := range []struct {
+		stderr string
+		want   bool
+	}{
+		{"gh: Not Found (HTTP 404)", true},
+		{"gh: No commit found for the ref x (HTTP 404)\n", true},
+		{"gh: Bad credentials (HTTP 401)", false},
+		{"gh: API rate limit exceeded (HTTP 403)", false},
+		{"dial tcp: lookup api.github.com: no such host", false},
+		{"", false},
+	} {
+		if got := ghNotFound(c.stderr); got != c.want {
+			t.Errorf("ghNotFound(%q) = %v, want %v", c.stderr, got, c.want)
+		}
+	}
+}
+
+func TestRestoreMalformedStages(t *testing.T) {
+	bad := func(name string, spec map[string]any, status map[string]any) *unstructured.Unstructured {
+		return &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "kargo.akuity.io/v1alpha1", "kind": "Stage",
+			"metadata": map[string]any{"name": name, "namespace": "kargo-payments"},
+			"spec":     spec, "status": status,
+		}}
+	}
+	tmpl := map[string]any{"spec": map[string]any{}}
+	stages := []unstructured.Unstructured{
+		*bad("rf-string", map[string]any{"promotionTemplate": tmpl, "requestedFreight": []any{"oops"}}, nil),
+		*bad("hist-string", map[string]any{"promotionTemplate": tmpl}, map[string]any{"freightHistory": []any{"oops"}}),
+	}
+	ts := targets(stages) // must not panic
+	if len(ts) != 2 || ts[0].warehouse != "" || ts[1].hasFreight {
+		t.Fatalf("targets = %+v", ts)
+	}
+	// findFreight with malformed commits/images must not panic either
+	f := &unstructured.Unstructured{Object: map[string]any{"commits": []any{"x"}, "images": []any{"y"}}}
+	_ = findFreight([]unstructured.Unstructured{*f}, f)
+}
