@@ -6,8 +6,9 @@ Visual: https://claude.ai/artifact/WfhbyUtR3kXPkGhgCRaRgY (current vs proposed g
 ## Goal
 
 Today every gitops stage gets an entry gate `<app>-<stage>` (control-flow Kargo Stage, ADR 0012), even
-where nothing fans in or out. Emit control flow only where it prevents crossing many-to-many edges;
-connect targets directly everywhere else.
+where nothing fans in or out. Emit control flow only where it adds value: (a) preventing crossing
+many-to-many edges, (b) giving every multi-target stage a one-click release point. Connect targets
+directly everywhere else.
 
 ## Rule
 
@@ -22,9 +23,16 @@ target whose stage has exactly that dependency set.
   - Downstream stages sharing the same dependency set share the node (fan-out, e.g. staging + perf after dev).
   - A stage depending on several stages gets one node (fan-in, e.g. prod after staging + perf).
 
+- **One-click release per stage**: Kargo's "Promote to downstream" on a node promotes to all its direct
+  downstream Stages. Every stage D with more than one target must be the exact downstream set of a single
+  node. If the node feeding D's targets (shared control-flow Stage, or a single upstream target) also feeds
+  targets of other stages, D gets its own entry control-flow Stage `<app>-<D>` requesting from that node;
+  D's targets request from the entry instead. Single-target stages never get one.
+
 ## Naming
 
-- Consumers all in one downstream stage D → `<app>-<D>` (fan-in into D).
+- Consumers all in one downstream stage D → `<app>-<D>` (fan-in into D). Entry nodes (one-click rule)
+  use the same `<app>-<D>`; a stage has at most one of the two, since both feed exactly D.
 - Otherwise, dependency set is one stage S → `<app>-<S>-done` (fan-out after S).
 - Otherwise (several upstream stages, several downstream stages sharing that set) →
   `<app>-<S1>-<S2>…-done` (sorted).
@@ -46,8 +54,10 @@ target whose stage has exactly that dependency set.
 - worker `dev[us-dev] → staging[us-stg] → prod[us-prod]`: no control flow; us-stg ← us-dev, us-prod ← us-stg.
 - search/api `dev[us-dev] → prod[us-prod, onprem-prod]`: no control flow; both prod targets ← api-us-dev.
 - my-app `dev[2] → staging[2] + perf[1] → prod[2]`: `my-app-dev-done` ← {us-dev, onprem-dev} All;
-  us-stg, onprem-stg, us-perf ← my-app-dev-done; `my-app-prod` ← {us-stg, onprem-stg, us-perf} All;
-  us-prod, onprem-prod ← my-app-prod. dev targets ← Warehouse direct.
+  `my-app-staging` (entry) ← my-app-dev-done; us-stg, onprem-stg ← my-app-staging; us-perf ←
+  my-app-dev-done; `my-app-prod` ← {us-stg, onprem-stg, us-perf} All; us-prod, onprem-prod ← my-app-prod.
+  dev targets ← Warehouse direct (the Warehouse feeds only dev, so no dev entry node).
+- One-click check: staging via my-app-staging, prod via my-app-prod, api prod via api-us-dev.
 
 ## Migration
 
@@ -58,7 +68,8 @@ lost (control flow only); target history stays. Freight already in flight may ne
 
 - `test.sh` assertions replace the gate ones: exact Stage set per fixture app, sources per Stage (above),
   kind labels, auto-promotion policies include every control-flow Stage and no prod target, promote role
-  resourceNames, no crossing: no target has >1 source when its stage has >1 target and its upstream set >1.
+  resourceNames, no crossing: no target has >1 source when its stage has >1 target and its upstream set >1;
+  one-click: for every multi-target stage, some single node's downstream set equals exactly its targets.
 - Lint cases: target named `<stage>-done` rejected with a `file:line:col` message.
 - Golden updated (`UPDATE=1`).
 - Live check after push: Kargo UI graph matches the visual; a dev → prod promotion of my-app works.
