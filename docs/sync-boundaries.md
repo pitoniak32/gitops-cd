@@ -31,6 +31,7 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 |---|---|
 | `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → hub `rendered-kargo`, each region's `argocd-projects` and `workloads` AppSet pick it up. Workloads don't change until a promotion. |
 | Workload manifests | Kargo Warehouse discovers new `rendered/apps/<cap>/<app>/` commits and image tags → promoter assembles Freight → target-stage promotion (via control-flow Stages where needed) pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
+| A `deployWith: gha` target's workflow | Not rendered: GitHub reads `<repo>/.github/workflows/<file>` at `ref` when the Stage dispatches it. Push the workflow before promoting. Its token comes from `mise run creds` (`GITHUB_PAT`). |
 | `teams/` | Takes effect on the next render, for CODEOWNERS only. It has no cluster effect (ADR 0011). |
 | `platform/render/**` (renderer logic) | Same as capabilities: lands when CI renders on `main` after the merge. |
 | `platform/infrastructure/<addon>/values.yaml`, `manifests/**` | Push to `main`; the add-on's Application reads them through its AppSet (`$values` ref / kustomize path). |

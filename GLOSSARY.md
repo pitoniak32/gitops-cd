@@ -93,6 +93,10 @@ _Avoid_: stage (a stage is a capability's pipeline step; an environment is platf
 The fully merged configuration of one app on one target.
 _Avoid_: instance, release
 
+**Deploy with**:
+How promotion applies a deploy: `argocd` (sync its Argo CD Application, default) or `gha` (dispatch a GitHub Actions `workflow` and wait for the run). A layer field, so it can differ per stage or target (ADR 0020).
+_Avoid_: deployer (a person who ships is a promoter), runner
+
 **Pipeline**:
 An app's promotion graph: the capability's stages it uses, with skipped stages bypassed.
 
