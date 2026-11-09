@@ -21,13 +21,19 @@ spec:
         name: my-app-dev
       autoPromotionEnabled: true
     - stageSelector:
-        name: my-app-us-dev
+        name: my-app-dev-done
       autoPromotionEnabled: true
     - stageSelector:
         name: my-app-onprem-dev
       autoPromotionEnabled: true
     - stageSelector:
-        name: worker-dev
+        name: my-app-prod
+      autoPromotionEnabled: true
+    - stageSelector:
+        name: my-app-staging
+      autoPromotionEnabled: true
+    - stageSelector:
+        name: my-app-us-dev
       autoPromotionEnabled: true
     - stageSelector:
         name: worker-us-dev
@@ -73,12 +79,61 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
+  name: my-app-dev-done
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: control-flow
+    example.com/stage: dev
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: blue
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        availabilityStrategy: All
+        stages:
+          - my-app-onprem-dev
+          - my-app-us-dev
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: my-app-prod
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: control-flow
+    example.com/stage: prod
+  annotations:
+    example.com/break-glass: '["oncall@example.com"]'
+    kargo.akuity.io/color: violet
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        availabilityStrategy: All
+        stages:
+          - my-app-onprem-stg
+          - my-app-us-perf
+          - my-app-us-stg
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
   name: my-app-dev
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: my-app
-    example.com/kind: gate
+    example.com/kind: control-flow
     example.com/stage: dev
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
@@ -99,7 +154,7 @@ metadata:
   labels:
     example.com/capability: payments
     example.com/app: my-app
-    example.com/kind: gate
+    example.com/kind: control-flow
     example.com/stage: staging
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
@@ -111,125 +166,7 @@ spec:
         name: my-app
       sources:
         stages:
-          - my-app-onprem-dev
-          - my-app-us-dev
-        availabilityStrategy: All
----
-apiVersion: kargo.akuity.io/v1alpha1
-kind: Stage
-metadata:
-  name: my-app-perf
-  namespace: kargo-payments
-  labels:
-    example.com/capability: payments
-    example.com/app: my-app
-    example.com/kind: gate
-    example.com/stage: perf
-  annotations:
-    example.com/break-glass: '["oncall@example.com"]'
-    kargo.akuity.io/color: amber
-spec:
-  requestedFreight:
-    - origin:
-        kind: Warehouse
-        name: my-app
-      sources:
-        stages:
-          - my-app-onprem-dev
-          - my-app-us-dev
-        availabilityStrategy: All
----
-apiVersion: kargo.akuity.io/v1alpha1
-kind: Stage
-metadata:
-  name: my-app-prod
-  namespace: kargo-payments
-  labels:
-    example.com/capability: payments
-    example.com/app: my-app
-    example.com/kind: gate
-    example.com/stage: prod
-  annotations:
-    example.com/break-glass: '["oncall@example.com"]'
-    kargo.akuity.io/color: violet
-spec:
-  requestedFreight:
-    - origin:
-        kind: Warehouse
-        name: my-app
-      sources:
-        stages:
-          - my-app-onprem-stg
-          - my-app-us-perf
-          - my-app-us-stg
-        availabilityStrategy: All
----
-apiVersion: kargo.akuity.io/v1alpha1
-kind: Stage
-metadata:
-  name: worker-dev
-  namespace: kargo-payments
-  labels:
-    example.com/capability: payments
-    example.com/app: worker
-    example.com/kind: gate
-    example.com/stage: dev
-  annotations:
-    example.com/break-glass: '["oncall@example.com"]'
-    kargo.akuity.io/color: blue
-spec:
-  requestedFreight:
-    - origin:
-        kind: Warehouse
-        name: worker
-      sources:
-        direct: true
----
-apiVersion: kargo.akuity.io/v1alpha1
-kind: Stage
-metadata:
-  name: worker-staging
-  namespace: kargo-payments
-  labels:
-    example.com/capability: payments
-    example.com/app: worker
-    example.com/kind: gate
-    example.com/stage: staging
-  annotations:
-    example.com/break-glass: '["oncall@example.com"]'
-    kargo.akuity.io/color: green
-spec:
-  requestedFreight:
-    - origin:
-        kind: Warehouse
-        name: worker
-      sources:
-        stages:
-          - worker-us-dev
-        availabilityStrategy: All
----
-apiVersion: kargo.akuity.io/v1alpha1
-kind: Stage
-metadata:
-  name: worker-prod
-  namespace: kargo-payments
-  labels:
-    example.com/capability: payments
-    example.com/app: worker
-    example.com/kind: gate
-    example.com/stage: prod
-  annotations:
-    example.com/break-glass: '["oncall@example.com"]'
-    kargo.akuity.io/color: violet
-spec:
-  requestedFreight:
-    - origin:
-        kind: Warehouse
-        name: worker
-      sources:
-        stages:
-          - worker-us-stg
-        availabilityStrategy: All
+          - my-app-dev-done
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -549,7 +486,7 @@ spec:
         name: my-app
       sources:
         stages:
-          - my-app-perf
+          - my-app-dev-done
   promotionTemplate:
     spec:
       vars:
@@ -770,8 +707,7 @@ spec:
         kind: Warehouse
         name: worker
       sources:
-        stages:
-          - worker-dev
+        direct: true
   promotionTemplate:
     spec:
       vars:
@@ -845,7 +781,7 @@ spec:
         name: worker
       sources:
         stages:
-          - worker-staging
+          - worker-us-dev
   promotionTemplate:
     spec:
       vars:
@@ -919,7 +855,7 @@ spec:
         name: worker
       sources:
         stages:
-          - worker-prod
+          - worker-us-stg
   promotionTemplate:
     spec:
       vars:
@@ -998,10 +934,10 @@ rules:
       - stages
     resourceNames:
       - my-app-dev
+      - my-app-dev-done
       - my-app-onprem-dev
       - my-app-onprem-prod
       - my-app-onprem-stg
-      - my-app-perf
       - my-app-prod
       - my-app-staging
       - my-app-us-dev
@@ -1070,9 +1006,6 @@ rules:
     resources:
       - stages
     resourceNames:
-      - worker-dev
-      - worker-prod
-      - worker-staging
       - worker-us-dev
       - worker-us-prod
       - worker-us-stg
