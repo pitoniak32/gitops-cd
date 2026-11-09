@@ -110,7 +110,7 @@ _kargoCore: [
 			annotations: _stageAnnotations & {#app: an, #stage: sn}
 		}
 		spec: {
-			// the region's Kargo controller promotes it (gates and Warehouses stay on the hub controller)
+			// the region's Kargo controller promotes it (control-flow Stages and Warehouses stay on the hub controller)
 			shard: clusters[targets[tn].config.cluster].region
 			requestedFreight: [_freightRequest & {#app: an, #node: _graph[an][(_tgtName & {#app: an, #target: tn}).out]}]
 			promotionTemplate: spec: {
