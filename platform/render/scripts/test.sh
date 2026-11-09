@@ -41,6 +41,19 @@ yq -e 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[]
 src() { yq "select(.kind==\"Stage\" and .metadata.name==\"$1\") | .spec.requestedFreight[0].sources | ((.direct // false) | tostring) + \":\" + (.availabilityStrategy // \"\") + \":\" + ((.stages // []) | join(\",\"))" "$2"; }
 want() { [[ "$(src "$1" "$3")" == "$2" ]] || { echo "Stage $1 sources: want '$2' got '$(src "$1" "$3")'" >&2; exit 1; }; }
 stages_of() { yq "select(.kind==\"Stage\" and .metadata.labels.\"example.com/app\"==\"$1\") | .metadata.name" "$2" | grep -v '^---$' | sort | paste -sd' ' -; }
+oneclick() { # <kargo yaml>
+  local f="$1" app st tg ok n ch
+  for app in $(yq 'select(.kind=="Stage") | .metadata.labels."example.com/app"' "$f" | grep -v '^---$' | sort -u); do
+    for st in $(yq "select(.kind==\"Stage\" and .metadata.labels.\"example.com/app\"==\"$app\" and .metadata.labels.\"example.com/kind\"==\"target\") | .metadata.labels.\"example.com/stage\"" "$f" | grep -v '^---$' | sort | uniq -d); do
+      tg="$(yq "select(.kind==\"Stage\" and .metadata.labels.\"example.com/app\"==\"$app\" and .metadata.labels.\"example.com/kind\"==\"target\" and .metadata.labels.\"example.com/stage\"==\"$st\") | .metadata.name" "$f" | grep -v '^---$' | sort | paste -sd, -)"
+      ok=""; for n in $(stages_of "$app" "$f"); do
+        ch="$(yq "select(.kind==\"Stage\" and ((.spec.requestedFreight[0].sources.stages // []) | any_c(. == \"$n\"))) | .metadata.name" "$f" | { grep -v '^---$' || true; } | sort | paste -sd, -)"
+        [[ "$ch" == "$tg" ]] && ok=1
+      done
+      [[ -n "$ok" ]] || { echo "e) $app stage $st ($tg) has no one-click node in $f" >&2; exit 1; }
+    done
+  done
+}
 [[ "$(stages_of my-app "$k")" == "my-app-dev my-app-dev-done my-app-onprem-dev my-app-onprem-prod my-app-onprem-stg my-app-prod my-app-staging my-app-us-dev my-app-us-perf my-app-us-prod my-app-us-stg" ]] || { echo "my-app Stage set: $(stages_of my-app "$k")" >&2; exit 1; }
 want my-app-dev "true::" "$k"; want my-app-us-dev "false::my-app-dev" "$k"; want my-app-onprem-dev "false::my-app-dev" "$k"
 want my-app-dev-done "false:All:my-app-onprem-dev,my-app-us-dev" "$k"
@@ -186,33 +199,35 @@ synth() { # <cap> <setup cmds...>: copy testdata/root to $r, run setup in it, re
 synth payments 'yq -i "del(.stages.perf)" payments/apps/my-app/app.yml'
 [[ -z "$(yq 'select(.kind=="Stage" and .metadata.name=="my-app-dev-done") | .metadata.name' "$kk")" ]] || { echo "a) no dev-done without fan-out" >&2; exit 1; }
 want my-app-staging "false:All:my-app-onprem-dev,my-app-us-dev" "$kk"; want my-app-prod "false:All:my-app-onprem-stg,my-app-us-stg" "$kk"
+oneclick "$kk"
 rm -rf "${r:?}" "${o:?}"
 # b) 1->N: single dev target feeds both prod targets directly
 synth search 'printf "dependsOn: [dev]\n" > search/stages/prod.yml
   for t in us-prod onprem-prod; do cp -R payments/targets/$t search/targets/$t; yq -i ".config.namespace = \"search-$t\"" search/targets/$t/target.yml; yq -i ".stages.prod.targets.\"$t\" = {}" search/apps/api/app.yml; done'
 [[ "$(stages_of api "$kk")" == "api-onprem-prod api-us-dev api-us-prod" ]] || { echo "b) 1->N needs no control flow: $(stages_of api "$kk")" >&2; exit 1; }
 want api-us-prod "false::api-us-dev" "$kk"; want api-onprem-prod "false::api-us-dev" "$kk"
+oneclick "$kk"
 rm -rf "${r:?}" "${o:?}"
 # c) worker-us-dev feeds staging (2 targets) and perf: staging needs its own entry; prod joins 3 sources directly (M->1)
 synth payments 'yq -i ".stages.perf.targets.us-perf = {} | .stages.staging.targets.onprem-stg = {}" payments/apps/worker/app.yml'
 want worker-staging "false::worker-us-dev" "$kk"; want worker-us-stg "false::worker-staging" "$kk"; want worker-us-perf "false::worker-us-dev" "$kk"
 want worker-us-prod "false:All:worker-onprem-stg,worker-us-perf,worker-us-stg" "$kk"
+oneclick "$kk"
 rm -rf "${r:?}" "${o:?}"
 # d) qa and prod both depend on staging+perf: one shared node named after both upstream stages
 synth payments 'printf "dependsOn: [staging, perf]\n" > payments/stages/qa.yml
   for t in us onprem; do cp -R payments/targets/$t-stg payments/targets/$t-qa; yq -i ".config.namespace = \"payments-$t-qa\"" payments/targets/$t-qa/target.yml; yq -i ".stages.qa.targets.\"$t-qa\" = {}" payments/apps/my-app/app.yml; done'
 want my-app-perf-staging-done "false:All:my-app-onprem-stg,my-app-us-perf,my-app-us-stg" "$kk"
 want my-app-prod "false::my-app-perf-staging-done" "$kk"; want my-app-qa "false::my-app-perf-staging-done" "$kk"
+oneclick "$kk"
 rm -rf "${r:?}" "${o:?}"
-# e) one-click: every stage with >1 target is exactly the downstream set of one Stage
-for app in my-app worker payments; do
-  for st in $(yq "select(.kind==\"Stage\" and .metadata.labels.\"example.com/app\"==\"$app\" and .metadata.labels.\"example.com/kind\"==\"target\") | .metadata.labels.\"example.com/stage\"" "$k" | grep -v '^---$' | sort | uniq -d); do
-    tg="$(yq "select(.kind==\"Stage\" and .metadata.labels.\"example.com/app\"==\"$app\" and .metadata.labels.\"example.com/kind\"==\"target\" and .metadata.labels.\"example.com/stage\"==\"$st\") | .metadata.name" "$k" | grep -v '^---$' | sort | paste -sd, -)"
-    ok=""; for n in $(stages_of "$app" "$k"); do
-      ch="$(yq "select(.kind==\"Stage\" and ((.spec.requestedFreight[0].sources.stages // []) | any_c(. == \"$n\"))) | .metadata.name" "$k" | { grep -v '^---$' || true; } | sort | paste -sd, -)"
-      [[ "$ch" == "$tg" ]] && ok=1
-    done
-    [[ -n "$ok" ]] || { echo "e) $app stage $st ($tg) has no one-click node" >&2; exit 1; }
-  done
-done
+# e) one-click: every stage with >1 target is exactly the downstream set of one Stage (any app in the file)
+oneclick "$k"
+# f) a single upstream target that also feeds an M->1 join: the multi-target stage it feeds still needs an entry
+synth payments 'yq -i "del(.stages.staging.targets.onprem-stg) | del(.stages.prod.targets.onprem-prod)" payments/apps/my-app/app.yml
+  printf "dependsOn: [staging]\n" > payments/stages/qa.yml
+  for t in us onprem; do cp -R payments/targets/$t-stg payments/targets/$t-qa; yq -i ".config.namespace = \"payments-$t-qa\"" payments/targets/$t-qa/target.yml; yq -i ".stages.qa.targets.\"$t-qa\" = {}" payments/apps/my-app/app.yml; done'
+want my-app-qa "false::my-app-us-stg" "$kk"; want my-app-us-qa "false::my-app-qa" "$kk"
+want my-app-us-prod "false:All:my-app-us-perf,my-app-us-stg" "$kk"
+oneclick "$kk"; rm -rf "${r:?}" "${o:?}"
 echo "control-flow graph ok"

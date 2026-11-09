@@ -58,8 +58,9 @@ _gp: {for an, p in pipelines {(an): {
 			"",
 		][0]
 	}}}
-	// base downstream size of an upstream target that alone feeds one or more groups
-	_down: {for k, g in grp if !g.shared && !g.wh && len(g.U) == 1 {(g.U[0]): (k): g.nC}}
+	// base downstream size of each upstream target: every group it feeds (direct, M->1 join, or one shared
+	// node), so a stage fed by it alone gets an entry whenever "Promote to downstream" there would reach more
+	_down: {for k, g in grp if !g.wh for u in g.U {(u): (k): [if g.shared {1}, g.nC][0]}}
 	down: {for t, ks in _down {(t): list.Sum([for _, n in ks {n}])}}
 	st: {for sn, s in p.stages {(sn): {
 		let g = grp[key[sn]]
