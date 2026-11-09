@@ -4,12 +4,12 @@ package argocd
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -25,7 +25,7 @@ var RolloutTimeout = 300 * time.Second
 
 // ApplyRoot waits for Argo CD's controllers, applies platform/bootstrap/root.yaml and waits for the
 // root app. A root created before the application-controller runs idles until the next periodic reconcile.
-func ApplyRoot(ctx context.Context, c *kube.Clients, root string) error {
+func ApplyRoot(ctx context.Context, c *kube.Clients, root string, log io.Writer) error {
 	if err := waitRollout(ctx, c, "statefulset", "argocd-application-controller"); err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func ApplyRoot(ctx context.Context, c *kube.Clients, root string) error {
 	if err := c.ApplyYAML(ctx, y, kube.FieldManager); err != nil {
 		return fmt.Errorf("apply root app: %w", err)
 	}
-	return WaitApp(ctx, c, "root", os.Stderr)
+	return WaitApp(ctx, c, "root", log)
 }
 
 func waitRollout(ctx context.Context, c *kube.Clients, kind, name string) error {
@@ -49,11 +49,8 @@ func waitRollout(ctx context.Context, c *kube.Clients, kind, name string) error 
 		switch kind {
 		case "statefulset":
 			s, err := c.Core.AppsV1().StatefulSets(Namespace).Get(ctx, name, metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				return false, nil
-			}
 			if err != nil {
-				return false, err
+				return false, err // poll retries any error (NotFound included) until timeout
 			}
 			want := int32(1)
 			if s.Spec.Replicas != nil {
@@ -62,11 +59,8 @@ func waitRollout(ctx context.Context, c *kube.Clients, kind, name string) error 
 			return s.Status.ObservedGeneration >= s.Generation && s.Status.UpdatedReplicas == want && s.Status.ReadyReplicas == want, nil
 		default:
 			d, err := c.Core.AppsV1().Deployments(Namespace).Get(ctx, name, metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				return false, nil
-			}
 			if err != nil {
-				return false, err
+				return false, err // poll retries any error (NotFound included) until timeout
 			}
 			want := int32(1)
 			if d.Spec.Replicas != nil {

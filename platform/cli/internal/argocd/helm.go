@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
 
 	"helm.sh/helm/v4/pkg/action"
@@ -20,7 +20,7 @@ import (
 // HelmInstallIfMissing installs the addon's chart (repo/chart/version from its AppSet) unless the release
 // exists. No wait (hook-only strategy): the root app only needs the CRDs. Values: valueFiles merged, then
 // extra, then (region != "") the AppSet valuesObject with {{.values.region}} substituted.
-func HelmInstallIfMissing(ctx context.Context, kubeCtx, ns, release string, root string, addon string, valueFiles []string, extra map[string]any, region string) error {
+func HelmInstallIfMissing(ctx context.Context, kubeCtx, ns, release string, root string, addon string, valueFiles []string, extra map[string]any, region string, log io.Writer) error {
 	repo, chart, version, valuesObject, err := AppSetChart(root, addon)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func HelmInstallIfMissing(ctx context.Context, kubeCtx, ns, release string, root
 	if _, err := inst.RunWithContext(ctx, ch, vals); err != nil {
 		return fmt.Errorf("helm install %s: %w", release, err)
 	}
-	fmt.Fprintf(os.Stderr, "helm installed %s/%s %s in %s\n", ns, release, version, kubeCtx)
+	fmt.Fprintf(log, "helm installed %s/%s %s in %s\n", ns, release, version, kubeCtx)
 	return nil
 }
 

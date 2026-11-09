@@ -29,16 +29,20 @@ func poll(ctx context.Context, every, timeout time.Duration, what string, f func
 	defer cancel()
 	t := time.NewTicker(every)
 	defer t.Stop()
+	var last error
 	for {
 		ok, err := f()
-		if err != nil {
-			return err
-		}
-		if ok {
+		if ok && err == nil {
 			return nil
+		}
+		if err != nil {
+			last = err // transient (apiserver restart, 5xx, ...): retry like the bash loops
 		}
 		select {
 		case <-ctx.Done():
+			if last != nil {
+				return fmt.Errorf("timed out waiting for %s (last error: %w)", what, last)
+			}
 			return fmt.Errorf("timed out waiting for %s", what)
 		case <-t.C:
 		}

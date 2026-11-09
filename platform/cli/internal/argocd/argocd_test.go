@@ -3,6 +3,8 @@ package argocd
 import (
 	"bytes"
 	"context"
+	"errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -115,5 +117,35 @@ func TestAppSetChart(t *testing.T) {
 	g := vo["global"].(map[string]any)["domain"]
 	if g != "argocd-{{.values.region}}.localhost" {
 		t.Errorf("domain = %v", g)
+	}
+}
+
+func TestWaitAppTransientError(t *testing.T) {
+	fast(t)
+	dyn := newDyn()
+	var gets atomic.Int32
+	dyn.PrependReactor("get", "applications", func(a clienttesting.Action) (bool, runtime.Object, error) {
+		if gets.Add(1) == 1 {
+			return true, nil, apierrors.NewServiceUnavailable("apiserver restarting")
+		}
+		return true, app(nil, "Synced", "Healthy"), nil
+	})
+	dyn.PrependReactor("patch", "applications", func(a clienttesting.Action) (bool, runtime.Object, error) {
+		return true, app(nil, "Synced", "Healthy"), nil
+	})
+	if err := WaitApp(context.Background(), &kube.Clients{Ctx: "c", Dyn: dyn}, "root", &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWaitAppPersistentError(t *testing.T) {
+	fast(t)
+	dyn := newDyn()
+	dyn.PrependReactor("get", "applications", func(a clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewInternalError(errors.New("boom-persistent"))
+	})
+	err := WaitApp(context.Background(), &kube.Clients{Ctx: "c", Dyn: dyn}, "root", &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), "boom-persistent") {
+		t.Fatalf("err = %v", err)
 	}
 }
