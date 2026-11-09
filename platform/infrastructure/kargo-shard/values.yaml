@@ -12,6 +12,6 @@ garbageCollector: {enabled: false}
 webhooksServer: {enabled: false}
 managementController: {enabled: false}
 kubeconfigSecrets:
-  kargo: kargo-hub-kubeconfig  # written by mise-tasks/kargo-shards
+  kargo: kargo-hub-kubeconfig  # written by `gcd kargo-shards`
 controller:
   rollouts: {integrationEnabled: false}

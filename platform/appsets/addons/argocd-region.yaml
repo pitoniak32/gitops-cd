@@ -1,5 +1,5 @@
 # regional Argo CD manages itself (Application `argocd` in each region); bootstrapped by `helm install` in
-# mise-tasks/infra with values.yaml + this valuesObject ({{.values.region}} substituted). Pin shared with argocd
+# `gcd infra` with values.yaml + this valuesObject ({{.values.region}} substituted). Pin shared with argocd
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -39,7 +39,7 @@ spec:
               configs:
                 cm:
                   url: https://argocd-{{.values.region}}.localhost
-                  # hub keycloak, public client argocd-<region> + PKCE. Issuer resolves via region CoreDNS (mise-tasks/region-dns)
+                  # hub keycloak, public client argocd-<region> + PKCE. Issuer resolves via region CoreDNS (`gcd region-dns`)
                   oidc.config: |
                     name: Keycloak
                     issuer: http://keycloak.localhost/realms/kargo

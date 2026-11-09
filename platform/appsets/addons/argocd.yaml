@@ -1,4 +1,4 @@
-# hub Argo CD manages itself; bootstrapped by `helm install` in mise-tasks/infra. Pin shared with argocd-region
+# hub Argo CD manages itself; bootstrapped by `helm install` in `gcd infra`. Pin shared with argocd-region
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:

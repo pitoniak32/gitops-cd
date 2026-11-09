@@ -1,6 +1,6 @@
 # regional Argo CD (one per region cluster): region-independent values. Region bits (domain, url, OIDC
 # client, labeled in-cluster Secret) are the valuesObject in ../../appsets/addons/argocd-region.yaml; the
-# helm bootstrap in mise-tasks/infra merges both. Same chart pin as the hub (appsets/check.sh).
+# helm bootstrap in `gcd infra` (argocd.RegionValues) merges both. Same chart pin as the hub (appsets/check.sh).
 # Minimal: no dex or notifications.
 configs:
   params:

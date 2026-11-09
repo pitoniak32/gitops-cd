@@ -44,7 +44,7 @@ done
 # a region may lose its last capability: argocd-projects must be allowed to prune to empty
 [[ "$(yq '.spec.template.spec.syncPolicy.automated.allowEmpty' platform/appsets/projects.yaml)" == true ]] || fail "projects.yaml: automated.allowEmpty must be true"
 
-# mise-tasks/infra reads chart pin + valuesObject from sources[0]: the chart source must come first
+# gcd infra (argocd package) reads chart pin + valuesObject from sources[0]: the chart source must come first
 for f in platform/appsets/addons/*.yaml; do
   if [[ "$(yq '[.spec.template.spec.sources[] | select(has("chart"))] | length' "$f")" -gt 0 ]]; then
     [[ "$(yq '.spec.template.spec.sources[0] | has("chart")' "$f")" == true ]] || fail "$f: chart source must be sources[0]"
