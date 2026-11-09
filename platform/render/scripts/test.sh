@@ -126,6 +126,12 @@ cp -R "$r/capabilities/payments/targets/onprem-dev" "$r/capabilities/payments/ta
 got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE '^capabilities/payments/targets/dev/target\.yml:[0-9]+:[0-9]+: .*also a stage name' <<<"$got" || { printf 'target/stage name collision not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "target/stage name collision ok"
+# ...nor like <stage>-done (fan-out control-flow Stage <app>-<stage>-done, ADR 0019)
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
+cp -R "$r/capabilities/payments/targets/onprem-dev" "$r/capabilities/payments/targets/dev-done"
+got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+grep -qE '^capabilities/payments/targets/dev-done/target\.yml:[0-9]+:[0-9]+: .*target name dev-done is <stage>-done; Kargo control-flow stage names <app>-dev-done would collide' <<<"$got" || { printf 'target named <stage>-done not rejected:\n%s\n' "$got" >&2; exit 1; }
+echo "target <stage>-done collision ok"
 
 # Target layout: old targets/<t>.yml and bundles without target.yml fail lint
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; t="$r/capabilities/payments/targets"

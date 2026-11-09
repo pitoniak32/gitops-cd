@@ -62,10 +62,17 @@ let badName = error("invalid name; use lowercase letters, digits and -, starting
 stages: [!~_nameRe]:  badName
 targets: [!~_nameRe]: badName
 apps: [!~_nameRe]:    badName
-// Kargo Stage names are <app>-<stage> (gates) and <app>-<target>: a target can't share a stage's name.
+// Kargo Stage names are <app>-<target> and, for control flow (graph.cue, ADR 0019), <app>-<stage> and
+// <app>-<stage>-done: a target can't be named like a stage or <stage>-done.
 // Checked on the raw file names (a condition on targets itself would cycle).
 for k, _ in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if stages[tn] != _|_ {
 	targets: (tn): error("target name \(tn) is also a stage name; Kargo stage names <app>-<name> would collide")
+}
+
+// raw stage file names (reading `stages` here would cycle through the prod-stage rules)
+_stageFiles: {for k, _ in in if k =~ _route.stages {(regexp.FindSubmatch(_route.stages, k)[1]): _}}
+for tn, _ in _targetFiles if strings.HasSuffix(tn, "-done") if _stageFiles[strings.TrimSuffix(tn, "-done")] != _|_ {
+	targets: (tn): error("target name \(tn) is <stage>-done; Kargo control-flow stage names <app>-\(tn) would collide")
 }
 
 // kept outside #App so the generated JSON Schema stays precise
