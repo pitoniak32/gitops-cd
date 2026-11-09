@@ -18,9 +18,6 @@ metadata:
 spec:
   promotionPolicies:
     - stageSelector:
-        name: api-dev
-      autoPromotionEnabled: true
-    - stageSelector:
         name: api-us-dev
       autoPromotionEnabled: true
 ---
@@ -45,27 +42,6 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: api-dev
-  namespace: kargo-search
-  labels:
-    example.com/capability: search
-    example.com/app: api
-    example.com/kind: gate
-    example.com/stage: dev
-  annotations:
-    example.com/break-glass: '[]'
-    kargo.akuity.io/color: blue
-spec:
-  requestedFreight:
-    - origin:
-        kind: Warehouse
-        name: api
-      sources:
-        direct: true
----
-apiVersion: kargo.akuity.io/v1alpha1
-kind: Stage
-metadata:
   name: api-us-dev
   namespace: kargo-search
   labels:
@@ -84,8 +60,7 @@ spec:
         kind: Warehouse
         name: api
       sources:
-        stages:
-          - api-dev
+        direct: true
   promotionTemplate:
     spec:
       vars:
@@ -163,7 +138,6 @@ rules:
     resources:
       - stages
     resourceNames:
-      - api-dev
       - api-us-dev
     verbs:
       - promote

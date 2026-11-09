@@ -10,29 +10,21 @@ import (
 //   CI renders every (app, stage, target) to <repo>@main: rendered/apps/<cap>/<app>/<stage>/<target>/
 //   Kargo Warehouse per app watches that path and the app's image repo (SemVer tags); Freight creation
 //   is Manual: promoters assemble Freight = (config commit, image digest) in the UI (ADR 0016).
-//   Gate Stage <app>-<stage> (control flow, no steps) per gitops stage: the first takes Freight from
-//   the Warehouse, later ones once it's verified in every target Stage of the upstream stage(s).
-//   Target Stage <app>-<target> takes Freight from its gate and copies its target folder from that
-//   commit onto branch env/<cap>/<app>/<target>, pins the Freight's image in its deployment.yaml,
-//   then syncs that target's Argo CD app.
+//   Target Stage <app>-<target> takes Freight from its upstream node (graph.cue, ADR 0019: the Warehouse,
+//   upstream targets, or a control-flow Stage where many targets feed many or a stage needs a one-click
+//   release point) and copies its target folder from that commit onto branch env/<cap>/<app>/<target>,
+//   pins the Freight's image in its deployment.yaml, then syncs that target's Argo CD app.
 //   Argo CD Application <cap>-<app>-<target> tracks that branch, path ".".
 
 _kargoProject: "kargo-\(_cap)"
 _kargoAPI:     "kargo.akuity.io/v1alpha1"
 
-// Kargo Stage names per app: gates first, then targets (target names never equal stage names)
-_gateName: {#app: string, #stage: string, out: "\(#app)-\(#stage)"}
+// Kargo Stage names per app (graph.cue): target Stages <app>-<target> + control-flow Stages
 _tgtName: {#app: string, #target: string, out: "\(#app)-\(#target)"}
-_kargoStages: {for an, p in pipelines {(an): list.Concat([
-	[for sn, _ in p.stages {(_gateName & {#app: an, #stage: sn}).out}],
-	[for sn, s in p.stages for tn, _ in s.targets {(_tgtName & {#app: an, #target: tn}).out}],
-])
-}}
-_autoStages: list.Concat([for an, p in pipelines for sn, s in p.stages if s.autoPromote {list.Concat([
-	[(_gateName & {#app: an, #stage: sn}).out],
-	[for tn, _ in s.targets {(_tgtName & {#app: an, #target: tn}).out}],
-])
-}])
+_kargoStages: {for an, _ in pipelines {(an): list.SortStrings([for n, _ in _graph[an] {n}])}}
+// auto-promoted: every control-flow Stage (it only means "upstream verified") + targets of autoPromote stages
+_autoStages: list.SortStrings([for an, p in pipelines for n, x in _graph[an]
+	if x.kind == "control-flow" || p.stages[x.stage].autoPromote {n}])
 _stageAnnotations: {
 	#app:   string
 	#stage: string
@@ -40,7 +32,7 @@ _stageAnnotations: {
 	// read by the break-glass guard (platform/infrastructure/break-glass): who may approve unverified
 	// Freight for this Stage (ADR 0013)
 	"example.com/break-glass": json.Marshal(_breakGlass[#app])
-	// Kargo UI: a stage's gate and targets share its color
+	// Kargo UI: a stage's control-flow and target Stages share its color
 	"kargo.akuity.io/color": stages[#stage].color
 }
 _stageLabels: {
@@ -49,6 +41,21 @@ _stageLabels: {
 	"example.com/capability": _cap
 	"example.com/app":        #app
 	"example.com/stage":      #stage
+}
+
+// a Stage's Freight request from its graph node: the Warehouse directly, or upstream Stages (All when
+// several must have verified it)
+_freightRequest: {
+	#app:  string
+	#node: #GraphNode
+	origin: {kind: "Warehouse", name: #app}
+	sources: [
+		if #node.direct {direct: true},
+		{
+			stages: #node.sources
+			if #node.all {availabilityStrategy: "All"}
+		},
+	][0]
 }
 
 _kargoCore: [
@@ -60,7 +67,7 @@ _kargoCore: [
 		apiVersion: _kargoAPI
 		kind:       "ProjectConfig"
 		metadata: {name: _kargoProject, namespace: _kargoProject}
-		// a stage's autoPromote covers its gate and all its targets
+		// a stage's autoPromote covers its targets; control-flow Stages always auto-promote
 		spec: promotionPolicies: [for n in _autoStages {stageSelector: name: n, autoPromotionEnabled: true}]
 	},
 	for an, _ in pipelines {
@@ -81,26 +88,17 @@ _kargoCore: [
 			}}]
 		}
 	},
-	// gates: control flow Stages (no promotionTemplate); Freight promoted here is verified at once
-	for an, p in pipelines for sn, s in p.stages {
+	// control-flow Stages (no promotionTemplate, hub controller): Freight promoted here is verified at once
+	for an, _ in pipelines for n, x in _graph[an] if x.kind == "control-flow" {
 		apiVersion: _kargoAPI
 		kind:       "Stage"
 		metadata: {
-			name: (_gateName & {#app: an, #stage: sn}).out
+			name:      n
 			namespace: _kargoProject
-			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "gate"}
-			annotations: _stageAnnotations & {#app: an, #stage: sn}
+			labels: _stageLabels & {#app: an, #stage: x.stage, "example.com/kind": "control-flow"}
+			annotations: _stageAnnotations & {#app: an, #stage: x.stage}
 		}
-		spec: requestedFreight: [{
-			origin: {kind: "Warehouse", name: an}
-			sources: [
-				if len(s.dependsOn) == 0 {direct: true},
-				{
-					stages: list.SortStrings([for d in s.dependsOn for tn, _ in p.stages[d].targets {(_tgtName & {#app: an, #target: tn}).out}])
-					availabilityStrategy: "All" // verified in every target of every upstream stage
-				},
-			][0]
-		}]
+		spec: requestedFreight: [_freightRequest & {#app: an, #node: x}]
 	},
 	for an, p in pipelines for sn, s in p.stages for tn, _ in s.targets {
 		apiVersion: _kargoAPI
@@ -114,10 +112,7 @@ _kargoCore: [
 		spec: {
 			// the region's Kargo controller promotes it (gates and Warehouses stay on the hub controller)
 			shard: clusters[targets[tn].config.cluster].region
-			requestedFreight: [{
-				origin: {kind: "Warehouse", name: an}
-				sources: stages: [(_gateName & {#app: an, #stage: sn}).out]
-			}]
+			requestedFreight: [_freightRequest & {#app: an, #node: _graph[an][(_tgtName & {#app: an, #target: tn}).out]}]
 			promotionTemplate: spec: {
 				vars: [
 					{name: "repo", value: _repoURL},
@@ -208,7 +203,7 @@ argocdDeploys: {for _, d in deploys {
 }}
 
 // Promote RBAC: one Kargo ServiceAccount per app, mapped from the OIDC email claim to the app's
-// promoters, allowed to promote (and manually approve Freight for) every gate and target Stage of that app.
+// promoters, allowed to promote (and manually approve Freight for) every control-flow and target Stage of that app.
 // Only apps with stages: an empty resourceNames would mean *every* stage.
 _rbacMeta: {
 	#name:     string
