@@ -7,6 +7,7 @@ yq = '4.54.2'
 cue = '0.17.0'
 jq = '1.8.1'
 mkcert = '1.4.4'
+go = '1.27.2'
 
 [env]
 # project-local kubeconfig: never touches ~/.kube/config
@@ -19,3 +20,9 @@ GITHUB_AUTH_TOKEN = {
 
 [task_config]
 includes = ["platform/mise-tasks"]
+
+[tasks.cli]
+description = "Build the gcd CLI to .bin/gcd"
+run = "go build -C platform/cli -o ../../.bin/gcd ."
+sources = ["platform/cli/**/*.go", "platform/cli/go.mod", "platform/cli/go.sum"]
+outputs = [".bin/gcd"]

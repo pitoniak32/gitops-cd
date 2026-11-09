@@ -23,7 +23,7 @@ jobs:
           token: ${{ github.event_name == 'push' && secrets.RENDER_BOT_TOKEN || github.token }}
       - uses: jdx/mise-action@v2   # pinned tools from .mise.toml (cue, jq, yq)
         with:
-          install_args: cue jq yq
+          install_args: cue jq yq go
       - uses: actions/cache@v4
         with: {path: ~/.cache/cue, key: "cue-${{ hashFiles('platform/cue.mod/module.cue') }}"}
 
