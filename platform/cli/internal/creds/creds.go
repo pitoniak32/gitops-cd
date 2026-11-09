@@ -1,4 +1,5 @@
-// Package creds installs the Kargo git credentials (GitHub App) from fnox.
+// Package creds installs Kargo's shared credentials from fnox: git (GitHub App) and the GitHub
+// Actions token (PAT) that deployWith: gha Stages use to dispatch workflows (ADR 0020).
 package creds
 
 import (
@@ -32,11 +33,12 @@ func FnoxGetter(name string) (string, error) {
 	return strings.TrimSuffix(string(out), "\n"), nil
 }
 
-// Run writes kargo-shared-resources/github-gitops-cd (App auth only) and removes the legacy Argo CD
-// repo secret. Secret values are never logged.
+// Run writes kargo-shared-resources/github-gitops-cd (App auth only) and github-actions (PAT, read
+// by sharedSecret('github-actions').token) and removes the legacy Argo CD repo secret. Secret values
+// are never logged.
 func Run(ctx context.Context, hub *kube.Clients, get Getter, log io.Writer) error {
 	vals := map[string]string{}
-	for _, n := range []string{"GITHUB_APP_ID", "GITHUB_APP_INSTALLATION_ID", "GITHUB_APP_PRIVATE_KEY"} {
+	for _, n := range []string{"GITHUB_APP_ID", "GITHUB_APP_INSTALLATION_ID", "GITHUB_APP_PRIVATE_KEY", "GITHUB_PAT"} {
 		v, err := get(n)
 		if err != nil {
 			return err
@@ -64,6 +66,18 @@ func Run(ctx context.Context, hub *kube.Clients, get Getter, log io.Writer) erro
 		return err
 	}
 	fmt.Fprintf(log, "secret %s/%s applied in %s\n", s.Namespace, s.Name, hub.Ctx)
+	gha := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "github-actions", Namespace: "kargo-shared-resources",
+			Labels: map[string]string{"kargo.akuity.io/cred-type": "generic"},
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{"token": []byte(vals["GITHUB_PAT"])},
+	}
+	if err := hub.UpsertSecret(ctx, gha); err != nil {
+		return err
+	}
+	fmt.Fprintf(log, "secret %s/%s applied in %s\n", gha.Namespace, gha.Name, hub.Ctx)
 	// earlier versions created an Argo CD repo secret; the public repo needs none
 	err := hub.Core.CoreV1().Secrets("argocd").Delete(ctx, "repo-gitops-cd", metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
