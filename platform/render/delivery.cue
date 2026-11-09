@@ -15,9 +15,19 @@ import (
 //   release point) and copies its target folder from that commit onto branch env/<cap>/<app>/<target>,
 //   pins the Freight's image in its deployment.yaml, then syncs that target's Argo CD app.
 //   Argo CD Application <cap>-<app>-<target> tracks that branch, path ".".
+//   deployWith: gha targets (ADR 0020) get no Application: after the push the Stage dispatches a GitHub
+//   Actions workflow (http step, PAT from the shared `github-actions` secret) and waits for its run.
 
 _kargoProject: "kargo-\(_cap)"
-_kargoAPI:     "kargo.akuity.io/v1alpha1"
+
+// GitHub REST for gha targets; token: kargo-shared-resources/github-actions (`gcd creds`)
+_ghAPI: "https://api.github.com/repos/${{ vars.workflowRepo }}"
+_ghHeaders: [
+	{name: "Authorization", value: "Bearer ${{ sharedSecret('github-actions').token }}"},
+	{name: "Accept", value: "application/vnd.github+json"},
+	{name: "X-GitHub-Api-Version", value: "2022-11-28"},
+]
+_kargoAPI: "kargo.akuity.io/v1alpha1"
 
 // Kargo Stage names per app (graph.cue): target Stages <app>-<target> + control-flow Stages
 _tgtName: {#app: string, #target: string, out: "\(#app)-\(#target)"}
@@ -100,13 +110,14 @@ _kargoCore: [
 		}
 		spec: requestedFreight: [_freightRequest & {#app: an, #node: x}]
 	},
-	for an, p in pipelines for sn, s in p.stages for tn, _ in s.targets {
+	for an, p in pipelines for sn, s in p.stages for tn, _ in s.targets
+	let d = deploys["\(an)/\(tn)"] {
 		apiVersion: _kargoAPI
 		kind:       "Stage"
 		metadata: {
 			name: (_tgtName & {#app: an, #target: tn}).out
 			namespace: _kargoProject
-			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn}
+			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn, "example.com/deploy-with": d.deployWith}
 			annotations: _stageAnnotations & {#app: an, #stage: sn}
 		}
 		spec: {
@@ -119,6 +130,9 @@ _kargoCore: [
 					{name: "src", value: "./src/\(renderedDir)/apps/\(_cap)/\(an)/\(sn)/\(tn)/"},
 					{name: "branch", value: "env/\(_cap)/\(an)/\(tn)"},
 					{name: "image", value: apps[an].image},
+					if d.deployWith == "gha" {{name: "workflowRepo", value: d.workflow.repo}},
+					if d.deployWith == "gha" {{name: "workflowFile", value: d.workflow.file}},
+					if d.deployWith == "gha" {{name: "workflowRef", value: d.workflow.ref}},
 				]
 				steps: [
 					{uses: "git-clone", config: {
@@ -143,11 +157,34 @@ _kargoCore: [
 						message: "promote \(_cap)/\(an) to \(sn)/\(tn) from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}"
 					}},
 					{uses: "git-push", config: path: "./out"},
-					{uses: "argocd-update", config: apps: [{
+					if d.deployWith == "argocd" {{uses: "argocd-update", config: apps: [{
 						name:      "\(_cap)-\(an)-\(tn)"
 						namespace: "argocd"
 						sources: [{repoURL: "${{ vars.repo }}", desiredRevision: "${{ outputs.commit.commit }}"}]
-					}]},
+					}]}},
+					// gha (ADR 0020): dispatch the workflow with the pushed commit, then poll its run until it
+					// completes; Running (neither expression true) is retried until retry.timeout
+					if d.deployWith == "gha" {{uses: "http", as: "dispatch", config: {
+						method: "POST"
+						url:    "\(_ghAPI)/actions/workflows/${{ vars.workflowFile }}/dispatches"
+						headers: list.Concat([_ghHeaders, [{name: "Content-Type", value: "application/json"}]])
+						body:              "${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': '\(_cap)', 'app': '\(an)', 'stage': '\(sn)', 'target': '\(tn)', 'commit': outputs.commit.commit, 'image': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest}}) }}"
+						successExpression: "response.status == 200"
+						failureExpression: "response.status != 200"
+						errorExpression:   "response.body.message"
+						outputs: [
+							{name: "runID", fromExpression: "response.body.workflow_run_id"},
+							{name: "runURL", fromExpression: "response.body.html_url"},
+						]
+					}}},
+					if d.deployWith == "gha" {{uses: "http", as: "wait", retry: timeout: "30m", config: {
+						method:            "GET"
+						url:               "\(_ghAPI)/actions/runs/${{ outputs.dispatch.runID }}"
+						headers:           _ghHeaders
+						successExpression: "response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'"
+						failureExpression: "response.status != 200 || (response.body.status == 'completed' && response.body.conclusion != 'success')"
+						errorExpression:   "response.status != 200 ? response.body.message : 'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url"
+					}}},
 				]
 			}
 		}
@@ -157,7 +194,9 @@ _kargoCore: [
 // Argo CD output per region (one Argo CD per region): rendered/argocd/projects/<region>/<cap>.yaml, an
 // AppProject per capability with only that region's destinations (synced by the `projects` AppSet).
 // Inside a regional Argo CD the workload cluster is its own (clusters[].argocdName, in-cluster).
-_deployRegion: {for _, d in deploys {(clusters[d.tgt.cluster].region): _}}
+// only argocd deploys get an Application / AppProject destination; gha deploys run a workflow (ADR 0020)
+_argoDeploys: {for k, d in deploys if d.deployWith == "argocd" {(k): d}}
+_deployRegion: {for _, d in _argoDeploys {(clusters[d.tgt.cluster].region): _}}
 _appProject: {
 	#region:    string
 	apiVersion: "argoproj.io/v1alpha1"
@@ -165,7 +204,7 @@ _appProject: {
 	metadata: {name: _cap, namespace: "argocd"}
 	spec: {
 		sourceRepos: [_repoURL]
-		destinations: [for k in list.SortStrings([for k, _ in {for _, d in deploys if clusters[d.tgt.cluster].region == #region {"\(clusters[d.tgt.cluster].argocdName)/\(d.tgt.namespace)": _}} {k}]) {
+		destinations: [for k in list.SortStrings([for k, _ in {for _, d in _argoDeploys if clusters[d.tgt.cluster].region == #region {"\(clusters[d.tgt.cluster].argocdName)/\(d.tgt.namespace)": _}} {k}]) {
 			name:      strings.Split(k, "/")[0]
 			namespace: strings.Split(k, "/")[1]
 		}]
@@ -188,7 +227,7 @@ argocdProjects: {for r, _ in _deployRegion {(r): _appProject & {#region: r}}}
 // (platform/appsets/workloads.yaml: cluster gen x git files gen) from one params file per app+target:
 // rendered/argocd/deploys/<region>/<cap>/<app>-<target>.json. Keys must match that template;
 // git files gen reserves `path` and `values`.
-argocdDeploys: {for _, d in deploys {
+argocdDeploys: {for _, d in _argoDeploys {
 	"\(clusters[d.tgt.cluster].region)/\(_cap)/\(d.app)-\(d.target)": {
 		appName:         "\(_cap)-\(d.app)-\(d.target)"
 		capability:      _cap

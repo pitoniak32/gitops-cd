@@ -23,6 +23,11 @@ stages:
       onprem-stg:
         env:
           APP_SECRET: 'secret:acme-proj2/my-app-secret@3'
+        deployWith: gha
+        workflow:
+          repo: acme/deploys
+          file: onprem.yml
+          ref: v1
   perf:
     targets:
       us-perf: {}

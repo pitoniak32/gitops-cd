@@ -43,7 +43,7 @@
             "namespace": "payments-onprem-stg",
             "environment": "staging",
             "path": "apps/payments/my-app/staging/onprem-stg",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
@@ -178,7 +178,7 @@
             "namespace": "payments-us-dev",
             "environment": "dev",
             "path": "apps/payments/worker/dev/us-dev",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
