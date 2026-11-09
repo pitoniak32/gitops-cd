@@ -35,6 +35,7 @@ pipelines: {for an, a in apps {
 						namespace:   _capTargets[tn].config.namespace
 						environment: _capTargets[tn].config.environment
 						path:        "apps/\(_cap)/\(an)/\(sn)/\(tn)"
+						deployWith:  deploys["\(an)/\(tn)"].deployWith
 					}
 				}}
 			}

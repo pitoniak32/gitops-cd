@@ -24,6 +24,17 @@ import (
 		cpu?:    =~"^[0-9]+m?$"
 		memory?: =~"^[0-9]+(Mi|Gi)$"
 	}
+	// How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches
+	// `workflow` with the promoted commit and image and waits for the run (ADR 0020).
+	deployWith?: "argocd" | "gha" | error("deployWith: expected argocd or gha")
+	// GitHub Actions workflow for gha targets (ignored where deployWith is argocd); each field
+	// defaults separately: repo this repo, file deploy.yaml, ref main.
+	workflow?: {
+		repo?: =~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" | error("workflow.repo: expected <owner>/<name>")
+		// file name under <repo>/.github/workflows/
+		file?: =~"^[A-Za-z0-9_.-]+\\.ya?ml$" | error("workflow.file: expected a .yml or .yaml file name")
+		ref?:  string & !=""
+	}
 }
 
 // apps/<name>/app.yml
@@ -59,7 +70,14 @@ import (
 	}
 }
 
-_defaults: {replicas: 2, cpu: "100m", memory: "128Mi"}
+_ghRepo: strings.TrimPrefix(_repoURL, "https://github.com/")
+_defaults: {
+	replicas:   2
+	cpu:        "100m"
+	memory:     "128Mi"
+	deployWith: "argocd"
+	workflow: {repo: _ghRepo, file: "deploy.yaml", ref: "main"}
+}
 
 // One entry per (app, target): the effective, fully merged config.
 // Keyed by app/target, so using a target in two stages is a conflict.
@@ -91,6 +109,21 @@ deploys: {for an, a in apps for sn, s in a.stages for tn, t in s.targets {
 			if a.resources.memory != _|_ {a.resources.memory},
 			_defaults.memory,
 		][0]
+
+		deployWith: [
+			if t.deployWith != _|_ {t.deployWith},
+			if s.deployWith != _|_ {s.deployWith},
+			if a.deployWith != _|_ {a.deployWith},
+			_defaults.deployWith,
+		][0]
+		workflow: {for f, dv in _defaults.workflow {
+			(f): [
+				if t.workflow[f] != _|_ {t.workflow[f]},
+				if s.workflow[f] != _|_ {s.workflow[f]},
+				if a.workflow[f] != _|_ {a.workflow[f]},
+				dv,
+			][0]
+		}}
 
 		envFrom: list.SortStrings([for n, _ in {for l in [a, s, t] if l.envFrom != _|_ for n in l.envFrom {(n): _}} {n}])
 		for n in envFrom if targetEnvs[tn][n] == _|_ {
