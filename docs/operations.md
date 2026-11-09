@@ -36,7 +36,7 @@ mise run kargo-restore            # all capabilities; or: mise run kargo-restore
 For each target Stage with no current Freight it reads the branch head (Kargo's commit message names the source commit; `deployment.yaml` pins `<repo>:<tag>@<digest>`), recreates that Freight (same artifacts give the same Freight ID; the alias is new), approves it for the Stage and promotes it. The promotion re-copies identical manifests: no new commit, no rollout. Re-running is a no-op.
 
 - **Skipped, with a reason**: targets never promoted (no branch), branches from before ADR 0016 (no pinned image), heads that aren't Kargo promotion commits. Promote fresh Freight to those normally; the next rebuild can restore them.
-- **Gate Stages** (`<app>-<stage>`) stay empty; promotions onward start from the gate as usual.
+- **Control-flow Stages** (`<app>-<stage>`, `<app>-<stage>-done`) stay empty until new Freight flows through; they auto-promote.
 - **Auto-promoting targets** (dev) may show two Promotions for the same Freight: Kargo's own auto-promotion fires once the Freight is approved. Both succeed; harmless.
 
 ## Resetting a capability's promotion state

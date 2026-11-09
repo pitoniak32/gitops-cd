@@ -10,7 +10,7 @@ import (
 	dependsOn: [...[if generic {#Name}, or(_stageNames) | error("unknown stage; allowed: \(_stageList)")][0]]
 	// promote automatically once upstream stages are verified
 	autoPromote: *false | bool
-	// Kargo UI color for all of this stage's Kargo Stages (gate + targets); default picked per stage
+	// Kargo UI color for all of this stage's Kargo Stages (control flow + targets); default picked per stage
 	color?: or(_kargoColors) | error("unknown color; allowed: \(strings.Join(_kargoColors, ", "))")
 }
 

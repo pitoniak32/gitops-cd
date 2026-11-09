@@ -1,5 +1,7 @@
 # One Kargo Stage per target, with a gate per stage
 
+Status: accepted; the gate per stage is replaced by ADR 0019 (control-flow Stages only where they add value). One Kargo Stage per target stays.
+
 A gitops stage (`stages/<stage>.yml`) can deploy an app to several targets. Kargo used to have one Stage per (app, stage), which promoted all of that stage's targets in one go onto `env/<cap>/<app>/<stage>`. The Kargo UI never showed targets, so it didn't match the Argo CD apps (one per target).
 
 Now, per app:

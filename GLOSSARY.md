@@ -30,12 +30,12 @@ _Avoid_: approver (promoters approve normal promotions by promoting)
 An email listed under `viewers` in `owners.yml`. Viewers see the whole capability in Kargo and Argo CD, read-only.
 
 **Stage**:
-A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on. In Kargo it becomes a gate plus one target stage per target.
+A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on. In Kargo it becomes one target stage per target, plus control-flow Stages where needed (ADR 0019).
 _Avoid_: environment, phase
 
-**Gate**:
-The Kargo Stage `<app>-<stage>` for a stage: control flow only (no promotion steps). It takes Freight once it's verified in every target of the upstream stage(s), and its targets take Freight from it.
-_Avoid_: stage (ambiguous in Kargo)
+**Control-flow Stage**:
+A Kargo Stage with no promotion steps that always auto-promotes, rendered only where it helps (ADR 0019): `<app>-<S>-done` waits for all targets of stage S and fans out to several downstream targets; `<app>-<D>` fans into stage D's targets or gives a multi-target stage a one-click "Promote to downstream".
+_Avoid_: gate (ADR 0012's gate per stage is gone), join
 
 **Target stage**:
 The Kargo Stage `<app>-<target>` that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
@@ -82,7 +82,7 @@ A workload cluster `region-<r>` (listed in `platform/cluster/regions`) with its 
 _Avoid_: zone, location (a target is a deploy destination; a region is the Argo CD + Kargo shard behind it)
 
 **Shard**:
-The Kargo controller in a region (`shardName` = region). It talks to that region's Argo CD and connects back to the hub Kargo. Target stages run on their cluster's shard; gates and Warehouses run on the hub's default controller.
+The Kargo controller in a region (`shardName` = region). It talks to that region's Argo CD and connects back to the hub Kargo. Target stages run on their cluster's shard; control-flow Stages and Warehouses run on the hub's default controller.
 _Avoid_: agent (Kargo's docs use it loosely)
 
 **Environment**:
@@ -110,7 +110,7 @@ _Avoid_: release, version
 The Kargo resource per app that watches `rendered/apps/<cap>/<app>/` and the app's image repo. Freight creation is Manual: it only discovers commits and image tags.
 
 **Promotion**:
-Copying one target's rendered manifests from a Freight commit onto that target's branch and pinning the Freight's image in its `deployment.yaml` (target stage), or passing Freight through a gate.
+Copying one target's rendered manifests from a Freight commit onto that target's branch and pinning the Freight's image in its `deployment.yaml` (target stage), or passing Freight through a control-flow Stage.
 _Avoid_: deploy (as a verb for this step)
 
 **Target branch**:

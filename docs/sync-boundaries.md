@@ -12,7 +12,7 @@ GITOPS LANE (pull: Argo CD, automated + prune + selfHeal)
     → each region: argocd-projects syncs rendered/argocd/projects/<region>/,
       workloads AppSet makes one Application per rendered/argocd/deploys/<region>/<cap>/<app>-<target>.json
       (hub runs no workloads)
-    → Kargo: Freight from rendered/apps → gate <app>-<stage> → target stage <app>-<target>
+    → Kargo: Freight from rendered/apps → target stage <app>-<target> (control-flow Stages where needed)
       → env/<cap>/<app>/<target>
     → workload Applications sync the env/* branches
   platform/appsets/**, platform/infrastructure/**
@@ -30,7 +30,7 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 | You change | Path to the cluster |
 |---|---|
 | `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → hub `rendered-kargo`, each region's `argocd-projects` and `workloads` AppSet pick it up. Workloads don't change until a promotion. |
-| Workload manifests | Kargo Warehouse discovers new `rendered/apps/<cap>/<app>/` commits and image tags → promoter assembles Freight → gate → target-stage promotion pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
+| Workload manifests | Kargo Warehouse discovers new `rendered/apps/<cap>/<app>/` commits and image tags → promoter assembles Freight → target-stage promotion (via control-flow Stages where needed) pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
 | `teams/` | Takes effect on the next render, for CODEOWNERS only. It has no cluster effect (ADR 0011). |
 | `platform/render/**` (renderer logic) | Same as capabilities: lands when CI renders on `main` after the merge. |
 | `platform/infrastructure/<addon>/values.yaml`, `manifests/**` | Push to `main`; the add-on's Application reads them through its AppSet (`$values` ref / kustomize path). |

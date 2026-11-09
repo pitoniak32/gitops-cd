@@ -110,11 +110,13 @@ by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
 3. Every Argo CD runs the same root app (`platform/bootstrap/root.yaml` → `platform/appsets/`); cluster-generator labels pick the rest (ADR 0017). Hub: `rendered-kargo` syncs `rendered/kargo`. Each region: `argocd-projects` syncs its AppProjects and the `workloads` ApplicationSet makes one Application per app+target from `rendered/argocd/deploys/<region>/`. The hub runs no workloads.
 4. Kargo: each app's Warehouse watches `rendered/apps/<cap>/<app>/` and the app's image repo (SemVer tags).
    Nothing is promoted automatically from it: a promoter opens the Warehouse in the Kargo UI and
-   **assembles Freight** = a config commit + an image tag (ADR 0016). Per stage there's a gate
-   (`<app>-<stage>`) and one Kargo Stage per target (`<app>-<target>`); promoting a target copies its
-   folder to branch `env/<cap>/<app>/<target>`, pins the image digest in its `deployment.yaml`, and
-   Argo CD syncs it from there (ADR 0012). Promote onward from a **gate** node: gates pass Freight on
-   their own, so "promote to downstream" from a target into the next gate does nothing.
+   **assembles Freight** = a config commit + an image tag (ADR 0016). There's one Kargo Stage per target
+   (`<app>-<target>`); promoting a target copies its folder to branch `env/<cap>/<app>/<target>`, pins
+   the image digest in its `deployment.yaml`, and Argo CD syncs it from there (ADR 0012). Control-flow
+   Stages (no steps, always auto) appear only where they help (ADR 0019): `<app>-<S>-done` where
+   several targets fan out to several, `<app>-<D>` where several fan into a multi-target stage or a stage
+   needs a one-click release. To release a whole stage, use **Promote to downstream** on its `<app>-<D>`
+   node, or on its single upstream target when nothing else hangs off it.
 
 ## How the cluster works
 
