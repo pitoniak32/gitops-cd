@@ -86,10 +86,11 @@ jobs:
           mkdir -p "$rb/rendered" && rsync -a --delete rendered/ "$rb/rendered/"
           git -C "$rb" add -A
           git -C "$rb" diff --cached --stat
+          # -U8: 8 lines of context per change; capped below GitHub's 65536-char comment limit
           { echo 'body<<EOF'
             echo '### Rendered manifest diff (vs the rendered branch)'
             if git -C "$rb" diff --cached --quiet; then echo '_no changes_'; else
-              echo '```diff'; git -C "$rb" diff --cached | head -c 60000; echo '```'; fi
+              echo '```diff'; git -C "$rb" diff --cached -U8 | head -c 60000; echo '```'; fi
             echo EOF; } >> "$GITHUB_OUTPUT"
 
       - name: comment on PR
