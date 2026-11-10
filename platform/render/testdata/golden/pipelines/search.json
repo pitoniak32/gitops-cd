@@ -11,6 +11,7 @@
           "us-dev": {
             "cluster": "us",
             "namespace": "search-us-dev",
+            "platform": "K8S",
             "environment": "dev",
             "path": "apps/search/api/dev/us-dev",
             "deployWith": "argocd"

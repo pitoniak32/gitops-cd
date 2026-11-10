@@ -31,8 +31,12 @@ pipelines: {for an, a in apps {
 				level:       stageDepth[sn]
 				targets: {for tn, _ in s.targets {
 					(tn): {
-						cluster:     _capTargets[tn].config.cluster
-						namespace:   _capTargets[tn].config.namespace
+						platform: _capTargets[tn].config.platform
+						if platform == "K8S" {
+							cluster:   _capTargets[tn].config.cluster
+							namespace: _capTargets[tn].config.namespace
+						}
+						if platform == "TERRAFORM" {gcpProject: _capTargets[tn].config.terraform.gcpProject}
 						environment: _capTargets[tn].config.environment
 						path:        "apps/\(_cap)/\(an)/\(sn)/\(tn)"
 						deployWith:  deploys["\(an)/\(tn)"].deployWith

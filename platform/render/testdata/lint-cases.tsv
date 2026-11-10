@@ -21,3 +21,8 @@ capabilities/payments/apps/worker/app.yml	.stages.dev.workflow.file = "deploy.sh
 capabilities/payments/apps/worker/app.yml	.deployWith = "jenkins"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: deployWith: expected argocd or gha$
 capabilities/payments/apps/worker/app.yml	.workflow.repo = "not-a-repo"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: workflow\.repo: expected <owner>/<name>$
 capabilities/payments/apps/worker/app.yml	.workflow.ref = ""	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: workflow\.ref: expected a non-empty git ref$
+capabilities/payments/targets/tf-dev/target.yml	.config.cluster = "us"	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*cluster not allowed on a TERRAFORM target
+capabilities/payments/targets/tf-dev/target.yml	del(.config.terraform.backend.bucket)	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*bucket
+capabilities/payments/targets/tf-dev/target.yml	.config.terraform.gcpProject = "Bad"	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*gcpProject
+capabilities/payments/targets/us-dev/target.yml	.config.terraform = {"gcpProject": "team1-dev", "backend": {"bucket": "b-x"}}	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*terraform not allowed on a K8S target
+capabilities/payments/targets/us-dev/target.yml	del(.config.namespace)	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*namespace

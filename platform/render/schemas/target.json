@@ -12,7 +12,7 @@
     }
   },
   "type": "object",
-  "description": "targets/<name>/target.yml — where a stage deploys. Reusable across apps.\nSibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.",
+  "description": "targets/<name>/target.yml — where a stage deploys. Reusable across apps.\nSibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.\nplatform K8S (default): a namespace in a platform cluster, deployed by Argo CD or a gha workflow.\nplatform TERRAFORM: a GCP project + GCS state backend, applied by a gha workflow (terraform apps only).",
   "properties": {
     "config": {
       "type": "object",
@@ -40,6 +40,8 @@
           "pattern": "^[a-z0-9-]+$"
         },
         "cluster": {
+          "type": "string",
+          "description": "set per platform below; declared here so a misplaced field gets the message, not \"field not allowed\"",
           "anyOf": [
             {
               "anyOf": [
@@ -61,8 +63,16 @@
           "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
         },
         "platform": {
-          "const": "K8S"
-        }
+          "anyOf": [
+            {
+              "const": "K8S"
+            },
+            {
+              "const": "TERRAFORM"
+            }
+          ]
+        },
+        "terraform": false
       },
       "required": [
         "auth",
@@ -78,9 +88,10 @@
           "cluster",
           "environment",
           "namespace",
-          "platform"
+          "platform",
+          "terraform"
         ],
-        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, namespace, platform"
+        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, namespace, platform, terraform"
       }
     }
   },
