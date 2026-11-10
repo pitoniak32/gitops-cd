@@ -31,6 +31,8 @@ spec:
         - env:
             - name: APP_ENV
               value: "true"
+            - name: NEW_VAR
+              value: testing
             - name: DIFFERENT_SECRET
               value: /test@3
           image: ghcr.io/pitoniak32/nginx
