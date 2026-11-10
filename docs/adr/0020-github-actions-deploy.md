@@ -30,4 +30,5 @@ Now each deploy chooses how it is applied:
 - `mise run kargo-restore` re-promotes `gha` targets, which re-dispatches their workflow.
 - The workflow and its `ref` are read from GitHub at dispatch, not rendered; a missing file or a file without `workflow_dispatch` on that ref fails the Promotion at `dispatch` (404/422).
 - GitHub.com only: GHES ignores `return_run_details` and returns 204, which fails `dispatch`.
-- Kargo verification (AnalysisTemplates) isn't wired for `gha` targets; the run's conclusion is the check.
+- A `gha` Stage shows **Healthy** after any successful promotion, and nothing checks the workload afterwards. Kargo derives Stage health only from health checks that steps register; in OSS Kargo only `argocd-update` registers one, and a Stage with none counts as Healthy (`assessHealth` in Kargo's `regular_stages.go`). It reports Unknown only while promoting, without Freight, or after a failed promotion. There's no Stage setting to report Unknown instead.
+- For a real signal, add Kargo verification to `gha` target Stages: an AnalysisTemplate (e.g. a Job that queries the deploy target) runs after each promotion and marks the Freight verified or failed. Not wired here, because the demo workflow deploys nothing to check; until then, the run's conclusion is the only check.
