@@ -7,7 +7,7 @@ import (
 )
 
 // Promotion model (rendered-manifests + Kargo), one Kargo Stage per target (ADR 0012):
-//   CI renders every (app, stage, target) to <repo>@main: rendered/apps/<cap>/<app>/<stage>/<target>/
+//   CI renders every (app, stage, target) to <repo>@rendered (branch, ADR 0022): rendered/apps/<cap>/<app>/<stage>/<target>/
 //   Kargo Warehouse per app watches that path and the app's image repo (SemVer tags); Freight creation
 //   is Manual: promoters assemble Freight = (config commit, image digest) in the UI (ADR 0016).
 //   Target Stage <app>-<target> takes Freight from its upstream node (graph.cue, ADR 0019: the Warehouse,

@@ -23,6 +23,8 @@ Now `main` gets no bot commits:
 
 - A Freight's config commit is a `rendered`-branch commit. Its `render:` body links back to the `main` commit it came from.
 - Existing Freight and `env/*` branches stay valid: their old `main` commits still contain `rendered/`.
-- Bootstrap: until CI first creates `rendered`, the AppSets and Applications report a missing revision and retry.
+- Bootstrap: until CI first creates `rendered`, the AppSets and Applications report a missing revision and retry, but `mise run up`/`infra` time out waiting for the per-region hub apps. On a fresh repo or fork, push and wait for the first render before `up`.
+- CODEOWNERS staleness fails PRs but only warns on `main`, so it never blocks the render. A re-run of an older push run doesn't commit (it would roll `rendered` back). Any other git error fails the run.
+- Branch protection on `rendered` must still let `github-actions` push.
 - Ownership changes need `mise run codeowners`, which needs local tooling (`mise install`).
 - The PR diff is against the latest render of `main`, not the PR's merge base. Same as before.

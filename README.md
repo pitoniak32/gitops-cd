@@ -9,7 +9,8 @@ config, and a local kind cluster runs Argo CD + [Kargo](https://kargo.io) to pro
 ```sh
 mise install   # pinned tools (kind, helm, kubectl, cue, jq, yq, fnox)
 # first time:
-#   - push this repo to github.com/pitoniak32/gitops-cd (rendered/ syncs from branch rendered, written by CI)
+#   - push this repo to github.com/pitoniak32/gitops-cd and wait for CI's first render: it creates branch
+#     rendered (rendered/ syncs from there); `up` times out without it
 #   - a GitHub App installed on that repo with Contents read/write (Kargo pushes
 #     env/<cap>/<app>/<target> branches); store it for fnox:
 #     fnox set GITHUB_APP_ID / GITHUB_APP_INSTALLATION_ID / GITHUB_APP_PRIVATE_KEY
