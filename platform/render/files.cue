@@ -18,6 +18,7 @@ files: {
 			"apps/\(_cap)/\(m.app)/\(m.stage)/\(m.target)/deployment.yaml": yaml.Marshal(o)
 		}
 	}
+	for p, f in terraformFiles {(p): yaml.Marshal(f)}
 	"kargo/\(_cap).yaml": yaml.MarshalStream(kargo)
 	for r, p in argocdProjects {
 		"argocd/projects/\(r)/\(_cap).yaml": yaml.Marshal(p)

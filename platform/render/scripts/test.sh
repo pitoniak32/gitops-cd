@@ -113,6 +113,15 @@ w1='.spec.promotionTemplate.spec.steps[] | select(.as == "wait")'
 # Kargo ends a ${{ }} expression at the first "}}": a nested map literal must not close with "}}"
 if grep -nE '[^ ]\}\}' "$k" testdata/golden/kargo/*.yaml; then echo 'Kargo expression cut short: "}}" not preceded by a space' >&2; exit 1; fi
 echo "gha targets ok"
+# terraform apps (ADR 0021): one terraform.yaml per target, no k8s manifests, no Argo CD params
+tf="$tmp/apps/payments/infra"
+[[ "$(ls "$tf/dev/tf-dev" | paste -sd' ' -)" == "terraform.yaml" ]] || { echo "terraform target renders only terraform.yaml: $(ls "$tf/dev/tf-dev")" >&2; exit 1; }
+want='{"capability":"payments","app":"infra","stage":"dev","target":"tf-dev","environment":"dev","gcpProject":"team1-dev","wifEmail":"team1-dev@team1-dev.iam.gserviceaccount.com","backend":{"bucket":"tfstate-team1-dev","prefix":"payments/infra/tf-dev"},"module":"ghcr.io/pitoniak32/tf-bucket","env":{"TF_VAR_bucket_name":"payments-dev","TF_VAR_region":"us-central1"}}'
+got="$(yq -o=json -I=0 '.' "$tf/dev/tf-dev/terraform.yaml")"
+[[ "$got" == "$want" ]] || { printf 'tf-dev terraform.yaml\nwant: %s\ngot:  %s\n' "$want" "$got" >&2; exit 1; }
+[[ "$(yq '.backend.prefix + " " + .env.TF_VAR_region' "$tf/prod/tf-prod/terraform.yaml")" == "payments/custom us-east1" ]] || { echo "tf-prod prefix override / target env" >&2; exit 1; }
+if ls "$tmp"/argocd/deploys/*/payments/infra-* >/dev/null 2>&1; then echo "terraform targets must not get Argo CD params" >&2; exit 1; fi
+echo "terraform render ok"
 # deployWith/workflow resolve per field, target > stage > app > default
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
 yq -i '.workflow.ref = "release" | .stages.dev.deployWith = "gha" | .stages.dev.targets.onprem-dev = {"deployWith": "argocd", "workflow": {"file": "x.yml"}} | .stages.dev.targets.us-dev.workflow.repo = "acme/deploys"' "$c"
