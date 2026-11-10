@@ -122,6 +122,20 @@ got="$(yq -o=json -I=0 '.' "$tf/dev/tf-dev/terraform.yaml")"
 [[ "$(yq '.backend.prefix + " " + .env.TF_VAR_region' "$tf/prod/tf-prod/terraform.yaml")" == "payments/custom us-east1" ]] || { echo "tf-prod prefix override / target env" >&2; exit 1; }
 if ls "$tmp"/argocd/deploys/*/payments/infra-* >/dev/null 2>&1; then echo "terraform targets must not get Argo CD params" >&2; exit 1; fi
 echo "terraform render ok"
+# terraform Kargo: Warehouse watches the module as an image (no platform), Stage runs on the hub
+# controller (no shard), pins module in terraform.yaml, dispatches with `module`, waits 60m
+[[ "$(yq 'select(.kind=="Warehouse" and .metadata.name=="infra") | .spec.subscriptions[1].image | .repoURL + " " + .imageSelectionStrategy + " " + .constraint + " " + (.discoveryLimit|tostring) + " " + (has("platform")|tostring)' "$k")" == "ghcr.io/pitoniak32/tf-bucket SemVer ^1 10 false" ]] || { echo "infra Warehouse module subscription" >&2; exit 1; }
+[[ "$(st infra-tf-dev '(.spec.shard // "-") + " " + .metadata.labels."example.com/platform" + " " + .metadata.labels."example.com/deploy-with"')" == "- terraform gha" ]] || { echo "infra-tf-dev: no shard, platform/deploy-with labels" >&2; exit 1; }
+[[ "$(st my-app-us-dev '.metadata.labels."example.com/platform"')" == "k8s" ]] || { echo "k8s platform label" >&2; exit 1; }
+[[ "$(st infra-tf-dev '[.spec.promotionTemplate.spec.steps[].uses] | join(",")')" == "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" ]] || { echo "infra-tf-dev steps" >&2; exit 1; }
+[[ "$(st infra-tf-dev '.spec.promotionTemplate.spec.steps[] | select(.uses == "yaml-update") | .config.path + " " + .config.updates[0].key + " " + .config.updates[0].value')" == './out/terraform.yaml module ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}' ]] || { echo "pin module in terraform.yaml" >&2; exit 1; }
+[[ "$(st infra-tf-dev '[.spec.promotionTemplate.spec.vars[].name] | join(",")')" == "repo,src,branch,image,workflowRepo,workflowFile,workflowRef" ]] || { echo "terraform vars (kargo-restore reads image by name)" >&2; exit 1; }
+[[ "$(st infra-tf-dev '.spec.promotionTemplate.spec.vars[4:] | map(.value) | join(" ")')" == "pitoniak32/gitops-cd terraform.yaml v1" ]] || { echo "terraform workflow defaults/override" >&2; exit 1; }
+st infra-tf-dev "$d1 | .config.body" | grep -qF "'module': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest" || { echo "dispatch must send module" >&2; exit 1; }
+if st infra-tf-dev "$d1 | .config.body" | grep -qF "'image':"; then echo "terraform dispatch must not send image" >&2; exit 1; fi
+st infra-tf-dev '.spec.promotionTemplate.spec.steps[] | select(.uses == "git-commit") | .config.message' | grep -qF ', module ${{ imageFrom(vars.image).Tag }}' || { echo "commit message names module tag (kargo-restore parses it)" >&2; exit 1; }
+[[ "$(st infra-tf-dev "$w1 | .retry.timeout") $(st worker-us-dev "$w1 | .retry.timeout")" == "60m 30m" ]] || { echo "wait timeout terraform 60m, k8s 30m" >&2; exit 1; }
+echo "terraform kargo ok"
 # deployWith/workflow resolve per field, target > stage > app > default
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
 yq -i '.workflow.ref = "release" | .stages.dev.deployWith = "gha" | .stages.dev.targets.onprem-dev = {"deployWith": "argocd", "workflow": {"file": "x.yml"}} | .stages.dev.targets.us-dev.workflow.repo = "acme/deploys"' "$c"

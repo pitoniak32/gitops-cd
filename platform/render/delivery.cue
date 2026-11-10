@@ -28,6 +28,10 @@ _ghHeaders: [
 	{name: "X-GitHub-Api-Version", value: "2022-11-28"},
 ]
 _kargoAPI: "kargo.akuity.io/v1alpha1"
+// per deploy kind: what the Freight's image subscription pins (dispatch input, commit message), and
+// how long a gha run may take (terraform applies are slower)
+_artifactKey: {k8s: "image", terraform: "module"}
+_waitTimeout: {k8s: "30m", terraform: "60m"}
 
 // Kargo Stage names per app (graph.cue): target Stages <app>-<target> + control-flow Stages
 _tgtName: {#app: string, #target: string, out: "\(#app)-\(#target)"}
@@ -93,7 +97,10 @@ _kargoCore: [
 			}}, {image: {
 				repoURL: [if apps[an].module != _|_ {apps[an].module}, apps[an].image][0]
 				imageSelectionStrategy: "SemVer"
+				// a terraform module (OCI artifact, ADR 0021) is discovered like an image; never set
+				// `platform` here: artifacts have none, so every tag would be filtered out
 				if apps[an].imageConstraint != _|_ {constraint: apps[an].imageConstraint}
+				if apps[an].moduleConstraint != _|_ {constraint: apps[an].moduleConstraint}
 				discoveryLimit: 10
 			}}]
 		}
@@ -117,11 +124,12 @@ _kargoCore: [
 		metadata: {
 			name: (_tgtName & {#app: an, #target: tn}).out
 			namespace: _kargoProject
-			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn, "example.com/deploy-with": d.deployWith}
+			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn, "example.com/deploy-with": d.deployWith, "example.com/platform": d.kind}
 			annotations: _stageAnnotations & {#app: an, #stage: sn}
 		}
 		spec: {
-			// the region's Kargo controller promotes it (control-flow Stages and Warehouses stay on the hub controller)
+			// the region's Kargo controller promotes it (control-flow Stages and Warehouses stay on the hub controller);
+			// terraform targets touch no cluster: hub controller too
 			if targets[tn].config.platform == "K8S" {shard: clusters[targets[tn].config.cluster].region}
 			requestedFreight: [_freightRequest & {#app: an, #node: _graph[an][(_tgtName & {#app: an, #target: tn}).out]}]
 			promotionTemplate: spec: {
@@ -146,15 +154,15 @@ _kargoCore: [
 					{uses: "copy", config: {inPath: "${{ vars.src }}", outPath: "./out/"}},
 					// plain YAML on the branch (no kustomize); the tag is informational, the digest pins
 					{uses: "yaml-update", config: {
-						path: "./out/deployment.yaml"
+						path: [if d.kind == "terraform" {"./out/terraform.yaml"}, "./out/deployment.yaml"][0]
 						updates: [{
-							key:   "spec.template.spec.containers.0.image"
+							key: [if d.kind == "terraform" {"module"}, "spec.template.spec.containers.0.image"][0]
 							value: "${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}"
 						}]
 					}},
 					{uses: "git-commit", as: "commit", config: {
 						path:    "./out"
-						message: "promote \(_cap)/\(an) to \(sn)/\(tn) from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}"
+						message: "promote \(_cap)/\(an) to \(sn)/\(tn) from ${{ commitFrom(vars.repo).ID }}, \(_artifactKey[d.kind]) ${{ imageFrom(vars.image).Tag }}"
 					}},
 					{uses: "git-push", config: path: "./out"},
 					if d.deployWith == "argocd" {{uses: "argocd-update", config: apps: [{
@@ -169,7 +177,7 @@ _kargoCore: [
 						url:    "\(_ghAPI)/actions/workflows/${{ vars.workflowFile }}/dispatches"
 						headers: list.Concat([_ghHeaders, [{name: "Content-Type", value: "application/json"}]])
 						// "} }": Kargo ends an expression at the first "}}"
-						body:              "${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': '\(_cap)', 'app': '\(an)', 'stage': '\(sn)', 'target': '\(tn)', 'commit': outputs.commit.commit, 'image': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest} }) }}"
+						body:              "${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': '\(_cap)', 'app': '\(an)', 'stage': '\(sn)', 'target': '\(tn)', 'commit': outputs.commit.commit, '\(_artifactKey[d.kind])': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest} }) }}"
 						successExpression: "response.status == 200"
 						failureExpression: "response.status != 200"
 						errorExpression:   "response.body.message"
@@ -178,7 +186,7 @@ _kargoCore: [
 							{name: "runURL", fromExpression: "response.body.html_url"},
 						]
 					}}},
-					if d.deployWith == "gha" {{uses: "http", as: "wait", retry: timeout: "30m", config: {
+					if d.deployWith == "gha" {{uses: "http", as: "wait", retry: timeout: _waitTimeout[d.kind], config: {
 						method:            "GET"
 						url:               "\(_ghAPI)/actions/runs/${{ outputs.dispatch.runID }}"
 						headers:           _ghHeaders

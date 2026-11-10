@@ -59,6 +59,7 @@ spec:
         includePaths:
           - regexp:^rendered/apps/payments/infra/
     - image:
+        constraint: ^1
         repoURL: ghcr.io/pitoniak32/tf-bucket
         imageSelectionStrategy: SemVer
         discoveryLimit: 10
@@ -222,6 +223,7 @@ metadata:
     example.com/stage: dev
     example.com/target: tf-dev
     example.com/deploy-with: gha
+    example.com/platform: terraform
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
@@ -268,15 +270,15 @@ spec:
             outPath: ./out/
         - uses: yaml-update
           config:
-            path: ./out/deployment.yaml
+            path: ./out/terraform.yaml
             updates:
-              - key: spec.template.spec.containers.0.image
+              - key: module
                 value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/infra to dev/tf-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/infra to dev/tf-dev from ${{ commitFrom(vars.repo).ID }}, module ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -294,7 +296,7 @@ spec:
                 value: "2022-11-28"
               - name: Content-Type
                 value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''dev'', ''target'': ''tf-dev'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''dev'', ''target'': ''tf-dev'', ''commit'': outputs.commit.commit, ''module'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
             successExpression: response.status == 200
             failureExpression: response.status != 200
             errorExpression: response.body.message
@@ -306,7 +308,7 @@ spec:
         - uses: http
           as: wait
           retry:
-            timeout: 30m
+            timeout: 60m
           config:
             method: GET
             url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
@@ -333,6 +335,7 @@ metadata:
     example.com/stage: prod
     example.com/target: tf-prod
     example.com/deploy-with: gha
+    example.com/platform: terraform
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
@@ -380,15 +383,15 @@ spec:
             outPath: ./out/
         - uses: yaml-update
           config:
-            path: ./out/deployment.yaml
+            path: ./out/terraform.yaml
             updates:
-              - key: spec.template.spec.containers.0.image
+              - key: module
                 value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
         - uses: git-commit
           as: commit
           config:
             path: ./out
-            message: promote payments/infra to prod/tf-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/infra to prod/tf-prod from ${{ commitFrom(vars.repo).ID }}, module ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -406,7 +409,7 @@ spec:
                 value: "2022-11-28"
               - name: Content-Type
                 value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''prod'', ''target'': ''tf-prod'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''prod'', ''target'': ''tf-prod'', ''commit'': outputs.commit.commit, ''module'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
             successExpression: response.status == 200
             failureExpression: response.status != 200
             errorExpression: response.body.message
@@ -418,7 +421,7 @@ spec:
         - uses: http
           as: wait
           retry:
-            timeout: 30m
+            timeout: 60m
           config:
             method: GET
             url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
@@ -445,6 +448,7 @@ metadata:
     example.com/stage: dev
     example.com/target: us-dev
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
@@ -520,6 +524,7 @@ metadata:
     example.com/stage: dev
     example.com/target: onprem-dev
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
@@ -595,6 +600,7 @@ metadata:
     example.com/stage: staging
     example.com/target: us-stg
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: green
@@ -670,6 +676,7 @@ metadata:
     example.com/stage: staging
     example.com/target: onprem-stg
     example.com/deploy-with: gha
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: green
@@ -783,6 +790,7 @@ metadata:
     example.com/stage: perf
     example.com/target: us-perf
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: amber
@@ -858,6 +866,7 @@ metadata:
     example.com/stage: prod
     example.com/target: us-prod
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
@@ -933,6 +942,7 @@ metadata:
     example.com/stage: prod
     example.com/target: onprem-prod
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
@@ -1008,6 +1018,7 @@ metadata:
     example.com/stage: dev
     example.com/target: us-dev
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
@@ -1082,6 +1093,7 @@ metadata:
     example.com/stage: staging
     example.com/target: us-stg
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: green
@@ -1157,6 +1169,7 @@ metadata:
     example.com/stage: prod
     example.com/target: us-prod
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
@@ -1232,6 +1245,7 @@ metadata:
     example.com/stage: dev
     example.com/target: us-dev
     example.com/deploy-with: gha
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
@@ -1344,6 +1358,7 @@ metadata:
     example.com/stage: staging
     example.com/target: us-stg
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: green
@@ -1419,6 +1434,7 @@ metadata:
     example.com/stage: prod
     example.com/target: us-prod
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
