@@ -1,2 +1,4 @@
 .kubeconfig
 /.bin/
+.terraform/
+.terraform.lock.hcl
