@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 #MISE description="Push the example terraform module (examples/terraform/bucket) to ghcr as an OCI artifact; skips an existing tag"
 #USAGE arg "[version]" default="1.0.0" help="SemVer tag"
-# Optional demo step (ADR 0021): the Warehouse of payments/infra discovers these tags. Needs GITHUB_PAT
-# (fnox) with write:packages. Single manifest + oras' default empty config: Kargo's image discovery
+# Optional demo step (ADR 0021): the Warehouse of payments/infra discovers these tags. Pushes with the gh
+# CLI token, which needs write:packages (`gh auth refresh -h github.com -s write:packages`): ghcr rejects
+# fine-grained PATs, so the fnox GITHUB_PAT (ADR 0020) can't be used. Single manifest + oras' default empty config: Kargo's image discovery
 # rejects an index and fails on a non-JSON config. The package must be public (ghcr makes new ones
 # private; Kargo has no registry credential): see docs/gotchas.md.
 # Idempotent: an existing tag is never re-pushed (the tarball isn't reproducible; it would move the tag).
 set -euo pipefail
 version="${usage_version:-${1:-1.0.0}}"
 ref="ghcr.io/pitoniak32/tf-bucket:$version"
-fnox get GITHUB_PAT | oras login ghcr.io -u "$(gh api user --jq .login)" --password-stdin
+gh auth token | oras login ghcr.io -u "$(gh api user --jq .login)" --password-stdin
 if err="$(oras manifest fetch "$ref" 2>&1 >/dev/null)"; then echo "$ref exists, skipped"; exit 0; fi
 if ! grep -qi 'not found' <<<"$err"; then echo "checking $ref: $err" >&2; exit 1; fi
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT

@@ -20,12 +20,14 @@ case "$1 $2" in
 esac
 S
 printf '#!/usr/bin/env bash\necho tok\n' >"$tmp/bin/fnox"
-printf '#!/usr/bin/env bash\necho someone\n' >"$tmp/bin/gh"
+printf '#!/usr/bin/env bash\necho "gh $*" >>"$LOG"\necho someone\n' >"$tmp/bin/gh"
 chmod +x "$tmp/bin"/*
 run() { LOG="$tmp/log.$1" FAKE="$1" PATH="$tmp/bin:$PATH" MISE_PROJECT_ROOT="$root" "$root/platform/mise-tasks/tf-module-push" 1.0.0 >"$tmp/out.$1" 2>&1; }
 run exists || { echo "existing tag: must exit 0" >&2; cat "$tmp/out.exists" >&2; exit 1; }
 grep -q '^oras push' "$tmp/log.exists" && { echo "existing tag must not be re-pushed" >&2; exit 1; }
 grep -q '^oras login' "$tmp/log.exists" || { echo "must log in before checking the tag (private packages)" >&2; exit 1; }
+# ghcr rejects fine-grained PATs (GITHUB_PAT): log in with the gh CLI token (needs write:packages)
+grep -q '^gh auth token' "$tmp/log.exists" || { echo "must log in with the gh CLI token" >&2; exit 1; }
 run missing || { echo "missing tag: must exit 0" >&2; cat "$tmp/out.missing" >&2; exit 1; }
 grep -q '^oras push ghcr.io/pitoniak32/tf-bucket:1.0.0 .*--annotation org.opencontainers.image.source=https://github.com/pitoniak32/gitops-cd' "$tmp/log.missing" || { echo "missing tag: push with source annotation" >&2; cat "$tmp/log.missing" >&2; exit 1; }
 if run error; then echo "registry error must fail" >&2; exit 1; fi
