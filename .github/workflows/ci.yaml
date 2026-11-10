@@ -7,7 +7,7 @@ on:
   push:
     branches: [main]
 permissions:
-  contents: write          # push to the rendered branch (GITHUB_TOKEN: doesn't re-trigger workflows)
+  contents: read           # the rendered push uses the gitops-cd-demo app token (ruleset bypass actor)
   pull-requests: write
 concurrency:
   group: ci-${{ github.ref }}
@@ -100,11 +100,24 @@ jobs:
           BODY: ${{ steps.diff.outputs.body }}
         run: gh pr comment ${{ github.event.number }} --edit-last --create-if-none --body "$BODY"
 
+      # The rendered branch's ruleset blocks all updates except its bypass actor, the gitops-cd-demo GitHub App
+      # (GITHUB_TOKEN can't be a bypass actor). Short-lived installation token, contents:write on this repo only.
+      - name: render app token
+        id: app
+        if: github.event_name == 'push'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RENDER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RENDER_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
       # pushes to main run one at a time (concurrency group); each replaces the branch's tree with its render
       - name: commit render to the rendered branch
         if: github.event_name == 'push'
         env:
           SOURCE: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          APP_TOKEN: ${{ steps.app.outputs.token }}
         run: |
           # a re-run of an older push must not roll the branch back to its older render
           head="$(git ls-remote origin refs/heads/main | cut -f1)"
@@ -113,4 +126,6 @@ jobs:
           git diff --cached --quiet && { echo "render unchanged"; exit 0; }
           git -c user.name="github-actions[bot]" -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
             commit -qm "render: ${GITHUB_SHA::7}" -m "source: $SOURCE"
-          git push -q origin HEAD:refs/heads/rendered
+          # as the app, not the checkout's GITHUB_TOKEN header (an empty extraheader resets it)
+          git -c http.https://github.com/.extraheader= push -q \
+            "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/rendered
