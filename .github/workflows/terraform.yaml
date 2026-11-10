@@ -1,0 +1,87 @@
+# Example workflow for terraform apps (ADR 0021). Kargo's target Stage pushes env/<cap>/<app>/<target>
+# (terraform.yaml with `module` pinned to <repo>:<tag>@<digest>), dispatches this workflow with the pushed
+# commit + module, and waits up to 60m; the run's conclusion passes or fails the Promotion.
+# The promotion is the approval: plan + apply run in one job. Demo only: init -backend=false + validate
+# (no GCP here); the real steps are commented below.
+name: deploy terraform (example)
+run-name: "terraform ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }} (${{ inputs.module }})"
+on:
+  workflow_dispatch:
+    inputs:
+      capability: {description: capability, required: true, type: string}
+      app: {description: app, required: true, type: string}
+      stage: {description: stage, required: true, type: string}
+      target: {description: target, required: true, type: string}
+      commit: {description: "env/<cap>/<app>/<target> commit Kargo pushed", required: true, type: string}
+      module: {description: "<repo>:<tag>@<digest> from the Freight", required: true, type: string}
+permissions:
+  contents: read
+  packages: read
+  # id-token: write   # real: GCP Workload Identity Federation
+concurrency:  # one apply per target at a time; never cancel a running apply
+  group: terraform-${{ inputs.capability }}-${{ inputs.app }}-${{ inputs.target }}
+  cancel-in-progress: false
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55  # under Kargo's 60m wait
+    env:  # inputs via env, never inline in run: (script injection)
+      CAPABILITY: ${{ inputs.capability }}
+      APP: ${{ inputs.app }}
+      STAGE: ${{ inputs.stage }}
+      TARGET: ${{ inputs.target }}
+      COMMIT: ${{ inputs.commit }}
+      MODULE: ${{ inputs.module }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+      - uses: jdx/mise-action@v2   # oras, terraform, yq pinned in .mise.toml
+        with:
+          install_args: oras terraform yq
+      - name: check module matches the branch
+        run: |
+          got="$(yq '.module' terraform.yaml)"
+          if [[ "$got" != "$MODULE" ]]; then
+            echo "::error file=terraform.yaml::module $got != dispatched $MODULE"; exit 1
+          fi
+      - name: pull module
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          oras login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<<"$GH_TOKEN"
+          oras pull "$MODULE" -o "$RUNNER_TEMP/pull"
+          mkdir module && tar -xzf "$RUNNER_TEMP"/pull/*.tgz -C module
+      - name: export env
+        # every key of terraform.yaml env (teams write TF_VAR_<name> for terraform variables). secret: values
+        # are references; real: resolve them first (gcloud secrets versions access) and ::add-mask::
+        run: |
+          d="EOF_$(openssl rand -hex 8)"
+          for k in $(yq '.env // {} | keys | .[]' terraform.yaml); do
+            { echo "$k<<$d"; K="$k" yq '.env[strenv(K)]' terraform.yaml; echo "$d"; } >> "$GITHUB_ENV"
+          done
+      # real:
+      # - uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: projects/<n>/locations/global/workloadIdentityPools/github/providers/github
+      #     service_account: <wifEmail from terraform.yaml>
+      # - run: |
+      #     terraform -chdir=module init -input=false \
+      #       -backend-config="bucket=$(yq .backend.bucket terraform.yaml)" \
+      #       -backend-config="prefix=$(yq .backend.prefix terraform.yaml)"
+      #     terraform -chdir=module plan -input=false -out=tfplan
+      #     terraform -chdir=module apply -input=false tfplan
+      - name: validate (demo)
+        run: |
+          terraform -chdir=module init -input=false -backend=false
+          terraform -chdir=module validate
+      - name: summary
+        run: |
+          {
+            echo "### $CAPABILITY/$APP → $TARGET"
+            echo "| stage | target | commit | module | gcp project | state |"
+            echo "|---|---|---|---|---|---|"
+            echo "| $STAGE | $TARGET | \`$COMMIT\` | \`$MODULE\` | $(yq .gcpProject terraform.yaml) | gs://$(yq .backend.bucket terraform.yaml)/$(yq .backend.prefix terraform.yaml) |"
+            echo
+            echo "_demo: nothing applied_"
+          } >> "$GITHUB_STEP_SUMMARY"

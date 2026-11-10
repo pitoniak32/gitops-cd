@@ -3,6 +3,7 @@
 # teams/<team>.yml: per-team lines generated below (team + these owners)
 /teams/ @acme/platform
 /capabilities/payments/ @acme/team1 @acme/team2
+/capabilities/payments/apps/infra/ @acme/team1
 /capabilities/payments/apps/my-app/ @acme/team1
 /capabilities/payments/apps/payments/ @acme/team1
 /capabilities/payments/apps/worker/ @acme/team1 @acme/team2

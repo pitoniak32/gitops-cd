@@ -33,7 +33,7 @@ Kargo keeps "which Freight is current in each Stage" only in the hub's etcd, so 
 mise run kargo-restore            # all capabilities; or: mise run kargo-restore payments
 ```
 
-For each target Stage with no current Freight it reads the branch head (Kargo's commit message names the source commit; `deployment.yaml` pins `<repo>:<tag>@<digest>`), recreates that Freight (same artifacts give the same Freight ID; the alias is new), approves it for the Stage and promotes it. The promotion re-copies identical manifests: no new commit, no rollout. Re-running is a no-op.
+For each target Stage with no current Freight it reads the branch head (Kargo's commit message names the source commit; `deployment.yaml`, or `terraform.yaml` `module` for terraform apps, pins `<repo>:<tag>@<digest>`), recreates that Freight (same artifacts give the same Freight ID; the alias is new), approves it for the Stage and promotes it. The promotion re-copies identical manifests: no new commit, no rollout. Re-running is a no-op. Terraform targets (ADR 0021) are the exception: the promotion re-dispatches their workflow, which re-runs plan + apply.
 
 - **Skipped, with a reason**: targets never promoted (no branch), branches from before ADR 0016 (no pinned image), heads that aren't Kargo promotion commits. Promote fresh Freight to those normally; the next rebuild can restore them.
 - **Control-flow Stages** (`<app>-<stage>`, `<app>-<stage>-done`) stay empty until new Freight flows through; they auto-promote.

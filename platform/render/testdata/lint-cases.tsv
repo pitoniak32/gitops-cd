@@ -12,7 +12,7 @@ teams/team1.yml	.idpGroup = "team1"	^teams/team1\.yml:[0-9]+:[0-9]+: .*idpGroup
 capabilities/payments/owners.yml	.breakGlass = ["Oncall@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: breakGlass\.0: .*expected a lowercase @example\.com email
 capabilities/payments/owners.yml	.breakGlass = ["carol@example.com", "carol@example.com"]	owners\.yml:[0-9]+:[0-9]+: breakGlass: emails must not repeat
 capabilities/payments/apps/my-app/app.yml	.envFrom = ["statsig"]	^capabilities/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.[a-z0-9-]+\.envFrom: .*has no environment-variables/statsig\.yml
-capabilities/payments/targets/us-dev/environment-variables/launchdarkly.yml	.bad_key = "x"	^capabilities/payments/targets/us-dev/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: .*bad_key
+capabilities/payments/targets/us-dev/environment-variables/launchdarkly.yml	."1BAD" = "x"	^capabilities/payments/targets/us-dev/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: .*1BAD
 capabilities/payments/targets/us-dev/environment-variables/launchdarkly.yml	.LD_SDK_KEY = "secret:BAD"	^capabilities/payments/targets/us-dev/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: LD_SDK_KEY: .*secret:<gcp-project>
 capabilities/payments/stages/dev.yml	.color = "puce"	^capabilities/payments/stages/dev\.yml:[0-9]+:[0-9]+: .*unknown color; allowed: red
 capabilities/payments/targets/us-dev/target.yml	.config.cluster = "eu"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*unknown cluster; allowed: us, onprem
@@ -21,3 +21,16 @@ capabilities/payments/apps/worker/app.yml	.stages.dev.workflow.file = "deploy.sh
 capabilities/payments/apps/worker/app.yml	.deployWith = "jenkins"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: deployWith: expected argocd or gha$
 capabilities/payments/apps/worker/app.yml	.workflow.repo = "not-a-repo"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: workflow\.repo: expected <owner>/<name>$
 capabilities/payments/apps/worker/app.yml	.workflow.ref = ""	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: workflow\.ref: expected a non-empty git ref$
+capabilities/payments/targets/tf-dev/target.yml	.config.cluster = "us"	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*cluster not allowed on a TERRAFORM target
+capabilities/payments/targets/tf-dev/target.yml	del(.config.terraform.backend.bucket)	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*bucket
+capabilities/payments/targets/tf-dev/target.yml	.config.terraform.gcpProject = "Bad"	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*gcpProject
+capabilities/payments/targets/us-dev/target.yml	.config.terraform = {"gcpProject": "team1-dev", "backend": {"bucket": "b-x"}}	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*terraform not allowed on a K8S target
+capabilities/payments/targets/us-dev/target.yml	del(.config.namespace)	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*namespace
+capabilities/payments/apps/infra/app.yml	.image = "ghcr.io/x/y"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*set exactly one of image \(K8s app\) or module \(terraform app\)
+capabilities/payments/apps/infra/app.yml	del(.module)	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*set exactly one of image \(K8s app\) or module \(terraform app\)
+capabilities/payments/apps/infra/app.yml	.replicas = 2	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*replicas not allowed on a terraform app
+capabilities/payments/apps/infra/app.yml	.stages.dev.port = 80	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*not allowed
+capabilities/payments/apps/infra/app.yml	.stages.dev.targets.tf-dev.deployWith = "argocd"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*deployWith not allowed on a terraform app
+capabilities/payments/apps/infra/app.yml	.resources.cpu = "1"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*resources not allowed on a terraform app
+capabilities/payments/apps/infra/app.yml	.stages.dev.targets = {"us-dev": {}}	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*target us-dev is K8S; terraform apps need TERRAFORM targets
+capabilities/payments/apps/worker/app.yml	.stages.dev.targets = {"tf-dev": {}}	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*target tf-dev is TERRAFORM; K8s apps need K8S targets

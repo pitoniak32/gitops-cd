@@ -1,0 +1,10 @@
+config:
+  platform: TERRAFORM
+  environment: dev
+  auth:
+    wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
+  billing: dev
+  terraform:
+    gcpProject: team1-dev
+    backend:
+      bucket: tfstate-team1-dev
