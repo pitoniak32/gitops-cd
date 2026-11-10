@@ -31,8 +31,12 @@ spec:
         - env:
             - name: LD_RELAY_URL
               value: https://ld-relay.us-dev.example.com
+            - name: LD_TENANT
+              value: dev
             - name: APP_ENV
               value: "true"
+            - name: NEW_VAR
+              value: testing
             - name: STAGE_ENV
               value: "false"
           image: ghcr.io/pitoniak32/nginx

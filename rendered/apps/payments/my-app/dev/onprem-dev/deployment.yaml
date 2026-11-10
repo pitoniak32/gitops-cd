@@ -31,6 +31,8 @@ spec:
         - env:
             - name: LD_RELAY_URL
               value: https://ld-relay.onprem-dev.example.com
+            - name: NEW_VAR
+              value: testing
             - name: STAGE_ENV
               value: "false"
             - name: APP_ENV
