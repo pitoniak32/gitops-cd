@@ -191,7 +191,9 @@ _kargoCore: [
 						url:               "\(_ghAPI)/actions/runs/${{ outputs.dispatch.runID }}"
 						headers:           _ghHeaders
 						successExpression: "response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'"
-						failureExpression: "response.status != 200 || (response.body.status == 'completed' && response.body.conclusion != 'success')"
+						// 404 = run not readable yet right after dispatch (GitHub returns its id first): neither expression
+						// is true, so the step stays Running and is retried
+						failureExpression: "(response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')"
 						errorExpression:   "response.status != 200 ? response.body.message : 'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url"
 					}}},
 				]
