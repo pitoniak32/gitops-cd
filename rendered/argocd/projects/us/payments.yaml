@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: payments
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/pitoniak32/gitops-cd
+  destinations:
+    - name: in-cluster
+      namespace: payments-us-dev
+    - name: in-cluster
+      namespace: payments-us-perf
+    - name: in-cluster
+      namespace: payments-us-prod
+    - name: in-cluster
+      namespace: payments-us-stg
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  roles:
+    - name: viewer
+      description: read-only view of payments apps for its promoters and viewers
+      policies:
+        - p, proj:payments:viewer, applications, get, payments/*, allow
+      groups:
+        - bob@example.com
+        - doug@example.com
+        - oncall@example.com

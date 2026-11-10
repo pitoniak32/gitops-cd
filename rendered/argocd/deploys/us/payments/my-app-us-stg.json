@@ -1,0 +1,11 @@
+{
+  "appName": "payments-my-app-us-stg",
+  "capability": "payments",
+  "app": "my-app",
+  "stage": "staging",
+  "target": "us-stg",
+  "namespace": "payments-us-stg",
+  "branch": "env/payments/my-app/us-stg",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-payments:my-app-us-stg"
+}

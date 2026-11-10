@@ -1,0 +1,387 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kargo-search
+  labels:
+    kargo.akuity.io/project: "true"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: kargo-search
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: kargo-search
+  namespace: kargo-search
+spec:
+  promotionPolicies:
+    - stageSelector:
+        name: api-us-dev
+      autoPromotionEnabled: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: api
+  namespace: kargo-search
+spec:
+  freightCreationPolicy: Manual
+  subscriptions:
+    - git:
+        repoURL: https://github.com/pitoniak32/gitops-cd
+        branch: rendered
+        includePaths:
+          - regexp:^rendered/apps/search/api/
+    - image:
+        repoURL: ghcr.io/pitoniak32/nginx
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 10
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: api-us-dev
+  namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: us-dev
+    example.com/deploy-with: argocd
+    example.com/platform: k8s
+  annotations:
+    example.com/break-glass: '[]'
+    kargo.akuity.io/color: blue
+spec:
+  shard: us
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: api
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/search/api/dev/us-dev/
+        - name: branch
+          value: env/search/api/us-dev
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: yaml-update
+          config:
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote search/api to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: search-api-us-dev
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: api-us-prod
+  namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: us-prod
+    example.com/deploy-with: argocd
+    example.com/platform: k8s
+  annotations:
+    example.com/break-glass: '[]'
+    kargo.akuity.io/color: amber
+spec:
+  shard: us
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: api
+      sources:
+        stages:
+          - api-us-dev
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/search/api/prod/us-prod/
+        - name: branch
+          value: env/search/api/us-prod
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: yaml-update
+          config:
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote search/api to prod/us-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: search-api-us-prod
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: api-onprem-prod
+  namespace: kargo-search
+  labels:
+    example.com/capability: search
+    example.com/app: api
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: onprem-prod
+    example.com/deploy-with: argocd
+    example.com/platform: k8s
+  annotations:
+    example.com/break-glass: '[]'
+    kargo.akuity.io/color: amber
+spec:
+  shard: onprem
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: api
+      sources:
+        stages:
+          - api-us-dev
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/search/api/prod/onprem-prod/
+        - name: branch
+          value: env/search/api/onprem-prod
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: yaml-update
+          config:
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote search/api to prod/onprem-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: search-api-onprem-prod
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-api
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["alice@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-api
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - api-onprem-prod
+      - api-us-dev
+      - api-us-prod
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-api
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-api
+subjects:
+  - kind: ServiceAccount
+    name: promote-api
+    namespace: kargo-search
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: viewers
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["alice@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: viewers
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kargo-viewer
+subjects:
+  - kind: ServiceAccount
+    name: viewers
+    namespace: kargo-search
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: users-search
+  namespace: kargo-shared-resources
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["alice@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kargo-users-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kargo-user
+subjects:
+  - kind: ServiceAccount
+    name: users-search
+    namespace: kargo-shared-resources

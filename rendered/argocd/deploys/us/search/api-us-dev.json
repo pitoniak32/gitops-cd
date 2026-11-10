@@ -1,0 +1,11 @@
+{
+  "appName": "search-api-us-dev",
+  "capability": "search",
+  "app": "api",
+  "stage": "dev",
+  "target": "us-dev",
+  "namespace": "search-us-dev",
+  "branch": "env/search/api/us-dev",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-search:api-us-dev"
+}

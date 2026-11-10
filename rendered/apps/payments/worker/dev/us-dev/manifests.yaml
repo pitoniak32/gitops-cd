@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: team1-dev@team1-dev.iam.gserviceaccount.com
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: worker
+    example.com/capability: payments
+    example.com/stage: dev
+    example.com/target: us-dev
+    example.com/environment: dev
+    example.com/billing: dev
+  name: worker
+  namespace: payments-us-dev

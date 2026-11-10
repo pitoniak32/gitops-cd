@@ -1,0 +1,56 @@
+{
+  "api": {
+    "capability": "search",
+    "app": "api",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "us-dev": {
+            "cluster": "us",
+            "namespace": "search-us-dev",
+            "platform": "K8S",
+            "environment": "dev",
+            "path": "apps/search/api/dev/us-dev",
+            "deployWith": "argocd"
+          }
+        }
+      },
+      "prod": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 1,
+        "targets": {
+          "us-prod": {
+            "cluster": "us",
+            "namespace": "search-us-prod",
+            "platform": "K8S",
+            "environment": "prod",
+            "path": "apps/search/api/prod/us-prod",
+            "deployWith": "argocd"
+          },
+          "onprem-prod": {
+            "cluster": "onprem",
+            "namespace": "search-onprem-prod",
+            "platform": "K8S",
+            "environment": "prod",
+            "path": "apps/search/api/prod/onprem-prod",
+            "deployWith": "argocd"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ],
+      [
+        "prod"
+      ]
+    ]
+  }
+}

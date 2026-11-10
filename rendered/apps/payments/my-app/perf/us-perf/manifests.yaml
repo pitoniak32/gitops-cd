@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: team1-perf@team1-perf.iam.gserviceaccount.com
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: perf
+    example.com/target: us-perf
+    example.com/environment: perf
+    example.com/billing: nonprod
+  name: my-app
+  namespace: payments-us-perf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: perf
+    example.com/target: us-perf
+    example.com/environment: perf
+    example.com/billing: nonprod
+  name: my-app
+  namespace: payments-us-perf
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: my-app
