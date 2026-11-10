@@ -2,12 +2,12 @@
 
 What changes reach the cluster by themselves, and what needs a command.
 
-Rule of thumb: Argo CD reads **GitHub `main`** (`platform/appsets/`, `platform/infrastructure/`, `rendered/`) and the **`env/*` branches**. Every Argo CD (hub + each region) runs the same root app; ApplicationSets with the cluster generator pick what each one deploys from its cluster labels (ADR 0017). So a change under those paths does nothing until it is **pushed to `main`** (capabilities: merged and rendered by CI). `mise` tasks only cover what can't live in git: cluster creation, the first Argo CD install, the root app, CoreDNS, secrets and the Kargo shard token.
+Rule of thumb: Argo CD reads **GitHub `main`** (`platform/appsets/`, `platform/infrastructure/`), the **`rendered` branch** (`rendered/`, written by CI on each push to main, ADR 0022) and the **`env/*` branches**. Every Argo CD (hub + each region) runs the same root app; ApplicationSets with the cluster generator pick what each one deploys from its cluster labels (ADR 0017). So a change under those paths does nothing until it is **pushed to `main`** (capabilities: merged and rendered by CI). `mise` tasks only cover what can't live in git: cluster creation, the first Argo CD install, the root app, CoreDNS, secrets and the Kargo shard token.
 
 ```
 GITOPS LANE (pull: Argo CD, automated + prune + selfHeal)
   capabilities/, teams/, platform/render/
-    → PR, merge → CI renders rendered/ on main
+    → PR, merge → CI renders rendered/ onto branch rendered
     → hub rendered-kargo syncs rendered/kargo
     → each region: argocd-projects syncs rendered/argocd/projects/<region>/,
       workloads AppSet makes one Application per rendered/argocd/deploys/<region>/<cap>/<app>-<target>.json
@@ -29,7 +29,7 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 
 | You change | Path to the cluster |
 |---|---|
-| `capabilities/**` (apps, stages, targets, `owners.yml`) | PR → merge → CI renders `rendered/` → hub `rendered-kargo`, each region's `argocd-projects` and `workloads` AppSet pick it up. Workloads don't change until a promotion. |
+| `capabilities/**` (apps, stages, targets, `owners.yml`) | PR (owners change: commit `mise run codeowners` output) → merge → CI renders `rendered/` onto branch `rendered` → hub `rendered-kargo`, each region's `argocd-projects` and `workloads` AppSet pick it up. Workloads don't change until a promotion. |
 | Workload manifests | Kargo Warehouse discovers new `rendered/apps/<cap>/<app>/` commits and image tags → promoter assembles Freight → target-stage promotion (via control-flow Stages where needed) pushes `env/<cap>/<app>/<target>` → that target's Application syncs. |
 | A `deployWith: gha` target's workflow | Not rendered: GitHub reads `<repo>/.github/workflows/<file>` at `ref` when the Stage dispatches it. Push the workflow before promoting. Its token comes from `mise run creds` (`GITHUB_PAT`). |
 | `teams/` | Takes effect on the next render, for CODEOWNERS only. It has no cluster effect (ADR 0011). |
@@ -72,4 +72,4 @@ Also needed outside the cluster: **push first**. Every Argo CD and Kargo read Gi
 - `platform/render/clusters.cue` regions? → `mise run regions`, merge, clean `mise run up`.
 - `platform/bootstrap/`? → `mise run infra`.
 - Under `platform/cluster/`, or you need to prove it from scratch? → `mise run up`.
-- `rendered/` → never edit it; CI owns it.
+- `rendered/` → never edit it; CI owns branch `rendered`.
