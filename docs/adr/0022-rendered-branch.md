@@ -6,7 +6,7 @@ After every merge, CI pushed a separate `render: <sha>` commit to `main`. Every 
 
 Now `main` gets no bot commits:
 
-- **Branch `rendered`**: an orphan branch holding only `rendered/` (same paths as before), plus a README copied from `platform/render/rendered-README.md`. CI pushes to it on every push to `main`, with `GITHUB_TOKEN`. Pushes are serialized by the workflow's concurrency group, and CI commits only when the render changed: `render: <sha7>`, with the source commit URL in the body. The first run creates the branch. Branch protection: no human pushes.
+- **Branch `rendered`**: an orphan branch holding only `rendered/` (same paths as before), plus a README copied from `platform/render/rendered-README.md`. CI pushes to it on every push to `main`, as the `gitops-cd-demo` GitHub App. Pushes are serialized by the workflow's concurrency group, and CI commits only when the render changed: `render: <sha7>`, with the source commit URL in the body. The first run creates the branch. Branch protection: no human pushes.
 - **Readers**: the AppSets `kargo.yaml`, `projects.yaml`, `workloads.yaml`, `addons/kargo-shard-hub.yaml` and `addons/argocd-region-hub.yaml` read `rendered/` at revision `rendered`, and `check.sh` enforces it. The Kargo Warehouse git subscription uses `branch: rendered` (`renderedBranch` in `input.cue`). Promotion is unchanged: `git-clone` checks out the Freight commit, which now lives on `rendered`.
 - **`main`**: `rendered/` is gitignored. `mise run render` writes it locally for inspection. A PR that adds `rendered/` fails CI.
 - **PRs**: CI renders and comments the diff against the `rendered` branch.
@@ -25,6 +25,6 @@ Now `main` gets no bot commits:
 - Existing Freight and `env/*` branches stay valid: their old `main` commits still contain `rendered/`.
 - Bootstrap: until CI first creates `rendered`, the AppSets and Applications report a missing revision and retry, but `mise run up`/`infra` time out waiting for the per-region hub apps. On a fresh repo or fork, push and wait for the first render before `up`.
 - CODEOWNERS staleness fails PRs but only warns on `main`, so it never blocks the render. A re-run of an older push run doesn't commit (it would roll `rendered` back). Any other git error fails the run.
-- Branch protection on `rendered` must still let `github-actions` push.
+- `rendered` has a ruleset (block deletion, force-push and updates) whose only bypass actor is the `gitops-cd-demo` GitHub App. `GITHUB_TOKEN` can't be a bypass actor, so CI pushes with a short-lived installation token (`actions/create-github-app-token`, repo variable `RENDER_APP_CLIENT_ID`, secret `RENDER_APP_PRIVATE_KEY`). Kargo holds the same app's credentials, so it could push to `rendered` too; a dedicated app would close that.
 - Ownership changes need `mise run codeowners`, which needs local tooling (`mise install`).
 - The PR diff is against the latest render of `main`, not the PR's merge base. Same as before.
