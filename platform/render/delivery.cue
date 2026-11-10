@@ -91,7 +91,7 @@ _kargoCore: [
 				branch:  "main"
 				includePaths: ["regexp:^\(renderedDir)/apps/\(_cap)/\(an)/"]
 			}}, {image: {
-				repoURL:                apps[an].image
+				repoURL: [if apps[an].module != _|_ {apps[an].module}, apps[an].image][0]
 				imageSelectionStrategy: "SemVer"
 				if apps[an].imageConstraint != _|_ {constraint: apps[an].imageConstraint}
 				discoveryLimit: 10
@@ -122,14 +122,14 @@ _kargoCore: [
 		}
 		spec: {
 			// the region's Kargo controller promotes it (control-flow Stages and Warehouses stay on the hub controller)
-			shard: clusters[targets[tn].config.cluster].region
+			if targets[tn].config.platform == "K8S" {shard: clusters[targets[tn].config.cluster].region}
 			requestedFreight: [_freightRequest & {#app: an, #node: _graph[an][(_tgtName & {#app: an, #target: tn}).out]}]
 			promotionTemplate: spec: {
 				vars: [
 					{name: "repo", value: _repoURL},
 					{name: "src", value: "./src/\(renderedDir)/apps/\(_cap)/\(an)/\(sn)/\(tn)/"},
 					{name: "branch", value: "env/\(_cap)/\(an)/\(tn)"},
-					{name: "image", value: apps[an].image},
+					{name: "image", value: [if apps[an].module != _|_ {apps[an].module}, apps[an].image][0]},
 					if d.deployWith == "gha" {{name: "workflowRepo", value: d.workflow.repo}},
 					if d.deployWith == "gha" {{name: "workflowFile", value: d.workflow.file}},
 					if d.deployWith == "gha" {{name: "workflowRef", value: d.workflow.ref}},

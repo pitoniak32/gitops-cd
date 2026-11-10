@@ -18,6 +18,9 @@ metadata:
 spec:
   promotionPolicies:
     - stageSelector:
+        name: infra-tf-dev
+      autoPromotionEnabled: true
+    - stageSelector:
         name: my-app-dev
       autoPromotionEnabled: true
     - stageSelector:
@@ -41,6 +44,24 @@ spec:
     - stageSelector:
         name: worker-us-dev
       autoPromotionEnabled: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: infra
+  namespace: kargo-payments
+spec:
+  freightCreationPolicy: Manual
+  subscriptions:
+    - git:
+        repoURL: https://github.com/pitoniak32/gitops-cd
+        branch: main
+        includePaths:
+          - regexp:^rendered/apps/payments/infra/
+    - image:
+        repoURL: ghcr.io/pitoniak32/tf-bucket
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 10
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
@@ -188,6 +209,229 @@ spec:
       sources:
         stages:
           - my-app-dev-done
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: infra-tf-dev
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: infra
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: tf-dev
+    example.com/deploy-with: gha
+  annotations:
+    example.com/break-glass: '["carol@example.com"]'
+    kargo.akuity.io/color: blue
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: infra
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/infra/dev/tf-dev/
+        - name: branch
+          value: env/payments/infra/tf-dev
+        - name: image
+          value: ghcr.io/pitoniak32/tf-bucket
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: terraform.yaml
+        - name: workflowRef
+          value: v1
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: yaml-update
+          config:
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/infra to dev/tf-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: http
+          as: dispatch
+          config:
+            method: POST
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+              - name: Content-Type
+                value: application/json
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''dev'', ''target'': ''tf-dev'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            successExpression: response.status == 200
+            failureExpression: response.status != 200
+            errorExpression: response.body.message
+            outputs:
+              - name: runID
+                fromExpression: response.body.workflow_run_id
+              - name: runURL
+                fromExpression: response.body.html_url
+        - uses: http
+          as: wait
+          retry:
+            timeout: 30m
+          config:
+            method: GET
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
+            failureExpression: response.status != 200 || (response.body.status == 'completed' && response.body.conclusion != 'success')
+            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: infra-tf-prod
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: infra
+    example.com/kind: target
+    example.com/stage: prod
+    example.com/target: tf-prod
+    example.com/deploy-with: gha
+  annotations:
+    example.com/break-glass: '["carol@example.com"]'
+    kargo.akuity.io/color: violet
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: infra
+      sources:
+        stages:
+          - infra-tf-dev
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/infra/prod/tf-prod/
+        - name: branch
+          value: env/payments/infra/tf-prod
+        - name: image
+          value: ghcr.io/pitoniak32/tf-bucket
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: terraform.yaml
+        - name: workflowRef
+          value: v1
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: yaml-update
+          config:
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/infra to prod/tf-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: http
+          as: dispatch
+          config:
+            method: POST
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+              - name: Content-Type
+                value: application/json
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''prod'', ''target'': ''tf-prod'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            successExpression: response.status == 200
+            failureExpression: response.status != 200
+            errorExpression: response.body.message
+            outputs:
+              - name: runID
+                fromExpression: response.body.workflow_run_id
+              - name: runURL
+                fromExpression: response.body.html_url
+        - uses: http
+          as: wait
+          retry:
+            timeout: 30m
+          config:
+            method: GET
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
+            failureExpression: response.status != 200 || (response.body.status == 'completed' && response.body.conclusion != 'success')
+            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -1237,6 +1481,70 @@ spec:
                 sources:
                   - repoURL: ${{ vars.repo }}
                     desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-infra
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["carol@example.com","doug@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-infra
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - infra-tf-dev
+      - infra-tf-prod
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-infra
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-infra
+subjects:
+  - kind: ServiceAccount
+    name: promote-infra
+    namespace: kargo-payments
 ---
 apiVersion: v1
 kind: ServiceAccount

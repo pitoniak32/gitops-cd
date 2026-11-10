@@ -1,4 +1,48 @@
 {
+  "infra": {
+    "capability": "payments",
+    "app": "infra",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "tf-dev": {
+            "gcpProject": "team1-dev",
+            "platform": "TERRAFORM",
+            "environment": "dev",
+            "path": "apps/payments/infra/dev/tf-dev",
+            "deployWith": "gha"
+          }
+        }
+      },
+      "prod": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 2,
+        "targets": {
+          "tf-prod": {
+            "gcpProject": "team1-prod",
+            "platform": "TERRAFORM",
+            "environment": "prod",
+            "path": "apps/payments/infra/prod/tf-prod",
+            "deployWith": "gha"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ],
+      [
+        "prod"
+      ]
+    ]
+  },
   "my-app": {
     "capability": "payments",
     "app": "my-app",

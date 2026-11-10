@@ -271,6 +271,12 @@
         ],
         "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, replicas, resources, targets, workflow"
       }
+    },
+    "_ociRepo": {
+      "type": "string",
+      "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$",
+      "errorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)",
+      "patternErrorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)"
     }
   },
   "type": "object",
@@ -371,15 +377,23 @@
       }
     },
     "image": {
-      "type": "string",
-      "description": "Image repository, no tag or digest: the app's Warehouse discovers SemVer tags, Freight pins one\n(by digest) next to the config commit, and promotion writes it into the target (ADR 0016).",
-      "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$",
-      "errorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)",
-      "patternErrorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)"
+      "description": "Exactly one of image (K8s app) or module (terraform app, ADR 0021).\nImage repository, no tag or digest: the app's Warehouse discovers SemVer tags, Freight pins one\n(by digest) next to the config commit, and promotion writes it into the target (ADR 0016).",
+      "$ref": "#/$defs/_ociRepo"
     },
     "imageConstraint": {
       "type": "string",
       "description": "SemVer range for discovered tags (e.g. ^1, ~1.2); unset: any SemVer tag.",
+      "not": {
+        "const": ""
+      }
+    },
+    "module": {
+      "description": "Terraform module as an OCI artifact repository (oras push, single manifest), no tag or digest;\ndiscovered and pinned like image. Its targets must be TERRAFORM targets.",
+      "$ref": "#/$defs/_ociRepo"
+    },
+    "moduleConstraint": {
+      "type": "string",
+      "description": "SemVer range for discovered module tags; unset: any SemVer tag.",
       "not": {
         "const": ""
       }
@@ -411,9 +425,6 @@
       }
     }
   },
-  "required": [
-    "image"
-  ],
   "propertyNames": {
     "enum": [
       "deployWith",
@@ -421,12 +432,14 @@
       "envFrom",
       "image",
       "imageConstraint",
+      "module",
+      "moduleConstraint",
       "port",
       "replicas",
       "resources",
       "stages",
       "workflow"
     ],
-    "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, image, imageConstraint, port, replicas, resources, stages, workflow"
+    "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, image, imageConstraint, module, moduleConstraint, port, replicas, resources, stages, workflow"
   }
 }

@@ -11,7 +11,7 @@ import (
 _secretRe: "^secret:([^/]+)/([^@]+)(?:@(.+))?$"
 
 // k8s objects per (app, target)
-manifests: {for key, d in deploys {
+manifests: {for key, d in deploys if d.kind == "k8s" {
 	(key): {
 		app:    d.app
 		stage:  d.stage

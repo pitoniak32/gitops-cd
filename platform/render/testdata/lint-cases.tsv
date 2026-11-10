@@ -26,3 +26,11 @@ capabilities/payments/targets/tf-dev/target.yml	del(.config.terraform.backend.bu
 capabilities/payments/targets/tf-dev/target.yml	.config.terraform.gcpProject = "Bad"	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*gcpProject
 capabilities/payments/targets/us-dev/target.yml	.config.terraform = {"gcpProject": "team1-dev", "backend": {"bucket": "b-x"}}	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*terraform not allowed on a K8S target
 capabilities/payments/targets/us-dev/target.yml	del(.config.namespace)	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*namespace
+capabilities/payments/apps/infra/app.yml	.image = "ghcr.io/x/y"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*set exactly one of image \(K8s app\) or module \(terraform app\)
+capabilities/payments/apps/infra/app.yml	del(.module)	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*set exactly one of image \(K8s app\) or module \(terraform app\)
+capabilities/payments/apps/infra/app.yml	.replicas = 2	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*replicas not allowed on a terraform app
+capabilities/payments/apps/infra/app.yml	.stages.dev.port = 80	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*not allowed
+capabilities/payments/apps/infra/app.yml	.stages.dev.targets.tf-dev.deployWith = "argocd"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*deployWith not allowed on a terraform app
+capabilities/payments/apps/infra/app.yml	.resources.cpu = "1"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*resources not allowed on a terraform app
+capabilities/payments/apps/infra/app.yml	.stages.dev.targets = {"us-dev": {}}	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*target us-dev is K8S; terraform apps need TERRAFORM targets
+capabilities/payments/apps/worker/app.yml	.stages.dev.targets = {"tf-dev": {}}	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*target tf-dev is TERRAFORM; K8s apps need K8S targets

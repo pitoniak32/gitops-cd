@@ -47,10 +47,10 @@ for i, n in list.SortStrings(_stageNames) {
 		}
 		if platform == "TERRAFORM" {
 			terraform: {
-				gcpProject: =~"^[a-z][a-z0-9-]{4,28}[a-z0-9]$" | error("expected a GCP project id")
+				gcpProject!: =~"^[a-z][a-z0-9-]{4,28}[a-z0-9]$" | error("expected a GCP project id")
 				// GCS state; prefix default <capability>/<app>/<target>
 				backend: {
-					bucket:  =~"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$" | error("expected a GCS bucket name")
+					bucket!: =~"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$" | error("expected a GCS bucket name")
 					prefix?: =~"^[A-Za-z0-9._/-]+$" | error("expected a GCS object prefix")
 				}
 			}
