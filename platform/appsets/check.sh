@@ -65,4 +65,14 @@ for k in $(grep -o '{{\.[A-Za-z.]*}}' platform/appsets/workloads.yaml | sed 's/{
   [[ $k == values.* ]] && continue
   grep -qx "$k" <<<"$keys" || fail "workloads.yaml uses {{.$k}}, not a deploy params key"
 done
+
+# ADR 0022: rendered/ lives on the rendered branch (CI-written); main has none. Every git source/generator
+# reading rendered/ uses revision rendered, and nothing else does.
+for f in $(find platform/appsets -name '*.yaml' | sort); do
+  while IFS=$'\t' read -r rev paths; do
+    [[ -z "$rev" ]] && continue
+    if [[ "$paths" == rendered/* ]]; then [[ "$rev" == rendered ]] || fail "$f: $paths must be read from revision rendered, not $rev"
+    elif [[ "$rev" == rendered ]]; then fail "$f: revision rendered only holds rendered/, not '$paths'"; fi
+  done < <(yq -r '.. | select(type == "!!map" and (has("revision") or has("targetRevision"))) | [(.revision // .targetRevision), ([.path, (.files[]?.path)] | map(select(. != null)) | join(","))] | @tsv' "$f")
+done
 echo "appsets ok"

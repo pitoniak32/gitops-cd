@@ -55,7 +55,7 @@ spec:
   subscriptions:
     - git:
         repoURL: https://github.com/pitoniak32/gitops-cd
-        branch: main
+        branch: rendered
         includePaths:
           - regexp:^rendered/apps/payments/infra/
     - image:
@@ -74,7 +74,7 @@ spec:
   subscriptions:
     - git:
         repoURL: https://github.com/pitoniak32/gitops-cd
-        branch: main
+        branch: rendered
         includePaths:
           - regexp:^rendered/apps/payments/my-app/
     - image:
@@ -93,7 +93,7 @@ spec:
   subscriptions:
     - git:
         repoURL: https://github.com/pitoniak32/gitops-cd
-        branch: main
+        branch: rendered
         includePaths:
           - regexp:^rendered/apps/payments/payments/
     - image:
@@ -111,7 +111,7 @@ spec:
   subscriptions:
     - git:
         repoURL: https://github.com/pitoniak32/gitops-cd
-        branch: main
+        branch: rendered
         includePaths:
           - regexp:^rendered/apps/payments/worker/
     - image:

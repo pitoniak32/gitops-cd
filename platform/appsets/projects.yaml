@@ -27,7 +27,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/pitoniak32/gitops-cd
-        targetRevision: main
+        targetRevision: rendered
         path: rendered/argocd/projects/{{.values.region}}
       destination:
         server: https://kubernetes.default.svc

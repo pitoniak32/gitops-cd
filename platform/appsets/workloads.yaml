@@ -24,7 +24,7 @@ spec:
                 region: '{{index .metadata.labels "example.com/region"}}'
           - git:
               repoURL: https://github.com/pitoniak32/gitops-cd
-              revision: main
+              revision: rendered
               files:
                 - path: rendered/argocd/deploys/{{.values.region}}/*/*.json
   template:

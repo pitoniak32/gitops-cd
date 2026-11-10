@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Regenerate .github/CODEOWNERS from owners files + CODEOWNERS.tmpl (commit it with your PR; CI checks it)"
+# ADR 0022: CODEOWNERS lives on main and no bot writes main, so authors regenerate it; owner fragments are
+# rendered to a temp dir (rendered/ itself is untouched).
+set -euo pipefail
+cd "$MISE_PROJECT_ROOT"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+for dir in capabilities/*/; do platform/render/scripts/render.sh . "$(basename "$dir")" "$tmp" >/dev/null; done
+platform/render/scripts/codeowners.sh . "$tmp"
+echo "wrote .github/CODEOWNERS"
