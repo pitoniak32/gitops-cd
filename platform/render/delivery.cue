@@ -92,7 +92,7 @@ _kargoCore: [
 			freightCreationPolicy: "Manual"
 			subscriptions: [{git: {
 				repoURL: _repoURL
-				branch:  "main"
+				branch:  renderedBranch
 				includePaths: ["regexp:^\(renderedDir)/apps/\(_cap)/\(an)/"]
 			}}, {image: {
 				repoURL: [if apps[an].module != _|_ {apps[an].module}, apps[an].image][0]
