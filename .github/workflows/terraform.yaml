@@ -32,10 +32,16 @@ jobs:
       TARGET: ${{ inputs.target }}
       COMMIT: ${{ inputs.commit }}
       MODULE: ${{ inputs.module }}
+    defaults:
+      run:
+        working-directory: target   # the env branch commit; mise finds ../.mise.toml
     steps:
+      # the workflow's own commit (for .mise.toml pins) + the promoted env branch commit in target/
+      - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit }}
+          path: target
       - uses: jdx/mise-action@v2   # oras, terraform, yq pinned in .mise.toml
         with:
           install_args: oras terraform yq
