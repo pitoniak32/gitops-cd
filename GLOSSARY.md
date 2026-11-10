@@ -105,13 +105,13 @@ _Avoid_: deployer (a person who ships is a promoter), runner
 An app's promotion graph: the capability's stages it uses, with skipped stages bypassed.
 
 **Rendered manifests**:
-The generated output under `rendered/`; never edited by hand.
+The generated output under `rendered/`, on the CI-written branch `rendered` (ADR 0022); never edited by hand.
 _Avoid_: build output, artifacts
 
 ### Delivery
 
 **Freight**:
-A `main` commit with the app's rendered manifests (the config) plus one discovered image or module (SemVer tag, pinned by digest); the unit Kargo promotes. Promoters assemble it by hand in the Kargo UI (ADR 0016).
+A `rendered`-branch commit with the app's rendered manifests (the config) plus one discovered image or module (SemVer tag, pinned by digest); the unit Kargo promotes. Promoters assemble it by hand in the Kargo UI (ADR 0016).
 _Avoid_: release, version
 
 **Warehouse**:

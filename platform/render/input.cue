@@ -11,6 +11,8 @@ capability: =~"^[a-z][a-z0-9-]{0,29}$" @tag(capability)
 // The gitops monorepo; generated output lives under renderedDir in it.
 repoURL:     *"https://github.com/pitoniak32/gitops-cd" | string @tag(repo)
 renderedDir: "rendered"
+// CI commits renderedDir to this branch (ADR 0022); Warehouses and Argo CD read it from there, never main.
+renderedBranch: "rendered"
 
 // -t generic=true: export editor schemas without capability data. Stage/target names
 // become a name pattern instead of the capability's actual names (checked by lint/CI).
