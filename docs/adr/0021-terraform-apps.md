@@ -30,4 +30,5 @@ Now:
 - A target can't switch platform; create a new target.
 - Like ADR 0020, a terraform Stage is Healthy after any successful promotion; the run conclusion is the only check.
 - Module discovery breaks for the whole repository if any tag is an OCI index or carries a non-JSON config (`docs/gotchas.md`). Setting `platform` on the subscription would filter out every tag; the renderer never sets it.
+- Module packages must be public (Kargo has no registry credential; the repo is public too). A private module would need an image credential in `kargo-shared-resources`.
 - Verified against Kargo 1.12.5 source, not yet against a live registry; first `tf-module-push` + Freight assembly is the check.
