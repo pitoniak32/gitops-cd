@@ -26,6 +26,19 @@ jobs:
           install_args: cue jq yq go
       - uses: actions/cache@v4
         with: {path: ~/.cache/cue, key: "cue-${{ hashFiles('platform/cue.mod/module.cue') }}"}
+      - name: go cache dirs
+        id: go
+        run: |
+          echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+          echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+      # module + build cache for platform/cli (go vet/test, gcd build); key: Go version + go.sum
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.go.outputs.mod }}
+            ${{ steps.go.outputs.build }}
+          key: go-${{ runner.os }}-${{ hashFiles('.mise.toml') }}-${{ hashFiles('platform/cli/go.sum') }}
+          restore-keys: go-${{ runner.os }}-${{ hashFiles('.mise.toml') }}-
 
       - name: rendered/ and CODEOWNERS are CI-owned
         if: github.event_name == 'pull_request'
