@@ -1,0 +1,20 @@
+# PRs start as drafts (ADR 0022): CI only comments the rendered diff on drafts and commits rendered/ to the
+# branch once the PR is ready for review. GitHub can't require drafts, so a PR opened ready is converted.
+# pull_request_target (base-branch workflow, works for forks too); it never checks out PR code.
+name: draft-first
+on:
+  pull_request_target:
+    types: [opened]
+permissions:
+  pull-requests: write
+jobs:
+  draft:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.html_url }}
+    steps:
+      - run: |
+          gh pr ready --undo "$PR"
+          gh pr comment "$PR" --body "Converted to draft: PRs start as drafts here (ADR 0022). CI comments the rendered diff on every push; mark it **ready for review** when you want \`rendered/\` committed to this branch."

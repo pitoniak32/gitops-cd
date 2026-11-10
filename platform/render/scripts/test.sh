@@ -296,3 +296,34 @@ want my-app-qa "false::my-app-us-stg" "$kk"; want my-app-us-qa "false::my-app-qa
 want my-app-us-prod "false:All:my-app-us-perf,my-app-us-stg" "$kk"
 oneclick "$kk"; rm -rf "${r:?}" "${o:?}"
 echo "control-flow graph ok"
+
+# affected.sh (ADR 0022): changed paths -> capabilities to re-render, "all", or nothing
+aff() { printf '%s\n' "$@" | scripts/affected.sh | paste -sd' ' -; }
+[[ "$(aff capabilities/payments/apps/worker/app.yml capabilities/search/owners.yml capabilities/payments/stages/dev.yml)" == "payments search" ]] || { echo "affected: per capability" >&2; exit 1; }
+for p in teams/team1.yml platform/render/app.cue platform/render/scripts/render.sh platform/cue.mod/module.cue rendered/infrastructure/regions/us.json; do
+  [[ "$(aff capabilities/search/owners.yml "$p")" == "all" ]] || { echo "affected: $p must re-render all" >&2; exit 1; }
+done
+[[ "$(aff docs/adr/0001-cue-behind-yaml.md platform/render/README.md platform/render/testdata/lint-cases.tsv platform/render/schemas/app.json platform/cli/main.go)" == "" ]] || { echo "affected: docs/tests/schemas/cli render nothing" >&2; exit 1; }
+# rendered/ edits (the bot's own commits, or by hand) map back to their capability: re-render overwrites them
+[[ "$(aff rendered/kargo/payments.yaml rendered/apps/search/api/dev/us-dev/manifests.yaml rendered/pipelines/payments.json rendered/argocd/deploys/us/search/api-us-dev.json rendered/argocd/projects/onprem/payments.yaml rendered/codeowners/search)" == "payments search" ]] || { echo "affected: rendered/ paths -> capability" >&2; exit 1; }
+# CODEOWNERS(.tmpl): reassembled on every run, no capability render needed
+[[ "$(aff .github/CODEOWNERS .github/CODEOWNERS.tmpl)" == "" ]] || { echo "affected: CODEOWNERS renders nothing" >&2; exit 1; }
+echo "affected ok"
+
+# render-affected.sh: a selective render (incl. a deleted capability) equals a full render
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; sel="$r/rendered"; full="$(mktemp -d)"
+for cap in payments search; do scripts/render.sh "$r" "$cap" "$sel" >/dev/null; done
+scripts/regions.sh "$sel" >/dev/null; scripts/codeowners.sh "$r" "$sel"
+yq -i '.replicas = 4' "$r/capabilities/payments/apps/my-app/app.yml"; rm -rf "$r/capabilities/search"
+printf '%s\n' capabilities/payments/apps/my-app/app.yml capabilities/search/owners.yml | scripts/render-affected.sh "$r" "$sel" >/dev/null
+cp "$r/.github/CODEOWNERS" "$r/CODEOWNERS.sel"
+scripts/render.sh "$r" payments "$full" >/dev/null; scripts/regions.sh "$full" >/dev/null; scripts/codeowners.sh "$r" "$full"
+diff -r "$sel" "$full" && diff "$r/CODEOWNERS.sel" "$r/.github/CODEOWNERS" || { echo "selective render != full render" >&2; exit 1; }
+# nothing affected: nothing touched
+before="$(find "$sel" -type f -exec md5 -q {} + 2>/dev/null || find "$sel" -type f -exec md5sum {} +)"
+echo docs/x.md | scripts/render-affected.sh "$r" "$sel" >/dev/null
+[[ "$before" == "$(find "$sel" -type f -exec md5 -q {} + 2>/dev/null || find "$sel" -type f -exec md5sum {} +)" ]] || { echo "unaffected change must not touch rendered/" >&2; exit 1; }
+# CODEOWNERS is reassembled even when nothing renders (hand edits revert)
+echo '# hand edit' >>"$r/.github/CODEOWNERS"; echo .github/CODEOWNERS | scripts/render-affected.sh "$r" "$sel" >/dev/null
+diff "$r/CODEOWNERS.sel" "$r/.github/CODEOWNERS" || { echo "CODEOWNERS hand edit must be reverted" >&2; exit 1; }
+rm -rf "${r:?}" "${full:?}"; echo "render-affected ok"

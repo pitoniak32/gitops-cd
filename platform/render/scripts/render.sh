@@ -8,6 +8,9 @@ set -euo pipefail
 PLATFORM_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="$(cd "$1" && pwd)"; CAP="$2"; OUT="$(mkdir -p "$3" && cd "$3" && pwd)"
 . "$PLATFORM_DIR/scripts/inputs.sh"
+prune() { rm -rf "$OUT/apps/$CAP" "$OUT/kargo/$CAP.yaml" "$OUT"/argocd/projects/*/"$CAP.yaml" "$OUT"/argocd/deploys/*/"$CAP" "$OUT/pipelines/$CAP.json" "$OUT/codeowners/$CAP"; }
+# PRUNE=1: the capability was deleted; remove its outputs only
+if [[ "${PRUNE:-}" == 1 && ! -d "$ROOT/capabilities/$CAP" ]]; then prune; exit 0; fi
 [[ -d "$ROOT/capabilities/$CAP" ]] || { echo "no capability dir $ROOT/capabilities/$CAP" >&2; exit 1; }
 cue_args "$ROOT" "$CAP"
 
@@ -17,7 +20,7 @@ cd "$PLATFORM_DIR"
 cue vet -c . "${CUE_ARGS[@]}"
 cue export . "${CUE_ARGS[@]}" -e files --out json >"$tmp"
 
-rm -rf "$OUT/apps/$CAP" "$OUT/kargo/$CAP.yaml" "$OUT"/argocd/projects/*/"$CAP.yaml" "$OUT"/argocd/deploys/*/"$CAP" "$OUT/pipelines/$CAP.json" "$OUT/codeowners/$CAP"
+prune
 jq -r 'keys[]' "$tmp" | while read -r f; do
   mkdir -p "$OUT/$(dirname "$f")"
   jq -j --arg f "$f" '.[$f]' "$tmp" >"$OUT/$f"
