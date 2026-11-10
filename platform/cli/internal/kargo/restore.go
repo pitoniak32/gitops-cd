@@ -41,21 +41,22 @@ var (
 )
 
 // FreightFromBranch rebuilds the Freight a target's env branch was promoted from: the source commit from
-// Kargo's commit message ("promote <cap>/<app> to <stage>/<target> from <sha>[, image <tag>]") and the
-// pinned image (<repo>:<tag>@<digest>) from the branch's deployment.yaml. Same artifacts -> Kargo
-// computes the same Freight ID. The error is the reason the branch can't be restored.
-func FreightFromBranch(warehouse, repoURL, imageRepo, headMessage, deploymentImage string) (*unstructured.Unstructured, error) {
+// Kargo's commit message ("promote <cap>/<app> to <stage>/<target> from <sha>[, image|module <tag>]") and
+// the pinned artifact (<repo>:<tag>@<digest>) from the branch's deployment.yaml (K8s app) or terraform.yaml
+// `module` (terraform app, ADR 0021). Same artifacts -> Kargo computes the same Freight ID. The error is the
+// reason the branch can't be restored.
+func FreightFromBranch(warehouse, repoURL, imageRepo, headMessage, pinned string) (*unstructured.Unstructured, error) {
 	m := promoteMsg.FindStringSubmatch(headMessage)
 	if m == nil {
 		first, _, _ := strings.Cut(headMessage, "\n")
 		return nil, fmt.Errorf("head is not a Kargo promotion commit: %s", first)
 	}
-	im := pinnedImg.FindStringSubmatch(deploymentImage)
+	im := pinnedImg.FindStringSubmatch(pinned)
 	if im == nil {
-		return nil, fmt.Errorf("no pinned image (<repo>:<tag>@<digest>) in deployment.yaml (promoted before ADR 0016?)")
+		return nil, fmt.Errorf("no pinned artifact (<repo>:<tag>@<digest>) in deployment.yaml or terraform.yaml (promoted before ADR 0016?)")
 	}
 	if im[1] != imageRepo {
-		return nil, fmt.Errorf("deployment image %s is not %s", im[1], imageRepo)
+		return nil, fmt.Errorf("pinned artifact %s is not %s", im[1], imageRepo)
 	}
 	return &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "kargo.akuity.io/v1alpha1", "kind": "Freight",
@@ -68,8 +69,8 @@ func FreightFromBranch(warehouse, repoURL, imageRepo, headMessage, deploymentIma
 
 // BranchReader reads an env branch head.
 type BranchReader interface {
-	// Head returns the head commit message and the image in the branch's deployment.yaml ("" if
-	// unreadable); exists is false when the branch doesn't exist.
+	// Head returns the head commit message and the pinned artifact (branchArtifact; "" if unreadable);
+	// exists is false when the branch doesn't exist.
 	Head(repoURL, branch string) (msg string, deployImage string, exists bool, err error)
 }
 
@@ -89,13 +90,37 @@ func (GHReader) Head(repoURL, branch string) (string, string, bool, error) {
 		}
 		return "", "", false, fmt.Errorf("gh api commits/%s: %w: %s", branch, err, strings.TrimSpace(stderr.String()))
 	}
-	img := ""
-	if b, err := exec.Command("gh", "api", "repos/"+slug+"/contents/deployment.yaml?ref="+ref, "--jq", ".content").Output(); err == nil {
-		if raw, err := base64.StdEncoding.DecodeString(strings.Join(strings.Fields(string(b)), "")); err == nil {
-			img = deploymentImage(raw)
+	img := branchArtifact(func(path string) ([]byte, bool) {
+		b, err := exec.Command("gh", "api", "repos/"+slug+"/contents/"+path+"?ref="+ref, "--jq", ".content").Output()
+		if err != nil {
+			return nil, false
 		}
-	}
+		raw, err := base64.StdEncoding.DecodeString(strings.Join(strings.Fields(string(b)), ""))
+		return raw, err == nil
+	})
 	return strings.TrimRight(string(msg), "\n"), img, true, nil
+}
+
+// branchArtifact returns what an env branch pins: the deployment.yaml image (K8s app), else the
+// terraform.yaml module (terraform app); "" if neither is readable.
+func branchArtifact(read func(path string) ([]byte, bool)) string {
+	if raw, ok := read("deployment.yaml"); ok {
+		return deploymentImage(raw)
+	}
+	if raw, ok := read("terraform.yaml"); ok {
+		return terraformModule(raw)
+	}
+	return ""
+}
+
+func terraformModule(raw []byte) string {
+	var d struct {
+		Module string `yaml:"module"`
+	}
+	if yaml.Unmarshal(raw, &d) != nil {
+		return ""
+	}
+	return d.Module
 }
 
 // ghNotFound reports whether gh's stderr says the ref doesn't exist (HTTP 404), as opposed to an
