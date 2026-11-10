@@ -23,14 +23,14 @@
       "type": "object",
       "description": "targets/<t>/environment-variables/<name>.yml: flat KEY: value map",
       "patternProperties": {
-        "^[A-Z_][A-Z0-9_]*$": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
           "$ref": "#/$defs/EnvValue"
         }
       },
       "propertyNames": {
-        "pattern": "^[A-Z_][A-Z0-9_]*$",
-        "errorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$",
-        "patternErrorMessage": "Invalid name, must match ^[A-Z_][A-Z0-9_]*$"
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+        "errorMessage": "Invalid name, must match ^[A-Za-z_][A-Za-z0-9_]*$",
+        "patternErrorMessage": "Invalid name, must match ^[A-Za-z_][A-Za-z0-9_]*$"
       }
     },
     "Layer": {

@@ -133,6 +133,11 @@ scripts/codeowners.sh "$r" "$out2"
 if grep -q search "$r/.github/CODEOWNERS"; then echo "deleted capability still in CODEOWNERS" >&2; exit 1; fi
 rm -rf "${r:?}" "${out2:?}"; echo "codeowners prune ok"
 scripts/lint.sh testdata/root payments; echo "lint ok"
+# env keys: any C identifier (some apps need lowercase, terraform TF_VAR_<name>)
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
+yq -i '.env.TF_VAR_lower_ok = "x"' "$r/capabilities/payments/apps/my-app/app.yml"
+scripts/lint.sh "$r" payments >/dev/null || { echo "lowercase env key must lint clean" >&2; exit 1; }
+rm -rf "${r:?}"; echo "lowercase env ok"
 
 # Lint cases: <file under testdata/root> TAB <yq -i expr> TAB <ERE the lint output must match>
 while IFS=$'\t' read -r file expr want; do

@@ -9,7 +9,7 @@ import (
 #EnvValue: string & (!~"^secret:" | =~"^secret:[a-z][a-z0-9-]{4,28}[a-z0-9]/[A-Za-z0-9_-]+(@([0-9]+|latest))?$" | error("expected a plain string or secret:<gcp-project>/<secret>[@<version>]"))
 
 // targets/<t>/environment-variables/<name>.yml: flat KEY: value map
-#EnvironmentVariables: [=~"^[A-Z_][A-Z0-9_]*$"]: #EnvValue
+#EnvironmentVariables: [=~"^[A-Za-z_][A-Za-z0-9_]*$"]: #EnvValue
 
 // Settings that can be set at app, stage, or target level. Most specific wins;
 // env is merged per key.
