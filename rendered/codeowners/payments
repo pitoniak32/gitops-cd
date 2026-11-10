@@ -1,4 +1,0 @@
-/capabilities/payments/ @acme/team1
-/capabilities/payments/apps/infra/ @acme/team1
-/capabilities/payments/apps/my-app/ @acme/team1
-/capabilities/payments/apps/worker/ @acme/team1

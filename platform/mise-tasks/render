@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #MISE description="Render every capability into rendered/ (or out dir) and regenerate .github/CODEOWNERS"
 #USAGE arg "[out]" help="output dir (default: rendered)"
-# CI runs this on main; locally optional.
+# CI runs this on every push to main and commits the result to the rendered branch (ADR 0022); locally it
+# writes the gitignored rendered/ for inspection.
 set -euo pipefail
 cd "$MISE_PROJECT_ROOT"
 OUT="${usage_out:-rendered}"
@@ -17,3 +18,4 @@ platform/render/scripts/regions.sh "$OUT" >/dev/null  # platform-level: clusters
 platform/render/scripts/unique-apps.sh "$OUT"  # Application names are global per region
 echo "rendered regions"
 platform/render/scripts/codeowners.sh . "$OUT"
+cp platform/render/rendered-README.md "$OUT/README.md"
