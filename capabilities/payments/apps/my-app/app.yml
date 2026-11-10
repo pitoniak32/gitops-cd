@@ -6,6 +6,7 @@ replicas: 1
 env:
   APP_ENV: 'true'
   APP_SECRET: 'secret:acme-proj1/my-app-secret'
+  NEW_VAR: 'testing'
 stages:
   dev:
     envFrom: [launchdarkly]
