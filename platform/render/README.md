@@ -22,9 +22,12 @@ owners.yml                owners: [team, ..], promoters: [email, ..], viewers: [
                           (apps/<app>/owners.yml replaces each field it sets)
 ../../teams/<team>.yml    githubTeam
 stages/<stage>.yml        dependsOn: [..], autoPromote: bool
-targets/<t>/target.yml    config: {cluster, namespace, environment, auth.wifEmail, billing, platform}
+targets/<t>/target.yml    config: {platform (K8S|TERRAFORM), environment, auth.wifEmail, billing,
+                          K8S: cluster, namespace; TERRAFORM: terraform.{gcpProject, backend.{bucket, prefix}}}
 targets/<t>/environment-variables/<name>.yml   KEY: value (flat)
 apps/<app>/app.yml        image (repo only), imageConstraint, port, replicas, env, envFrom, resources, stages.<s>.targets.<t>
+                          terraform app (ADR 0021): module (OCI repo) + moduleConstraint instead of image; env, envFrom,
+                          workflow only; renders terraform.yaml per target
 ```
 
 ## Merge rules

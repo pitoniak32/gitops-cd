@@ -41,7 +41,7 @@ _Avoid_: gate (ADR 0012's gate per stage is gone), join
 The Kargo Stage `<app>-<target>` that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
 
 **Target**:
-A reusable deployment destination (`targets/<name>/target.yml`): one cluster + namespace + workload identity.
+A reusable deployment destination (`targets/<name>/target.yml`). `platform: K8S` (default): one cluster + namespace + workload identity. `platform: TERRAFORM`: a **terraform target**, one GCP project + GCS state backend + workload identity, used only by terraform apps (ADR 0021).
 _Avoid_: env, region, location
 
 **Environment-variables file**:
@@ -49,8 +49,12 @@ A flat `KEY: value` file of a target (`targets/<t>/environment-variables/<name>.
 _Avoid_: env bundle, env file
 
 **App**:
-A deployable workload (`apps/<name>/app.yml`) assigned to targets per stage.
+A deployable workload (`apps/<name>/app.yml`) assigned to targets per stage. A K8s app sets `image`; a **terraform app** sets `module` instead and deploys only to terraform targets, through a GitHub Actions workflow (ADR 0021).
 _Avoid_: service, component
+
+**Module**:
+A terraform app's Terraform module, pushed as an OCI artifact; discovered and pinned (by digest) in Freight like an image (ADR 0021).
+_Avoid_: stack, workspace, package
 
 **Layer**:
 The overridable settings (`replicas`, `env`, `resources`) that can be set at app, stage, or target level; the most specific layer wins.
@@ -107,7 +111,7 @@ _Avoid_: build output, artifacts
 ### Delivery
 
 **Freight**:
-A `main` commit with the app's rendered manifests (the config) plus one discovered image (SemVer tag, pinned by digest); the unit Kargo promotes. Promoters assemble it by hand in the Kargo UI (ADR 0016).
+A `main` commit with the app's rendered manifests (the config) plus one discovered image or module (SemVer tag, pinned by digest); the unit Kargo promotes. Promoters assemble it by hand in the Kargo UI (ADR 0016).
 _Avoid_: release, version
 
 **Warehouse**:

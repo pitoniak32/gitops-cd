@@ -113,7 +113,9 @@ by CI on main from `.github/CODEOWNERS.tmpl` + owners files; edit those instead.
    **assembles Freight** = a config commit + an image tag (ADR 0016). There's one Kargo Stage per target
    (`<app>-<target>`); promoting a target copies its folder to branch `env/<cap>/<app>/<target>`, pins
    the image digest in its `deployment.yaml`, and Argo CD syncs it from there (ADR 0012), or, for
-   `deployWith: gha` targets, Kargo dispatches a GitHub Actions workflow and waits for it (ADR 0020). Control-flow
+   `deployWith: gha` targets, Kargo dispatches a GitHub Actions workflow and waits for it (ADR 0020). Terraform
+   apps (`module:` instead of `image:`, TERRAFORM targets) render `terraform.yaml`, pin the module digest in it
+   and always dispatch `.github/workflows/terraform.yaml` (plan + apply; ADR 0021). Control-flow
    Stages (no steps, always auto) appear only where they help (ADR 0019): `<app>-<S>-done` where
    several targets fan out to several, `<app>-<D>` where several fan into a multi-target stage or a stage
    needs a one-click release. To release a whole stage, use **Promote to downstream** on its `<app>-<D>`
