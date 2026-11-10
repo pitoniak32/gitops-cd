@@ -136,6 +136,10 @@ if st infra-tf-dev "$d1 | .config.body" | grep -qF "'image':"; then echo "terraf
 st infra-tf-dev '.spec.promotionTemplate.spec.steps[] | select(.uses == "git-commit") | .config.message' | grep -qF ', module ${{ imageFrom(vars.image).Tag }}' || { echo "commit message names module tag (kargo-restore parses it)" >&2; exit 1; }
 [[ "$(st infra-tf-dev "$w1 | .retry.timeout") $(st worker-us-dev "$w1 | .retry.timeout")" == "60m 30m" ]] || { echo "wait timeout terraform 60m, k8s 30m" >&2; exit 1; }
 echo "terraform kargo ok"
+# editor schema (generic export) accepts both platforms: nothing platform-specific is required
+[[ "$(jq -c '.properties.config.required' schemas/target.json)" == '["auth","billing","environment"]' ]] || { echo "target.json config.required: $(jq -c '.properties.config.required' schemas/target.json)" >&2; exit 1; }
+[[ "$(jq -c '.properties.config.properties.terraform.properties | keys' schemas/target.json)" == '["backend","gcpProject"]' ]] || { echo "target.json must describe terraform" >&2; exit 1; }
+echo "target schema ok"
 # deployWith/workflow resolve per field, target > stage > app > default
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
 yq -i '.workflow.ref = "release" | .stages.dev.deployWith = "gha" | .stages.dev.targets.onprem-dev = {"deployWith": "argocd", "workflow": {"file": "x.yml"}} | .stages.dev.targets.us-dev.workflow.repo = "acme/deploys"' "$c"

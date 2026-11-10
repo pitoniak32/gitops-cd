@@ -32,30 +32,33 @@ for i, n in list.SortStrings(_stageNames) {
 		environment: #Environment
 		auth: wifEmail: =~"^[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com$"
 		billing: =~"^[a-z0-9-]+$"
-		// set per platform below; declared here so a misplaced field gets the message, not "field not allowed"
-		cluster?:   string
-		namespace?: string
-		terraform?: {...}
-		if platform == "K8S" {
-			cluster:   or(_clusterNames) | error("unknown cluster; allowed: \(strings.Join(_clusterNames, ", "))")
-			namespace: =~"^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
-			if !generic if clusters[cluster] != _|_ {
-				// the cluster must accept this environment
-				environment: or(clusters[cluster].environments) | error("cluster \(cluster) accepts environments: \(strings.Join(clusters[cluster].environments, ", "))")
+		// Constraints for both platforms here (the editor schema is exported generic, so it allows either);
+		// which fields are required or forbidden is per platform below.
+		cluster?:   or(_clusterNames) | error("unknown cluster; allowed: \(strings.Join(_clusterNames, ", "))")
+		namespace?: =~"^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+		terraform?: {
+			gcpProject!: =~"^[a-z][a-z0-9-]{4,28}[a-z0-9]$" | error("expected a GCP project id")
+			// GCS state; prefix default <capability>/<app>/<target>
+			backend: {
+				bucket!: =~"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$" | error("expected a GCS bucket name")
+				prefix?: =~"^[A-Za-z0-9._/-]+$" | error("expected a GCS object prefix")
 			}
-			terraform?: error("terraform not allowed on a K8S target (set platform: TERRAFORM)")
 		}
-		if platform == "TERRAFORM" {
-			terraform: {
-				gcpProject!: =~"^[a-z][a-z0-9-]{4,28}[a-z0-9]$" | error("expected a GCP project id")
-				// GCS state; prefix default <capability>/<app>/<target>
-				backend: {
-					bucket!: =~"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$" | error("expected a GCS bucket name")
-					prefix?: =~"^[A-Za-z0-9._/-]+$" | error("expected a GCS object prefix")
+		if !generic {
+			if platform == "K8S" {
+				cluster:   _
+				namespace: _
+				if clusters[cluster] != _|_ {
+					// the cluster must accept this environment
+					environment: or(clusters[cluster].environments) | error("cluster \(cluster) accepts environments: \(strings.Join(clusters[cluster].environments, ", "))")
 				}
+				terraform?: error("terraform not allowed on a K8S target (set platform: TERRAFORM)")
 			}
-			cluster?:   error("cluster not allowed on a TERRAFORM target")
-			namespace?: error("namespace not allowed on a TERRAFORM target")
+			if platform == "TERRAFORM" {
+				terraform:  _
+				cluster?:   error("cluster not allowed on a TERRAFORM target")
+				namespace?: error("namespace not allowed on a TERRAFORM target")
+			}
 		}
 	}
 }

@@ -40,8 +40,7 @@
           "pattern": "^[a-z0-9-]+$"
         },
         "cluster": {
-          "type": "string",
-          "description": "set per platform below; declared here so a misplaced field gets the message, not \"field not allowed\"",
+          "description": "Constraints for both platforms here (the editor schema is exported generic, so it allows either);\nwhich fields are required or forbidden is per platform below.",
           "anyOf": [
             {
               "anyOf": [
@@ -72,14 +71,67 @@
             }
           ]
         },
-        "terraform": false
+        "terraform": {
+          "type": "object",
+          "properties": {
+            "backend": {
+              "type": "object",
+              "description": "GCS state; prefix default <capability>/<app>/<target>",
+              "properties": {
+                "bucket": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$"
+                    }
+                  ]
+                },
+                "prefix": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9._/-]+$"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "bucket"
+              ],
+              "propertyNames": {
+                "enum": [
+                  "bucket",
+                  "prefix"
+                ],
+                "errorMessage": "Unknown key. Allowed: bucket, prefix"
+              }
+            },
+            "gcpProject": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "backend",
+            "gcpProject"
+          ],
+          "propertyNames": {
+            "enum": [
+              "backend",
+              "gcpProject"
+            ],
+            "errorMessage": "Unknown key. Allowed: backend, gcpProject"
+          }
+        }
       },
       "required": [
         "auth",
         "billing",
-        "cluster",
-        "environment",
-        "namespace"
+        "environment"
       ],
       "propertyNames": {
         "enum": [
