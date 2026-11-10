@@ -10,7 +10,7 @@ Now each deploy chooses how it is applied:
 - **Rendering**: every target folder is rendered as before. A `gha` deploy gets no `rendered/argocd/deploys/...` params file (so no Application) and no AppProject destination. Target Stages carry `example.com/deploy-with`.
 - **Promotion** (`gha` target Stage): the same steps through `git-push` (the target branch still records what was deployed), then two Kargo `http` steps:
   - `dispatch`: `POST /repos/<repo>/actions/workflows/<file>/dispatches` with `return_run_details: true` and inputs `capability, app, stage, target, commit` (the pushed target-branch commit), `image` (`<repo>:<tag>@<digest>`). Any non-200 fails the Promotion with GitHub's message.
-  - `wait`: `GET /actions/runs/<id>` every 30s; `completed`+`success` succeeds, any other completed conclusion (or a non-200) fails, anything else keeps it Running; `retry.timeout: 30m`.
+  - `wait`: `GET /actions/runs/<id>` every 30s; `completed`+`success` succeeds, any other completed conclusion (or a non-200 other than 404) fails, anything else keeps it Running; `retry.timeout: 30m`. A 404 keeps polling: GitHub returns the run id before its API serves the run.
 - **Auth**: a fine-grained PAT (`GITHUB_PAT` in fnox, `Actions: read and write` on each workflow repo). `mise run creds` writes it to `kargo-shared-resources/github-actions` (`cred-type: generic`, key `token`); steps read `sharedSecret('github-actions').token`. Region shards read it from the hub like the git creds.
 - **Example**: `.github/workflows/deploy.yaml` checks out the commit, checks the image matches, and writes a job summary. It deploys nothing: GitHub-hosted runners can't reach the local kind clusters. `payments/worker` dev uses it.
 

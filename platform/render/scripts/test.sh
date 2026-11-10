@@ -108,7 +108,8 @@ done
 w1='.spec.promotionTemplate.spec.steps[] | select(.as == "wait")'
 [[ "$(st worker-us-dev "$w1 | .retry.timeout + \" \" + .config.url")" == '30m https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}' ]] || { echo "wait step" >&2; exit 1; }
 [[ "$(st worker-us-dev "$w1 | .config.successExpression")" == "response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'" ]] || { echo "wait success" >&2; exit 1; }
-[[ "$(st worker-us-dev "$w1 | .config.failureExpression")" == "response.status != 200 || (response.body.status == 'completed' && response.body.conclusion != 'success')" ]] || { echo "wait failure" >&2; exit 1; }
+# 404: the dispatched run isn't readable yet (GitHub returns its id before the API serves it): keep polling
+[[ "$(st worker-us-dev "$w1 | .config.failureExpression")" == "(response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')" ]] || { echo "wait failure (404 must keep polling)" >&2; exit 1; }
 [[ "$(st worker-us-dev "$w1 | .config.errorExpression")" == "response.status != 200 ? response.body.message : 'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url" ]] || { echo "wait error message (non-200 has no run fields)" >&2; exit 1; }
 # Kargo ends a ${{ }} expression at the first "}}": a nested map literal must not close with "}}"
 if grep -nE '[^ ]\}\}' "$k" testdata/golden/kargo/*.yaml; then echo 'Kargo expression cut short: "}}" not preceded by a space' >&2; exit 1; fi
