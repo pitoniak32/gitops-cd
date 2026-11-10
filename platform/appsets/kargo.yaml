@@ -1,5 +1,5 @@
 # hub only: Application rendered-kargo syncs rendered/kargo/<cap>.yaml (Kargo Projects, Warehouses, Stages,
-# promote RBAC) from main
+# promote RBAC) from the rendered branch (ADR 0022)
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -23,7 +23,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/pitoniak32/gitops-cd
-        targetRevision: main
+        targetRevision: rendered
         path: rendered/kargo
       destination:
         server: https://kubernetes.default.svc
