@@ -1,4 +1,48 @@
 {
+  "infra": {
+    "capability": "payments",
+    "app": "infra",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "us-dev-tf": {
+            "gcpProject": "team1-dev",
+            "platform": "TERRAFORM",
+            "environment": "dev",
+            "path": "apps/payments/infra/dev/us-dev-tf",
+            "deployWith": "gha"
+          }
+        }
+      },
+      "staging": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 1,
+        "targets": {
+          "us-stg-tf": {
+            "gcpProject": "team1-stg",
+            "platform": "TERRAFORM",
+            "environment": "staging",
+            "path": "apps/payments/infra/staging/us-stg-tf",
+            "deployWith": "gha"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ],
+      [
+        "staging"
+      ]
+    ]
+  },
   "my-app": {
     "capability": "payments",
     "app": "my-app",
@@ -11,6 +55,7 @@
           "us-dev": {
             "cluster": "us",
             "namespace": "payments-us-dev",
+            "platform": "K8S",
             "environment": "dev",
             "path": "apps/payments/my-app/dev/us-dev",
             "deployWith": "argocd"
@@ -18,6 +63,7 @@
           "onprem-dev": {
             "cluster": "onprem",
             "namespace": "payments-onprem-dev",
+            "platform": "K8S",
             "environment": "dev",
             "path": "apps/payments/my-app/dev/onprem-dev",
             "deployWith": "argocd"
@@ -34,6 +80,7 @@
           "us-stg": {
             "cluster": "us",
             "namespace": "payments-us-stg",
+            "platform": "K8S",
             "environment": "staging",
             "path": "apps/payments/my-app/staging/us-stg",
             "deployWith": "argocd"
@@ -41,6 +88,7 @@
           "onprem-stg": {
             "cluster": "onprem",
             "namespace": "payments-onprem-stg",
+            "platform": "K8S",
             "environment": "staging",
             "path": "apps/payments/my-app/staging/onprem-stg",
             "deployWith": "argocd"
@@ -57,6 +105,7 @@
           "us-perf": {
             "cluster": "us",
             "namespace": "payments-us-perf",
+            "platform": "K8S",
             "environment": "perf",
             "path": "apps/payments/my-app/perf/us-perf",
             "deployWith": "argocd"
@@ -74,6 +123,7 @@
           "us-prod": {
             "cluster": "us",
             "namespace": "payments-us-prod",
+            "platform": "K8S",
             "environment": "prod",
             "path": "apps/payments/my-app/prod/us-prod",
             "deployWith": "argocd"
@@ -81,6 +131,7 @@
           "onprem-prod": {
             "cluster": "onprem",
             "namespace": "payments-onprem-prod",
+            "platform": "K8S",
             "environment": "prod",
             "path": "apps/payments/my-app/prod/onprem-prod",
             "deployWith": "argocd"
@@ -113,6 +164,7 @@
           "us-dev": {
             "cluster": "us",
             "namespace": "payments-us-dev",
+            "platform": "K8S",
             "environment": "dev",
             "path": "apps/payments/worker/dev/us-dev",
             "deployWith": "gha"
@@ -129,6 +181,7 @@
           "us-stg": {
             "cluster": "us",
             "namespace": "payments-us-stg",
+            "platform": "K8S",
             "environment": "staging",
             "path": "apps/payments/worker/staging/us-stg",
             "deployWith": "argocd"
@@ -145,6 +198,7 @@
           "us-prod": {
             "cluster": "us",
             "namespace": "payments-us-prod",
+            "platform": "K8S",
             "environment": "prod",
             "path": "apps/payments/worker/prod/us-prod",
             "deployWith": "argocd"
