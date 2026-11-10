@@ -51,6 +51,7 @@ metadata:
     example.com/stage: dev
     example.com/target: us-dev
     example.com/deploy-with: argocd
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
     kargo.akuity.io/color: blue

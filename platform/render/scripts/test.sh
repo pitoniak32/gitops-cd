@@ -70,7 +70,7 @@ for n in my-app-dev my-app-dev-done my-app-prod my-app-staging; do
   [[ "$(yq "select(.kind==\"Stage\" and .metadata.name==\"$n\") | .metadata.labels.\"example.com/kind\" + \" \" + (.spec | has(\"promotionTemplate\") | tostring) + \" \" + (.spec.shard // \"-\")" "$k")" == "control-flow false -" ]] || { echo "$n must be control-flow: no steps, no shard" >&2; exit 1; }
 done
 [[ "$(yq 'select(.kind=="Stage" and .metadata.name=="my-app-dev-done") | .metadata.labels."example.com/stage"' "$k") $(yq 'select(.kind=="Stage" and .metadata.name=="my-app-staging") | .metadata.labels."example.com/stage"' "$k")" == "dev staging" ]] || { echo "control-flow stage labels" >&2; exit 1; }
-[[ "$(yq 'select(.kind=="ProjectConfig") | .spec.promotionPolicies[] | .stageSelector.name' "$k" | sort | paste -sd' ' -)" == "my-app-dev my-app-dev-done my-app-onprem-dev my-app-prod my-app-staging my-app-us-dev payments-us-dev worker-us-dev" ]] || { echo "auto-promotion: every control-flow Stage + targets of autoPromote stages only" >&2; exit 1; }
+[[ "$(yq 'select(.kind=="ProjectConfig") | .spec.promotionPolicies[] | .stageSelector.name' "$k" | sort | paste -sd' ' -)" == "infra-tf-dev my-app-dev my-app-dev-done my-app-onprem-dev my-app-prod my-app-staging my-app-us-dev payments-us-dev worker-us-dev" ]] || { echo "auto-promotion: every control-flow Stage + targets of autoPromote stages only" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-dev,worker-us-prod,worker-us-stg" ]] || { echo "promote-worker must cover exactly worker's Stages" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-my-app") | .rules[0].resourceNames | join(",")' "$k")" == "my-app-dev,my-app-dev-done,my-app-onprem-dev,my-app-onprem-prod,my-app-onprem-stg,my-app-prod,my-app-staging,my-app-us-dev,my-app-us-perf,my-app-us-prod,my-app-us-stg" ]] || { echo "promote-my-app must cover targets + control flow" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-onprem-prod") | .spec.promotionTemplate.spec.vars[2].value' "$k")" == "env/payments/my-app/onprem-prod" ]] || { echo "target stage must push its own branch" >&2; exit 1; }
@@ -113,6 +113,33 @@ w1='.spec.promotionTemplate.spec.steps[] | select(.as == "wait")'
 # Kargo ends a ${{ }} expression at the first "}}": a nested map literal must not close with "}}"
 if grep -nE '[^ ]\}\}' "$k" testdata/golden/kargo/*.yaml; then echo 'Kargo expression cut short: "}}" not preceded by a space' >&2; exit 1; fi
 echo "gha targets ok"
+# terraform apps (ADR 0021): one terraform.yaml per target, no k8s manifests, no Argo CD params
+tf="$tmp/apps/payments/infra"
+[[ "$(ls "$tf/dev/tf-dev" | paste -sd' ' -)" == "terraform.yaml" ]] || { echo "terraform target renders only terraform.yaml: $(ls "$tf/dev/tf-dev")" >&2; exit 1; }
+want='{"capability":"payments","app":"infra","stage":"dev","target":"tf-dev","environment":"dev","gcpProject":"team1-dev","wifEmail":"team1-dev@team1-dev.iam.gserviceaccount.com","backend":{"bucket":"tfstate-team1-dev","prefix":"payments/infra/tf-dev"},"module":"ghcr.io/pitoniak32/tf-bucket","env":{"TF_VAR_bucket_name":"payments-dev","TF_VAR_region":"us-central1"}}'
+got="$(yq -o=json -I=0 '.' "$tf/dev/tf-dev/terraform.yaml")"
+[[ "$got" == "$want" ]] || { printf 'tf-dev terraform.yaml\nwant: %s\ngot:  %s\n' "$want" "$got" >&2; exit 1; }
+[[ "$(yq '.backend.prefix + " " + .env.TF_VAR_region' "$tf/prod/tf-prod/terraform.yaml")" == "payments/custom us-east1" ]] || { echo "tf-prod prefix override / target env" >&2; exit 1; }
+if ls "$tmp"/argocd/deploys/*/payments/infra-* >/dev/null 2>&1; then echo "terraform targets must not get Argo CD params" >&2; exit 1; fi
+echo "terraform render ok"
+# terraform Kargo: Warehouse watches the module as an image (no platform), Stage runs on the hub
+# controller (no shard), pins module in terraform.yaml, dispatches with `module`, waits 60m
+[[ "$(yq 'select(.kind=="Warehouse" and .metadata.name=="infra") | .spec.subscriptions[1].image | .repoURL + " " + .imageSelectionStrategy + " " + .constraint + " " + (.discoveryLimit|tostring) + " " + (has("platform")|tostring)' "$k")" == "ghcr.io/pitoniak32/tf-bucket SemVer ^1 10 false" ]] || { echo "infra Warehouse module subscription" >&2; exit 1; }
+[[ "$(st infra-tf-dev '(.spec.shard // "-") + " " + .metadata.labels."example.com/platform" + " " + .metadata.labels."example.com/deploy-with"')" == "- terraform gha" ]] || { echo "infra-tf-dev: no shard, platform/deploy-with labels" >&2; exit 1; }
+[[ "$(st my-app-us-dev '.metadata.labels."example.com/platform"')" == "k8s" ]] || { echo "k8s platform label" >&2; exit 1; }
+[[ "$(st infra-tf-dev '[.spec.promotionTemplate.spec.steps[].uses] | join(",")')" == "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" ]] || { echo "infra-tf-dev steps" >&2; exit 1; }
+[[ "$(st infra-tf-dev '.spec.promotionTemplate.spec.steps[] | select(.uses == "yaml-update") | .config.path + " " + .config.updates[0].key + " " + .config.updates[0].value')" == './out/terraform.yaml module ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}' ]] || { echo "pin module in terraform.yaml" >&2; exit 1; }
+[[ "$(st infra-tf-dev '[.spec.promotionTemplate.spec.vars[].name] | join(",")')" == "repo,src,branch,image,workflowRepo,workflowFile,workflowRef" ]] || { echo "terraform vars (kargo-restore reads image by name)" >&2; exit 1; }
+[[ "$(st infra-tf-dev '.spec.promotionTemplate.spec.vars[4:] | map(.value) | join(" ")')" == "pitoniak32/gitops-cd terraform.yaml v1" ]] || { echo "terraform workflow defaults/override" >&2; exit 1; }
+st infra-tf-dev "$d1 | .config.body" | grep -qF "'module': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest" || { echo "dispatch must send module" >&2; exit 1; }
+if st infra-tf-dev "$d1 | .config.body" | grep -qF "'image':"; then echo "terraform dispatch must not send image" >&2; exit 1; fi
+st infra-tf-dev '.spec.promotionTemplate.spec.steps[] | select(.uses == "git-commit") | .config.message' | grep -qF ', module ${{ imageFrom(vars.image).Tag }}' || { echo "commit message names module tag (kargo-restore parses it)" >&2; exit 1; }
+[[ "$(st infra-tf-dev "$w1 | .retry.timeout") $(st worker-us-dev "$w1 | .retry.timeout")" == "60m 30m" ]] || { echo "wait timeout terraform 60m, k8s 30m" >&2; exit 1; }
+echo "terraform kargo ok"
+# editor schema (generic export) accepts both platforms: nothing platform-specific is required
+[[ "$(jq -c '.properties.config.required' schemas/target.json)" == '["auth","billing","environment"]' ]] || { echo "target.json config.required: $(jq -c '.properties.config.required' schemas/target.json)" >&2; exit 1; }
+[[ "$(jq -c '.properties.config.properties.terraform.properties | keys' schemas/target.json)" == '["backend","gcpProject"]' ]] || { echo "target.json must describe terraform" >&2; exit 1; }
+echo "target schema ok"
 # deployWith/workflow resolve per field, target > stage > app > default
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
 yq -i '.workflow.ref = "release" | .stages.dev.deployWith = "gha" | .stages.dev.targets.onprem-dev = {"deployWith": "argocd", "workflow": {"file": "x.yml"}} | .stages.dev.targets.us-dev.workflow.repo = "acme/deploys"' "$c"
@@ -133,6 +160,11 @@ scripts/codeowners.sh "$r" "$out2"
 if grep -q search "$r/.github/CODEOWNERS"; then echo "deleted capability still in CODEOWNERS" >&2; exit 1; fi
 rm -rf "${r:?}" "${out2:?}"; echo "codeowners prune ok"
 scripts/lint.sh testdata/root payments; echo "lint ok"
+# env keys: any C identifier (some apps need lowercase, terraform TF_VAR_<name>)
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
+yq -i '.env.TF_VAR_lower_ok = "x"' "$r/capabilities/payments/apps/my-app/app.yml"
+scripts/lint.sh "$r" payments >/dev/null || { echo "lowercase env key must lint clean" >&2; exit 1; }
+rm -rf "${r:?}"; echo "lowercase env ok"
 
 # Lint cases: <file under testdata/root> TAB <yq -i expr> TAB <ERE the lint output must match>
 while IFS=$'\t' read -r file expr want; do

@@ -32,6 +32,9 @@ Non-obvious failures hit while building this, with the fix in place. Check here 
 - **Default `additionalScopes` is `[groups]`**, which the Keycloak realm doesn't define; it's overridden to `[]`.
 - **Creating a resource with no `metadata.name` returns 500, not 403** (Kargo bug: name checked before authz). Permissions still hold.
 - **The gitops-only policy keys on the `kargo-api` ServiceAccount.** All UI/API writes are made by that SA, so the policy covers every user, admins included. Writes from `kubectl` as cluster admin are the intended path and are not affected.
+- **Terraform module discovery (ADR 0021) fails for the whole repo on one bad tag.** The `image` subscription fetches each candidate tag's manifest + config: an OCI index (`empty V2 manifest list or OCI index is not supported`) or a non-JSON `--config` breaks discovery of every tag. Push single manifests with oras' default empty config (`mise run tf-module-push`). Never add `platform` to a module subscription: artifacts have no platform, so every tag is filtered out.
+- **ghcr rejects fine-grained PATs** (`denied: permission_denied: The token provided does not match expected scopes` on push, after `Login Succeeded`). GitHub Packages only takes classic tokens; `tf-module-push` uses the gh CLI token: `gh auth refresh -h github.com -s write:packages` once.
+- **A new ghcr package is private.** Kargo has no registry credential, so the Warehouse can't discover a private module (401). After the first `mise run tf-module-push`, set `tf-bucket` to public in the package settings (the push links it to this repo via `org.opencontainers.image.source`).
 - **Example promotions call GitHub for real** (`gha-trigger` step). Use a throwaway Stage pointed at an in-cluster echo server when testing step behaviour.
 
 ## gitops-cd (rendered capabilities)

@@ -49,10 +49,10 @@ func TestFreightFromBranch(t *testing.T) {
 	}
 
 	for _, c := range []struct{ name, msg, img, reason string }{
-		{"pre-ADR", "promote payments/worker to dev/us-dev from a4b1dea7d42e7ba001b9292983998890cbaed8b6", "", "no pinned image"},
+		{"pre-ADR", "promote payments/worker to dev/us-dev from a4b1dea7d42e7ba001b9292983998890cbaed8b6", "", "no pinned artifact"},
 		{"foreign commit", "manual edit", goodImg, "not a Kargo promotion commit"},
 		{"other repo", goodMsg, "ghcr.io/other/img:1.0@sha256:abc", "not ghcr.io/pitoniak32/nginx"},
-		{"no digest", goodMsg, "ghcr.io/pitoniak32/nginx:1.1.0", "no pinned image"},
+		{"no digest", goodMsg, "ghcr.io/pitoniak32/nginx:1.1.0", "no pinned artifact"},
 	} {
 		f, err := FreightFromBranch("my-app", repoURL, imgRepo, c.msg, c.img)
 		if err == nil || f != nil || !strings.Contains(err.Error(), c.reason) {
@@ -129,7 +129,7 @@ func TestRestore(t *testing.T) {
 		"other: no Kargo project kargo-other (not rendered/synced yet?), skipped",
 		"payments/have: already has Freight, skipped",
 		"payments/never: env/payments/my-app/never doesn't exist (never promoted), skipped",
-		"payments/pre: no pinned image (<repo>:<tag>@<digest>) in deployment.yaml (promoted before ADR 0016?), skipped",
+		"payments/pre: no pinned artifact (<repo>:<tag>@<digest>) in deployment.yaml or terraform.yaml (promoted before ADR 0016?), skipped",
 		"payments/dev: promoting 1.1.0 from a35be03 (Freight freight-abc)",
 		"dev-restore-xyz: Succeeded",
 	} {
@@ -235,4 +235,54 @@ func TestRestoreMalformedStages(t *testing.T) {
 	// findFreight with malformed commits/images must not panic either
 	f := &unstructured.Unstructured{Object: map[string]any{"commits": []any{"x"}, "images": []any{"y"}}}
 	_ = findFreight([]unstructured.Unstructured{*f}, f)
+}
+
+const (
+	modRepo = "ghcr.io/pitoniak32/tf-bucket"
+	modPin  = modRepo + ":1.2.3@sha256:c8fa106acc6d713fc0cf8c00906b1d54157ff9cb77f6aa3f65ba1c27348e4ce6"
+	modMsg  = "promote payments/infra to dev/tf-dev from a35be032c36807442071c8cb1f069718a14b1aa2, module 1.2.3"
+)
+
+func TestTerraformModule(t *testing.T) {
+	if got := terraformModule([]byte("capability: payments\nmodule: " + modPin + "\n")); got != modPin {
+		t.Errorf("got %q want %q", got, modPin)
+	}
+	if got := terraformModule([]byte("capability: payments\n")); got != "" {
+		t.Errorf("missing module: got %q", got)
+	}
+}
+
+func TestFreightFromTerraformBranch(t *testing.T) {
+	f, err := FreightFromBranch("infra", repoURL, modRepo, modMsg, modPin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	im := f.Object["images"].([]any)[0].(map[string]any)
+	if im["repoURL"] != modRepo || im["tag"] != "1.2.3" || im["digest"] != "sha256:c8fa106acc6d713fc0cf8c00906b1d54157ff9cb77f6aa3f65ba1c27348e4ce6" {
+		t.Errorf("images: %v", im)
+	}
+	// rendered but never promoted: module is the bare repo
+	if _, err := FreightFromBranch("infra", repoURL, modRepo, modMsg, modRepo); err == nil || !strings.Contains(err.Error(), "no pinned artifact") || !strings.Contains(err.Error(), "terraform.yaml") {
+		t.Errorf("unpinned module: %v", err)
+	}
+}
+
+func TestBranchArtifact(t *testing.T) {
+	files := func(m map[string]string) func(string) ([]byte, bool) {
+		return func(p string) ([]byte, bool) { v, ok := m[p]; return []byte(v), ok }
+	}
+	dep := "spec:\n  template:\n    spec:\n      containers:\n        - image: " + goodImg + "\n"
+	for _, c := range []struct {
+		name  string
+		files map[string]string
+		want  string
+	}{
+		{"k8s", map[string]string{"deployment.yaml": dep}, goodImg},
+		{"terraform", map[string]string{"terraform.yaml": "module: " + modPin + "\n"}, modPin},
+		{"neither", map[string]string{"manifests.yaml": "x: 1\n"}, ""},
+	} {
+		if got := branchArtifact(files(c.files)); got != c.want {
+			t.Errorf("%s: got %q want %q", c.name, got, c.want)
+		}
+	}
 }

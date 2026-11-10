@@ -12,7 +12,7 @@
     }
   },
   "type": "object",
-  "description": "targets/<name>/target.yml — where a stage deploys. Reusable across apps.\nSibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.",
+  "description": "targets/<name>/target.yml — where a stage deploys. Reusable across apps.\nSibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.\nplatform K8S (default): a namespace in a platform cluster, deployed by Argo CD or a gha workflow.\nplatform TERRAFORM: a GCP project + GCS state backend, applied by a gha workflow (terraform apps only).",
   "properties": {
     "config": {
       "type": "object",
@@ -40,6 +40,7 @@
           "pattern": "^[a-z0-9-]+$"
         },
         "cluster": {
+          "description": "Constraints for both platforms here (the editor schema is exported generic, so it allows either);\nwhich fields are required or forbidden is per platform below.",
           "anyOf": [
             {
               "anyOf": [
@@ -61,15 +62,76 @@
           "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
         },
         "platform": {
-          "const": "K8S"
+          "anyOf": [
+            {
+              "const": "K8S"
+            },
+            {
+              "const": "TERRAFORM"
+            }
+          ]
+        },
+        "terraform": {
+          "type": "object",
+          "properties": {
+            "backend": {
+              "type": "object",
+              "description": "GCS state; prefix default <capability>/<app>/<target>",
+              "properties": {
+                "bucket": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$"
+                    }
+                  ]
+                },
+                "prefix": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9._/-]+$"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "bucket"
+              ],
+              "propertyNames": {
+                "enum": [
+                  "bucket",
+                  "prefix"
+                ],
+                "errorMessage": "Unknown key. Allowed: bucket, prefix"
+              }
+            },
+            "gcpProject": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "backend",
+            "gcpProject"
+          ],
+          "propertyNames": {
+            "enum": [
+              "backend",
+              "gcpProject"
+            ],
+            "errorMessage": "Unknown key. Allowed: backend, gcpProject"
+          }
         }
       },
       "required": [
         "auth",
         "billing",
-        "cluster",
-        "environment",
-        "namespace"
+        "environment"
       ],
       "propertyNames": {
         "enum": [
@@ -78,9 +140,10 @@
           "cluster",
           "environment",
           "namespace",
-          "platform"
+          "platform",
+          "terraform"
         ],
-        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, namespace, platform"
+        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, namespace, platform, terraform"
       }
     }
   },
