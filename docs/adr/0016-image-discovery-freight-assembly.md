@@ -16,7 +16,7 @@ Wiring:
 - **Assembly**: a promoter opens the Warehouse in the Kargo UI, picks a commit and an image tag, and creates the Freight. The first stage's gate takes it directly.
 - **Rendering**: each target folder holds `deployment.yaml` (the Deployment alone, image = bare repo) and `manifests.yaml` (everything else).
 - **Promotion** (target stage): after `copy`, `yaml-update` sets `spec.template.spec.containers.0.image` in the branch's `deployment.yaml` to `<repo>:<tag>@<digest>` from the Freight (the digest pins; the tag is for readers). The branch stays plain YAML, exactly what Argo CD applies (ADR 0002). The commit message records the config commit and image tag.
-- **Access**: `promote-<app>` gets `create` on `freights`, and `gitops-only.yaml` lets kargo-api create Freight as well as Promotions. Freight only references commits and images that the Warehouse already discovered, so config still changes only through git.
+- **Access**: `promote-<app>-<stage>` gets `create` on `freights`, and `gitops-only.yaml` lets kargo-api create Freight as well as Promotions. Freight only references commits and images that the Warehouse already discovered, so config still changes only through git.
 
 ## Considered Options
 

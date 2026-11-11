@@ -1,5 +1,7 @@
 # Break-glass approval of unverified Freight
 
+Amended by ADR 0023: break-glass emails are in every per-stage `promote-<app>-<stage>` role.
+
 Status: accepted (started as a POC). How it works: `docs/break-glass.md`.
 
 Promoters should promote Freight that is verified upstream. Approving Freight that skipped verification (Kargo's "Manual approval required" popup) should be limited to a short list of people for critical promotions.

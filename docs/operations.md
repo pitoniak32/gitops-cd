@@ -8,7 +8,7 @@ How it works: `docs/break-glass.md`.
 
 Normal promotions: promoters promote Freight that is verified upstream. When Freight skipped verification, Kargo shows **"Manual approval required"**. Only the app's `breakGlass` emails (and admins) can approve it.
 
-- **Who**: `owners.yml` → `breakGlass: [emails]` (capability level, or per app; platform-approved). Break-glass users can also promote and view.
+- **Who**: `owners.yml` → `breakGlass: [emails]` (capability level only; platform-approved). Break-glass users can also promote and view.
 - **How**: in the Kargo UI pick the Freight → promote → **Approve** in the popup → promote. Anyone else gets `403 … break-glass only (owners.yml breakGlass): <reason>`.
 - **Audit**: one JSON line per decision:
   ```sh

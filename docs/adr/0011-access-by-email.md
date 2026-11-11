@@ -1,5 +1,7 @@
 # UI access by email, not IdP groups
 
+Amended by ADR 0023: owners.yml shape, `promote-<app>` → `promote-<app>-<stage>`.
+
 In an internal identity provider we don't control which groups or roles users get. So every Kargo and Argo CD grant matches the OIDC `email` claim against emails listed in git:
 
 - In `owners.yml` (capability level; an app file replaces each field it sets):
