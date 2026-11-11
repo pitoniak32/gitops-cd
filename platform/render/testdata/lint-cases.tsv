@@ -44,8 +44,8 @@ capabilities/payments/owners.yml	.apps.worker.viewers = ["carol@example.com", "c
 capabilities/payments/owners.yml	.apps.worker.promoters = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*expected a map
 capabilities/payments/owners.yml	.apps.worker.promoters.perf = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*app worker doesn't use stage perf
 capabilities/payments/owners.yml	.apps.worker.promoters.qa = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown stage; allowed: dev, perf, prod, staging
-capabilities/payments/targets/us-dev/target.yml	del(.config.environmentType)	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: config\.environmentType: incomplete value "dev" \| "npr" \| "prd"
+capabilities/payments/targets/us-dev/target.yml	del(.config.environmentType)	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: config\.environmentType: expected dev, npr or prd$
 capabilities/payments/targets/us-dev/target.yml	.config.environmentType = "staging"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*expected dev, npr or prd
 capabilities/payments/targets/tf-dev/target.yml	.config.region = "us-east9"	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*unknown region; allowed: us-central1, us-east1, us-east4
-capabilities/payments/targets/tf-dev/target.yml	del(.config.region)	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*region
+capabilities/payments/targets/tf-dev/target.yml	del(.config.region)	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: config\.region: region required on a TERRAFORM target; allowed: us-central1, us-east1, us-east4$
 capabilities/payments/targets/us-dev/target.yml	.config.region = "us-east4"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*region not allowed on a K8S target \(it's the cluster's\)

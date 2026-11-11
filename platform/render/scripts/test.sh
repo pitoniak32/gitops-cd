@@ -325,3 +325,12 @@ want my-app-qa "false::my-app-us-stg" "$kk"; want my-app-us-qa "false::my-app-qa
 want my-app-us-prod "false:All:my-app-us-perf,my-app-us-stg" "$kk"
 oneclick "$kk"; rm -rf "${r:?}" "${o:?}"
 echo "control-flow graph ok"
+
+# A cluster that narrows its environmentTypes rejects other types, naming what it accepts
+# (copy of the renderer: clusters.cue is platform-owned, so the case can't be a lint-cases.tsv edit)
+p="$(mktemp -d)"; r="$(mktemp -d)"; cp -R ../cue.mod "$p/"; cp -R . "$p/render"; cp -R testdata/root/. "$r/"
+sed -i.bak 's/dc1: {region: "dc1", kind: "kind", environmentTypes: \["dev", "npr", "prd"\]/dc1: {region: "dc1", kind: "kind", environmentTypes: ["dev"]/' "$p/render/clusters.cue"
+grep -q 'environmentTypes: \["dev"\]' "$p/render/clusters.cue" || { echo "cluster-types case: sed did not narrow dc1" >&2; exit 1; }
+got="$("$p/render/scripts/lint.sh" "$r" payments || true)"; rm -rf "${p:?}" "${r:?}"
+grep -qE '^capabilities/payments/targets/onprem-prod/target\.yml:[0-9]+:[0-9]+: config\.environmentType: cluster dc1 accepts environment types: dev$' <<<"$got" || { printf 'cluster environment-type check failed:\n%s\n' "$got" >&2; exit 1; }
+echo "cluster types ok"

@@ -46,6 +46,16 @@ for k, _ in in if k =~ _targetEnvRe let tn = regexp.FindSubmatch(_targetEnvRe, k
 	targetEnvs: (tn): error("environment-variables without targets/\(tn)/target.yml")
 }
 
+// environmentType is required; the raw file is checked so a missing value gets a located message
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.environmentType == _|_ {
+	targets: (tn): config: environmentType: error("expected dev, npr or prd")
+}
+
+// a TERRAFORM target needs a region (a K8S target's is its cluster's)
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform == "TERRAFORM" if v.config.region == _|_ {
+	targets: (tn): config: region: error("region required on a TERRAFORM target; allowed: \(strings.Join(_gcpRegions, ", "))")
+}
+
 // pre-dir layout targets/<t>.yml: inputs.sh still passes them so they fail loudly
 _legacyTargetRe: "^\(C)targets/([^/]+)\\.ya?ml$"
 for k, _ in in if k =~ _legacyTargetRe let tn = regexp.FindSubmatch(_legacyTargetRe, k)[1] {

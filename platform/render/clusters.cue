@@ -5,8 +5,10 @@ package render
 #EnvironmentType: "dev" | "npr" | "prd"
 
 // regions a target or cluster can sit in (ADR 0025)
-#GcpRegion:        "us-east1" | "us-east4" | "us-central1"
-#DatacenterRegion: "dc1" | "dc2"
+_gcpRegions: ["us-central1", "us-east1", "us-east4"]
+_dcRegions: ["dc1", "dc2"]
+#GcpRegion:        or(_gcpRegions)
+#DatacenterRegion: or(_dcRegions)
 
 #Cluster: {
 	// Region = Kargo shard name = Argo CD instance that deploys to this cluster (rendered/argocd/<region>/)

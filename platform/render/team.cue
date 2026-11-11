@@ -24,7 +24,6 @@ for i, n in list.SortStrings(_stageNames) {
 
 // platform suffix in target names (ADR 0025)
 _platformSuffix: {K8S: "k8s", TERRAFORM: "tf"}
-_gcpRegions: ["us-central1", "us-east1", "us-east4"]
 
 // targets/<name>/target.yml — where a stage deploys. Reusable across apps.
 // Sibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.
