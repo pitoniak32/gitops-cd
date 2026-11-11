@@ -19,7 +19,7 @@ Approving only marks the Freight as allowed into that Stage; someone still has t
 |---|---|---|
 | `breakGlass: [emails]` | `owners.yml` (capability-wide only) | the list |
 | Stage annotation `example.com/break-glass: '["oncall@example.com"]'` | rendered by `platform/render/delivery.cue` on every control-flow and target Stage of the app | carries the list to the cluster (synced by Argo CD) |
-| `promote-<app>-<stage>` SA claims | same render | break-glass emails can promote too (needed after approving) |
+| `promote-<stage>` SA claims (app project) | same render | break-glass emails can promote too (needed after approving) |
 | IngressRoute `kargo-approve` (priority 1000) | `platform/infrastructure/break-glass/manifests/guard.yaml` | catches only the approve endpoint; beats the normal Kargo route |
 | Middleware `forwardAuth` | same | asks the guard before forwarding |
 | Guard (`guard.py`, Deployment `break-glass` in `kargo`) | same dir | decides allow/deny, logs |
@@ -27,7 +27,7 @@ Approving only marks the Freight as allowed into that Stage; someone still has t
 ## A request, step by step
 
 ```
-browser ── POST /v1beta1/projects/kargo-payments/freight/<f>/approve?stage=my-app-prod
+browser ── POST /v1beta1/projects/kargo-payments-my-app/freight/<f>/approve?stage=prod
    │
 Traefik: kargo-approve route (priority 1000) matches
    │  forwardAuth → GET http://break-glass.kargo.svc:8080/check
@@ -37,7 +37,7 @@ guard.py
    1. email = "email" claim of the bearer JWT (signature not checked; see below)
    2. email in ADMIN_EMAILS              → allow ("admin")
    3. no email / path or ?stage missing  → deny
-   4. GET Stage kargo-payments/my-app-prod (its SA may only `get` stages)
+   4. GET Stage kargo-payments-my-app/prod (its SA may only `get` stages)
         lookup fails                      → deny (fail closed)
         email in break-glass annotation   → allow ("break-glass")
         else                              → deny ("not break-glass for this stage")
@@ -46,7 +46,7 @@ guard.py
    ├─ deny  → 403 {"error":"approving Freight that skipped verification is break-glass only …"}
    └─ allow → Traefik forwards to kargo-api
                  kargo-api verifies the token and checks `promote` on the Stage
-                 → Freight status: approved for my-app-prod
+                 → Freight status: approved for prod
 ```
 
 Everything else (UI, promote, list, watch) goes through the normal Kargo route; the guard never sees it.

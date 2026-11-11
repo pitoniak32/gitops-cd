@@ -1,6 +1,6 @@
 # One Kargo project per app
 
-Status: proposed. Amends ADR 0007 (Kargo side), 0012 and 0019 (Stage names), 0016 (Freight `create` consequence), 0023 (RBAC names, viewer scope).
+Status: accepted. Amends ADR 0012 and 0019 (Stage names), 0016 (Freight `create` consequence), 0023 (RBAC names, viewer scope).
 
 Each capability had one Kargo project, `kargo-<cap>`, which held every app's Warehouse, Stages and RBAC. Kargo's own model is a project per pipeline, which here means per app. A capability-wide project also leaked access:
 
@@ -27,6 +27,6 @@ Each capability had one Kargo project, `kargo-<cap>`, which held every app's War
 
 - The project name must fit a namespace (63 characters): lint rejects `kargo-<cap>-<app>` when it is longer.
 - `kargo-<cap>-<app>` can collide across capabilities (cap `a-b` + app `c` vs cap `a` + app `b-c`). `gcd render` rejects duplicate project names, alongside duplicate Application names.
-- A stage named like one of its app's targets (or `<S>-done`) would collide with that Stage name. Lint rejects it.
+- Stage and target names now share one namespace per app. The existing lint (a target can't be named like a stage or `<stage>-done`) already covers it.
 - Migration loses Kargo history. `rendered-kargo` prunes `kargo-<cap>`, which deletes its Freight and Promotions. Workloads and `env/*` branches don't change. Run `mise run kargo-restore` afterwards.
 - More projects in the Kargo UI, and no single pipeline view for a capability.

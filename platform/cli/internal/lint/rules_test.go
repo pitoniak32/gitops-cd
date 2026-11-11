@@ -131,13 +131,13 @@ func TestTargetStageNameCollision(t *testing.T) {
 	}
 }
 
-// ...nor like <stage>-done (fan-out control-flow Stage <app>-<stage>-done, ADR 0019)
+// ...nor like <stage>-done (fan-out control-flow Stage <stage>-done, ADR 0019)
 func TestTargetDoneCollision(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
 	cp(t, filepath.Join(r, payments, "targets/dc1-dev-k8s"), filepath.Join(r, payments, "targets/dev-done"))
 	got := lintOut(t, r)
-	if !matches(t, got, `^capabilities/payments/targets/dev-done/target\.yml:[0-9]+:[0-9]+: .*target name dev-done is <stage>-done; Kargo control-flow stage names <app>-dev-done would collide`) {
+	if !matches(t, got, `^capabilities/payments/targets/dev-done/target\.yml:[0-9]+:[0-9]+: .*target name dev-done is <stage>-done; Kargo control-flow Stage name dev-done would collide`) {
 		t.Errorf("target named <stage>-done not rejected:\n%s", got)
 	}
 }
@@ -314,22 +314,6 @@ func TestKargoStageNameLength(t *testing.T) {
 	got = lintOut(t, r)
 	if !matches(t, got, fmt.Sprintf(`^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s-%s-done is 66 characters \(max 63\): shorten the stage names$`, longA, longB)) {
 		t.Errorf("long control-flow Stage name not rejected:\n%s", got)
-	}
-}
-
-// Without an app prefix, a control-flow Stage named after a stage can equal one of the app's target
-// Stages; lint reports it on the stage instead of a CUE conflict (ADR 0029).
-func TestStageNameCollision(t *testing.T) {
-	t.Parallel()
-	const n = "us-east4-dev-k8s"
-	r := fixture(t)
-	c := filepath.Join(r, payments)
-	write(t, filepath.Join(c, "stages", n+".yml"), "dependsOn: []\n")
-	must(t, yamledit.Set(filepath.Join(c, "owners.yml"), []string{"promoters", n}, []string{"doug@example.com"}))
-	must(t, yamledit.Set(filepath.Join(c, "apps/web/app.yml"), []string{"stages"}, map[string]any{n: map[string]any{"targets": map[string]any{n: map[string]any{}, "dc1-dev-k8s": map[string]any{}}}}))
-	got := lintOut(t, r)
-	if !matches(t, got, `^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name us-east4-dev-k8s is used by both stage us-east4-dev-k8s and target us-east4-dev-k8s: rename the stage$`) {
-		t.Errorf("stage/target Stage name collision not rejected:\n%s", got)
 	}
 }
 

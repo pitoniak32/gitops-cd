@@ -46,11 +46,6 @@ stageNameErrors: {
 		if x.kind == "target" {(an): (x.stage): (x.target): error("\(_msg) target name")}
 		if x.kind == "control-flow" {(an): (x.stage): error("\(_msg) stage names")}
 	}
-
-	// a control-flow Stage named like one of the app's targets (graph.cue skips emitting it)
-	for an, a in _gp for n, sn in a.cf if a.tgts[n] != _|_ {
-		(an): (sn): error("Kargo Stage name \(n) is used by both stage \(sn) and target \(n): rename the stage")
-	}
 }
 // auto-promoted, per app: every control-flow Stage (it only means "upstream verified") + targets of autoPromote stages
 _autoStages: {for an, p in pipelines {(an): list.SortStrings([for n, x in _graph[an]

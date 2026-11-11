@@ -62,13 +62,6 @@ _gp: {for an, p in pipelines {(an): {
 	// node), so a stage fed by it alone gets an entry whenever "Promote to downstream" there would reach more
 	_down: {for k, g in grp if !g.wh for u in g.U {(u): (k): [if g.shared {1}, g.nC][0]}}
 	down: {for t, ks in _down {(t): list.Sum([for _, n in ks {n}])}}
-	// target Stage names; a control-flow name equal to one is a collision (stageNameErrors), not emitted
-	tgts: {for _, s in p.stages for tn, _ in s.targets {(tn): _}}
-	// control-flow Stage name -> the stage it is reported on
-	cf: {
-		for _, g in grp if g.shared {(g.name): g.label}
-		for sn, d in st if d.entry {(sn): sn}
-	}
 	st: {for sn, s in p.stages {(sn): {
 		let g = grp[key[sn]]
 		nT: len(s.targets)
@@ -84,10 +77,10 @@ _gp: {for an, p in pipelines {(an): {
 _graph: [app=string]: [node=string]: #GraphNode
 _graph: {for an, p in pipelines {(an): {
 	let a = _gp[an]
-	for _, g in a.grp if g.shared if a.tgts[g.name] == _|_ {
+	for _, g in a.grp if g.shared {
 		(g.name): {kind: "control-flow", stage: g.label, sources: g.U, all: true}
 	}
-	for sn, d in a.st if d.entry if a.tgts[sn] == _|_ {
+	for sn, d in a.st if d.entry {
 		let g = a.grp[a.key[sn]]
 		(sn): {
 			kind:  "control-flow"

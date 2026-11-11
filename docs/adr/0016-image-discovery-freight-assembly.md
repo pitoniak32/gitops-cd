@@ -1,6 +1,6 @@
 # Image discovery and manual Freight assembly
 
-Status: accepted. Changes ADR 0012's Warehouse; gates and target stages are unchanged.
+Status: accepted. Changes ADR 0012's Warehouse; gates and target stages are unchanged. Amended by ADR 0029: one Kargo project per app, so Freight `create` no longer reaches other apps.
 
 Before, `app.yml` pinned `image` (tag or digest), the renderer baked it into `rendered/apps/...`, and Freight was one `main` commit. A new image meant a git change per app, and config and image always moved together.
 

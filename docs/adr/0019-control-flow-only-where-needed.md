@@ -1,6 +1,6 @@
 # Control-flow Stages only where they add value
 
-Status: accepted. Replaces ADR 0012's gate per stage; keeps one Kargo Stage per target.
+Status: accepted. Replaces ADR 0012's gate per stage; keeps one Kargo Stage per target. Amended by ADR 0029: names lose the `<app>-` prefix (`<D>`, `<S>-done`).
 
 ADR 0012 put a gate `<app>-<stage>` (a control-flow Stage, no promotion steps) in front of every gitops stage. Where a stage has one target and one upstream target, that gate only added a node and, in prod, a click. Where several dev targets feed several staging and perf targets, the gates still left crossing many-to-many edges.
 

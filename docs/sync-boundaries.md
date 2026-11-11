@@ -12,7 +12,7 @@ GITOPS LANE (pull: Argo CD, automated + prune + selfHeal)
     → each region: argocd-projects syncs rendered/argocd/projects/<region>/,
       workloads AppSet makes one Application per rendered/argocd/deploys/<region>/<cap>/<app>-<target>.json
       (hub runs no workloads)
-    → Kargo: Freight from rendered/apps → target stage <app>-<target> (control-flow Stages where needed)
+    → Kargo: Freight from rendered/apps → target stage <target> in project kargo-<cap>-<app> (control-flow Stages where needed)
       → env/<cap>/<app>/<target>
     → workload Applications sync the env/* branches
   platform/appsets/**, platform/infrastructure/**
