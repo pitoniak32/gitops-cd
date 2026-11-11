@@ -41,8 +41,7 @@ _Avoid_: gate (ADR 0012's gate per stage is gone), join
 The Kargo Stage `<app>-<target>` that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
 
 **Target**:
-A reusable deployment destination (`targets/<name>/target.yml`). `platform: K8S` (default): one cluster + namespace + workload identity. `platform: TERRAFORM`: a **terraform target**, one GCP project + GCS state backend + workload identity, used only by terraform apps (ADR 0021).
-Named `<region>-<environmentType>-<k8s|tf>[-<qualifier>]` (ADR 0025); lint checks it against the target's own fields.
+A reusable deployment destination (`targets/<name>/target.yml`). `platform: K8S` (default): one cluster + namespace + workload identity. `platform: TERRAFORM`: a **terraform target**, one GCP project + GCS state backend + workload identity, used only by terraform apps (ADR 0021). Named `<region>-<environmentType>-<k8s|tf>[-<qualifier>]` (ADR 0025); lint checks it against the target's own fields.
 _Avoid_: env, region, location
 
 **Environment-variables file**:

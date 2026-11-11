@@ -10,7 +10,7 @@ Locally, all clusters are kind clusters on the docker network `kargo-demo`:
   - Kargo control plane: API, management controller, webhooks, and the default controller, which runs gates and Warehouses.
   - Keycloak, Traefik (the only cluster bound to host 80/443), cert-manager, break-glass.
   - A platform Argo CD for hub add-ons only. No workloads.
-- **Regions** `region-<r>` (list: `platform/cluster/regions`; today `us-east4` and `dc1`):
+- **Regions** `region-<r>` (list: `platform/cluster/regions`; today `us` and `onprem`):
   - Their own self-managed Argo CD.
   - A Kargo controller with `shardName: <r>`.
   - The workloads.
