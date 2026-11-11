@@ -21,7 +21,8 @@ stages:
         replicas: 3
   staging:
     targets:
-      us-east4-npr-k8s: {}
+      us-east4-npr-k8s:
+        replicas: 3
       dc1-npr-k8s:
         env:
           APP_SECRET: 'secret:acme-proj2/my-app-secret@3'
