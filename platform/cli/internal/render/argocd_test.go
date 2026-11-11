@@ -84,7 +84,7 @@ func TestKindClusterArgoCD(t *testing.T) {
 
 	d := filepath.Join(out, "argocd/deploys/dc1/payments/my-app-dc1-prd-k8s.json")
 	dd := docs(t, d)[0]
-	if got := str(dd["appName"]) + " " + str(dd["branch"]) + " " + str(dd["authorizedStage"]) + " " + str(dd["destination"]) + "/" + str(dd["namespace"]); got != "payments-my-app-dc1-prd-k8s env/payments/my-app/dc1-prd-k8s kargo-payments:my-app-dc1-prd-k8s in-cluster/payments-onprem-prod" {
+	if got := str(dd["appName"]) + " " + str(dd["branch"]) + " " + str(dd["authorizedStage"]) + " " + str(dd["destination"]) + "/" + str(dd["namespace"]); got != "payments-my-app-dc1-prd-k8s env/payments/my-app/dc1-prd-k8s kargo-payments-my-app:dc1-prd-k8s in-cluster/payments-onprem-prod" {
 		t.Error("deploy params must track the target branch, authorized for its target stage")
 	}
 	// workloads AppSet (platform/appsets/workloads.yaml) reads exactly these keys; git files gen reserves path/values

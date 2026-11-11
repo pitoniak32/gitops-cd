@@ -58,7 +58,15 @@ func oneclick(t *testing.T, ds []map[string]any) {
 	for _, s := range findAll(ds, "Stage") {
 		apps = append(apps, label(s, "example.com/app"))
 	}
+	all := ds
 	for _, app := range uniq(apps) {
+		// Stage names repeat across apps (one project each, ADR 0029): look only at this app's
+		var ds []map[string]any
+		for _, d := range findAll(all, "Stage") {
+			if label(d, "example.com/app") == app {
+				ds = append(ds, d)
+			}
+		}
 		count := map[string]int{}
 		for _, s := range findAll(ds, "Stage") {
 			if label(s, "example.com/app") == app && label(s, "example.com/kind") == "target" {
@@ -101,41 +109,55 @@ func oneclick(t *testing.T, ds []map[string]any) {
 func TestKindClusterKargo(t *testing.T) {
 	t.Parallel()
 	out := sharedOut(t)
-	kf := filepath.Join(out, "kargo/payments.yaml")
-	k := docs(t, kf)
-	// Argo CD dry-runs all resources first: the project namespace must be rendered (labeled for Kargo to adopt)
-	ns := k[0]
-	if str(ns["kind"])+"/"+str(get(ns, "metadata.name"))+"/"+str(get(ns, `metadata.labels."kargo.akuity.io/project"`)) != "Namespace/kargo-payments/true" {
-		t.Error("kargo/payments.yaml must start with labeled Namespace kargo-payments")
+	all := docs(t, filepath.Join(out, "kargo/payments.yaml"))
+	// one project per app (ADR 0029); Argo CD dry-runs all resources first: each project namespace must be
+	// rendered (labeled for Kargo to adopt) ahead of the project's resources
+	if got := strings.Join(names(all, "Project", nil), " "); got != "kargo-payments-infra kargo-payments-my-app kargo-payments-payments kargo-payments-web kargo-payments-worker" {
+		t.Errorf("one Kargo project per app: %s", got)
 	}
+	for _, p := range names(all, "Project", nil) {
+		ds := inProject(all, p)
+		ns := ds[0]
+		if str(ns["kind"])+"/"+str(get(ns, "metadata.name"))+"/"+label(ns, "kargo.akuity.io/project")+"/"+label(ns, "example.com/capability")+"/"+label(ns, "example.com/app") != "Namespace/"+p+"/true/payments/"+strings.TrimPrefix(p, "kargo-payments-") {
+			t.Errorf("%s must start with its labeled Namespace", p)
+		}
+		if str(ds[1]["kind"]) != "Project" || find(ds, "ProjectConfig", p) == nil {
+			t.Errorf("%s: Project + ProjectConfig", p)
+		}
+		if w := names(ds, "Warehouse", nil); len(w) != 1 || w[0] != strings.TrimPrefix(p, "kargo-payments-") {
+			t.Errorf("%s: one Warehouse named after the app, got %v", p, w)
+		}
+	}
+	k := inProject(all, "kargo-payments-my-app")
 
-	// Kargo graph (ADR 0019)
-	if got := stagesOf(k, "my-app"); got != "my-app-dc1-dev-k8s my-app-dc1-npr-k8s my-app-dc1-prd-k8s my-app-dev my-app-dev-done my-app-prod my-app-staging my-app-us-east4-dev-k8s my-app-us-east4-npr-k8s my-app-us-east4-npr-k8s-perf my-app-us-east4-prd-k8s" {
+	// Kargo graph (ADR 0019); Stage names carry no app prefix (ADR 0029)
+	if got := stagesOf(k, "my-app"); got != "dc1-dev-k8s dc1-npr-k8s dc1-prd-k8s dev dev-done prod staging us-east4-dev-k8s us-east4-npr-k8s us-east4-npr-k8s-perf us-east4-prd-k8s" {
 		t.Errorf("my-app Stage set: %s", got)
 	}
-	wantSrc(t, k, "my-app-dev", "true::")
-	wantSrc(t, k, "my-app-us-east4-dev-k8s", "false::my-app-dev")
-	wantSrc(t, k, "my-app-dc1-dev-k8s", "false::my-app-dev")
-	wantSrc(t, k, "my-app-dev-done", "false:All:my-app-dc1-dev-k8s,my-app-us-east4-dev-k8s")
-	wantSrc(t, k, "my-app-staging", "false::my-app-dev-done")
-	wantSrc(t, k, "my-app-us-east4-npr-k8s", "false::my-app-staging")
-	wantSrc(t, k, "my-app-dc1-npr-k8s", "false::my-app-staging")
-	wantSrc(t, k, "my-app-us-east4-npr-k8s-perf", "false::my-app-dev-done")
-	wantSrc(t, k, "my-app-prod", "false:All:my-app-dc1-npr-k8s,my-app-us-east4-npr-k8s,my-app-us-east4-npr-k8s-perf")
-	wantSrc(t, k, "my-app-us-east4-prd-k8s", "false::my-app-prod")
-	wantSrc(t, k, "my-app-dc1-prd-k8s", "false::my-app-prod")
-	if got := stagesOf(k, "worker"); got != "worker-us-east4-dev-k8s worker-us-east4-npr-k8s worker-us-east4-prd-k8s" {
+	wantSrc(t, k, "dev", "true::")
+	wantSrc(t, k, "us-east4-dev-k8s", "false::dev")
+	wantSrc(t, k, "dc1-dev-k8s", "false::dev")
+	wantSrc(t, k, "dev-done", "false:All:dc1-dev-k8s,us-east4-dev-k8s")
+	wantSrc(t, k, "staging", "false::dev-done")
+	wantSrc(t, k, "us-east4-npr-k8s", "false::staging")
+	wantSrc(t, k, "dc1-npr-k8s", "false::staging")
+	wantSrc(t, k, "us-east4-npr-k8s-perf", "false::dev-done")
+	wantSrc(t, k, "prod", "false:All:dc1-npr-k8s,us-east4-npr-k8s,us-east4-npr-k8s-perf")
+	wantSrc(t, k, "us-east4-prd-k8s", "false::prod")
+	wantSrc(t, k, "dc1-prd-k8s", "false::prod")
+	w := inProject(all, "kargo-payments-worker")
+	if got := stagesOf(w, "worker"); got != "us-east4-dev-k8s us-east4-npr-k8s us-east4-prd-k8s" {
 		t.Errorf("worker must have no control flow: %s", got)
 	}
-	wantSrc(t, k, "worker-us-east4-dev-k8s", "true::")
-	wantSrc(t, k, "worker-us-east4-npr-k8s", "false::worker-us-east4-dev-k8s")
-	wantSrc(t, k, "worker-us-east4-prd-k8s", "false::worker-us-east4-npr-k8s")
-	s := docs(t, filepath.Join(out, "kargo/search.yaml"))
-	if got := stagesOf(s, "api"); got != "api-us-east4-dev-k8s" {
+	wantSrc(t, w, "us-east4-dev-k8s", "true::")
+	wantSrc(t, w, "us-east4-npr-k8s", "false::us-east4-dev-k8s")
+	wantSrc(t, w, "us-east4-prd-k8s", "false::us-east4-npr-k8s")
+	s := inProject(docs(t, filepath.Join(out, "kargo/search.yaml")), "kargo-search-api")
+	if got := stagesOf(s, "api"); got != "us-east4-dev-k8s" {
 		t.Error("search api must be one target Stage")
 	}
-	wantSrc(t, s, "api-us-east4-dev-k8s", "true::")
-	for _, n := range []string{"my-app-dev", "my-app-dev-done", "my-app-prod", "my-app-staging"} {
+	wantSrc(t, s, "us-east4-dev-k8s", "true::")
+	for _, n := range []string{"dev", "dev-done", "prod", "staging"} {
 		st := stage(k, n)
 		has := "false"
 		if _, ok := get(st, "spec").(map[string]any)["promotionTemplate"]; ok {
@@ -149,45 +171,48 @@ func TestKindClusterKargo(t *testing.T) {
 			t.Errorf("%s must be control-flow: no steps, no shard", n)
 		}
 	}
-	if label(stage(k, "my-app-dev-done"), "example.com/stage")+" "+label(stage(k, "my-app-staging"), "example.com/stage") != "dev staging" {
+	if label(stage(k, "dev-done"), "example.com/stage")+" "+label(stage(k, "staging"), "example.com/stage") != "dev staging" {
 		t.Error("control-flow stage labels")
 	}
-	var sel []string
-	for _, p := range list(find(k, "ProjectConfig", ""), "spec.promotionPolicies") {
-		sel = append(sel, str(get(p, "stageSelector.name")))
+	// ProjectConfig: only this app's auto-promoted Stages
+	autoOf := func(p string) string {
+		var sel []string
+		for _, x := range list(find(all, "ProjectConfig", p), "spec.promotionPolicies") {
+			sel = append(sel, str(get(x, "stageSelector.name")))
+		}
+		sort.Strings(sel)
+		return strings.Join(sel, " ")
 	}
-	sort.Strings(sel)
-	if strings.Join(sel, " ") != "infra-us-east4-dev-tf my-app-dc1-dev-k8s my-app-dev my-app-dev-done my-app-prod my-app-staging my-app-us-east4-dev-k8s payments-us-east4-dev-k8s web-us-east4-dev-k8s worker-us-east4-dev-k8s" {
-		t.Error("auto-promotion: every control-flow Stage + targets of autoPromote stages only")
+	if got := autoOf("kargo-payments-my-app"); got != "dc1-dev-k8s dev dev-done prod staging us-east4-dev-k8s" {
+		t.Errorf("auto-promotion: every control-flow Stage + targets of autoPromote stages only: %s", got)
 	}
-	if str(get(stage(k, "my-app-dc1-prd-k8s"), "spec.promotionTemplate.spec.vars.2.value")) != "env/payments/my-app/dc1-prd-k8s" {
+	if got := autoOf("kargo-payments-worker"); got != "us-east4-dev-k8s" {
+		t.Errorf("worker auto-promotion: %s", got)
+	}
+	if str(get(stage(k, "dc1-prd-k8s"), "spec.promotionTemplate.spec.vars.2.value")) != "env/payments/my-app/dc1-prd-k8s" {
 		t.Error("target stage must push its own branch")
 	}
 
 	// regions: target Stages run on their cluster's region shard; control-flow Stages and Warehouses stay on the hub controller
 	var sh []string
 	for _, st := range findAll(k, "Stage") {
-		n := str(get(st, "metadata.name"))
-		if !strings.HasPrefix(n, "my-app-") {
-			continue
-		}
 		v := str(get(st, "spec.shard"))
 		if v == "" {
 			v = "-"
 		}
-		sh = append(sh, n+"="+v)
+		sh = append(sh, str(get(st, "metadata.name"))+"="+v)
 	}
 	sort.Strings(sh)
-	if strings.Join(sh, " ") != "my-app-dc1-dev-k8s=dc1 my-app-dc1-npr-k8s=dc1 my-app-dc1-prd-k8s=dc1 my-app-dev-done=- my-app-dev=- my-app-prod=- my-app-staging=- my-app-us-east4-dev-k8s=us-east4 my-app-us-east4-npr-k8s-perf=us-east4 my-app-us-east4-npr-k8s=us-east4 my-app-us-east4-prd-k8s=us-east4" {
-		t.Error("shard must be set on target Stages only, from the target's cluster region")
+	if strings.Join(sh, " ") != "dc1-dev-k8s=dc1 dc1-npr-k8s=dc1 dc1-prd-k8s=dc1 dev-done=- dev=- prod=- staging=- us-east4-dev-k8s=us-east4 us-east4-npr-k8s-perf=us-east4 us-east4-npr-k8s=us-east4 us-east4-prd-k8s=us-east4" {
+		t.Errorf("shard must be set on target Stages only, from the target's cluster region: %v", sh)
 	}
-	for _, w := range findAll(k, "Warehouse") {
+	for _, w := range findAll(all, "Warehouse") {
 		if get(w, "spec.shard") != nil {
 			t.Error("Warehouses must not be sharded")
 		}
 	}
 	// e) one-click: every stage with >1 target is exactly the downstream set of one Stage
-	oneclick(t, k)
+	oneclick(t, all)
 }
 
 // test.sh: "rendered branch ok" (ADR 0022: Warehouses watch the rendered branch, not main)
@@ -245,16 +270,17 @@ func addQA(t *testing.T, caps string) {
 func TestControlFlowGraph(t *testing.T) {
 	t.Parallel()
 	// a) app skips perf: dev fans into staging alone (fan-in node named for staging), staging fans into prod
-	k := synth(t, "payments", func(t *testing.T, c string) { del(t, filepath.Join(c, "payments/apps/my-app/app.yml"), "stages.perf") })
-	if stage(k, "my-app-dev-done") != nil {
+	const myApp, worker = "kargo-payments-my-app", "kargo-payments-worker"
+	k := inProject(synth(t, "payments", func(t *testing.T, c string) { del(t, filepath.Join(c, "payments/apps/my-app/app.yml"), "stages.perf") }), myApp)
+	if stage(k, "dev-done") != nil {
 		t.Error("a) no dev-done without fan-out")
 	}
-	wantSrc(t, k, "my-app-staging", "false:All:my-app-dc1-dev-k8s,my-app-us-east4-dev-k8s")
-	wantSrc(t, k, "my-app-prod", "false:All:my-app-dc1-npr-k8s,my-app-us-east4-npr-k8s")
+	wantSrc(t, k, "staging", "false:All:dc1-dev-k8s,us-east4-dev-k8s")
+	wantSrc(t, k, "prod", "false:All:dc1-npr-k8s,us-east4-npr-k8s")
 	oneclick(t, k)
 
 	// b) 1->N: single dev target feeds both prod targets directly
-	k = synth(t, "search", func(t *testing.T, c string) {
+	k = inProject(synth(t, "search", func(t *testing.T, c string) {
 		writeFile(t, filepath.Join(c, "search/stages/prod.yml"), "dependsOn: [dev]\n")
 		must(t, yamledit.Set(filepath.Join(c, "search/owners.yml"), []string{"promoters", "prod"}, []string{"alice@example.com"}))
 		for _, tg := range []string{"us-east4-prd-k8s", "dc1-prd-k8s"} {
@@ -262,48 +288,48 @@ func TestControlFlowGraph(t *testing.T) {
 			must(t, yamledit.Set(filepath.Join(c, "search/targets", tg, "target.yml"), []string{"config", "namespace"}, "search-"+tg))
 			must(t, yamledit.Set(filepath.Join(c, "search/apps/api/app.yml"), []string{"stages", "prod", "targets", tg}, map[string]any{}))
 		}
-	})
-	if got := stagesOf(k, "api"); got != "api-dc1-prd-k8s api-us-east4-dev-k8s api-us-east4-prd-k8s" {
+	}), "kargo-search-api")
+	if got := stagesOf(k, "api"); got != "dc1-prd-k8s us-east4-dev-k8s us-east4-prd-k8s" {
 		t.Errorf("b) 1->N needs no control flow: %s", got)
 	}
-	wantSrc(t, k, "api-us-east4-prd-k8s", "false::api-us-east4-dev-k8s")
-	wantSrc(t, k, "api-dc1-prd-k8s", "false::api-us-east4-dev-k8s")
+	wantSrc(t, k, "us-east4-prd-k8s", "false::us-east4-dev-k8s")
+	wantSrc(t, k, "dc1-prd-k8s", "false::us-east4-dev-k8s")
 	oneclick(t, k)
 
 	// c) worker-us-east4-dev-k8s feeds staging (2 targets) and perf: staging needs its own entry; prod joins 3 sources directly (M->1)
-	k = synth(t, "payments", func(t *testing.T, c string) {
+	k = inProject(synth(t, "payments", func(t *testing.T, c string) {
 		f := filepath.Join(c, "payments/apps/worker/app.yml")
 		must(t, yamledit.Set(f, []string{"stages", "perf", "targets", "us-east4-npr-k8s-perf"}, map[string]any{}))
 		must(t, yamledit.Set(f, []string{"stages", "staging", "targets", "dc1-npr-k8s"}, map[string]any{}))
-	})
-	wantSrc(t, k, "worker-staging", "false::worker-us-east4-dev-k8s")
-	wantSrc(t, k, "worker-us-east4-npr-k8s", "false::worker-staging")
-	wantSrc(t, k, "worker-us-east4-npr-k8s-perf", "false::worker-us-east4-dev-k8s")
-	wantSrc(t, k, "worker-us-east4-prd-k8s", "false:All:worker-dc1-npr-k8s,worker-us-east4-npr-k8s,worker-us-east4-npr-k8s-perf")
+	}), worker)
+	wantSrc(t, k, "staging", "false::us-east4-dev-k8s")
+	wantSrc(t, k, "us-east4-npr-k8s", "false::staging")
+	wantSrc(t, k, "us-east4-npr-k8s-perf", "false::us-east4-dev-k8s")
+	wantSrc(t, k, "us-east4-prd-k8s", "false:All:dc1-npr-k8s,us-east4-npr-k8s,us-east4-npr-k8s-perf")
 	oneclick(t, k)
 
 	// d) qa and prod both depend on staging+perf: one shared node named after both upstream stages
-	k = synth(t, "payments", func(t *testing.T, c string) {
+	k = inProject(synth(t, "payments", func(t *testing.T, c string) {
 		writeFile(t, filepath.Join(c, "payments/stages/qa.yml"), "dependsOn: [staging, perf]\n")
 		must(t, yamledit.Set(filepath.Join(c, "payments/owners.yml"), []string{"promoters", "qa"}, []string{"doug@example.com"}))
 		addQA(t, c)
-	})
-	wantSrc(t, k, "my-app-perf-staging-done", "false:All:my-app-dc1-npr-k8s,my-app-us-east4-npr-k8s,my-app-us-east4-npr-k8s-perf")
-	wantSrc(t, k, "my-app-prod", "false::my-app-perf-staging-done")
-	wantSrc(t, k, "my-app-qa", "false::my-app-perf-staging-done")
+	}), myApp)
+	wantSrc(t, k, "perf-staging-done", "false:All:dc1-npr-k8s,us-east4-npr-k8s,us-east4-npr-k8s-perf")
+	wantSrc(t, k, "prod", "false::perf-staging-done")
+	wantSrc(t, k, "qa", "false::perf-staging-done")
 	oneclick(t, k)
 
 	// f) a single upstream target that also feeds an M->1 join: the multi-target stage it feeds still needs an entry
-	k = synth(t, "payments", func(t *testing.T, c string) {
+	k = inProject(synth(t, "payments", func(t *testing.T, c string) {
 		f := filepath.Join(c, "payments/apps/my-app/app.yml")
 		del(t, f, "stages.staging.targets.dc1-npr-k8s")
 		del(t, f, "stages.prod.targets.dc1-prd-k8s")
 		writeFile(t, filepath.Join(c, "payments/stages/qa.yml"), "dependsOn: [staging]\n")
 		must(t, yamledit.Set(filepath.Join(c, "payments/owners.yml"), []string{"promoters", "qa"}, []string{"doug@example.com"}))
 		addQA(t, c)
-	})
-	wantSrc(t, k, "my-app-qa", "false::my-app-us-east4-npr-k8s")
-	wantSrc(t, k, "my-app-us-east4-npr-k8s-qa", "false::my-app-qa")
-	wantSrc(t, k, "my-app-us-east4-prd-k8s", "false:All:my-app-us-east4-npr-k8s,my-app-us-east4-npr-k8s-perf")
+	}), myApp)
+	wantSrc(t, k, "qa", "false::us-east4-npr-k8s")
+	wantSrc(t, k, "us-east4-npr-k8s-qa", "false::qa")
+	wantSrc(t, k, "us-east4-prd-k8s", "false:All:us-east4-npr-k8s,us-east4-npr-k8s-perf")
 	oneclick(t, k)
 }

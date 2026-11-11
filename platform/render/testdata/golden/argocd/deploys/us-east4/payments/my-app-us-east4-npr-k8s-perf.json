@@ -7,5 +7,5 @@
   "namespace": "payments-us-perf",
   "branch": "env/payments/my-app/us-east4-npr-k8s-perf",
   "destination": "in-cluster",
-  "authorizedStage": "kargo-payments:my-app-us-east4-npr-k8s-perf"
+  "authorizedStage": "kargo-payments-my-app:us-east4-npr-k8s-perf"
 }

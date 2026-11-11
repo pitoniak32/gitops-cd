@@ -140,6 +140,19 @@ func find(ds []map[string]any, kind, name string) map[string]any {
 	return nil
 }
 
+// inProject returns one Kargo project's docs (ADR 0029): its Namespace and Project and every doc in
+// its namespace.
+func inProject(ds []map[string]any, ns string) []map[string]any {
+	var out []map[string]any
+	for _, d := range ds {
+		k := str(d["kind"])
+		if str(get(d, "metadata.namespace")) == ns || (k == "Namespace" || k == "Project") && str(get(d, "metadata.name")) == ns {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
 func findAll(ds []map[string]any, kind string) []map[string]any {
 	var out []map[string]any
 	for _, d := range ds {

@@ -90,6 +90,8 @@ func (l locator) locate(cuePath string) (location, bool) {
 		loc.file, n = l.yamlfile(c+"/apps/"+seg(1)+"/owners"), len(segs)
 	case "teams":
 		loc.file, n = l.yamlfile("teams/"+seg(1)), 2
+	case "projectNameErrors": // <app>: the app's app.yml
+		loc.file, n = l.yamlfile(c+"/apps/"+seg(1)+"/app"), len(segs)
 	case "stageNameErrors": // <app>.<stage>[.<target>]: the stage (control flow) or target entry in app.yml
 		loc.file = l.yamlfile(c + "/apps/" + seg(1) + "/app")
 		p := []string{"stages", seg(2)}

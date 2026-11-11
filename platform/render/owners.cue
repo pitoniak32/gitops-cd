@@ -140,7 +140,16 @@ _allOwners: (_uniqSorted & {#in: [
 	for _, c in codeOwners for t in c {t},
 	if len(codeOwners) == 0 if _o.codeOwners != _|_ for t in _o.codeOwners {t},
 ]}).out
-// everyone who can see the capability in Kargo / Argo CD: all promoters (every stage, app
+// per app: everyone who can see the app in Kargo / Argo CD (ADR 0029): its promoters (stages it uses, after
+// overrides), its viewers (apps.<app>.viewers, else the capability's) and break-glass
+_appEmails: {for an, _ in _capApps {(an): (_uniqSorted & {#in: [
+	for _, l in _promoters[an] for x in l {x},
+	if _o.apps[an].viewers != _|_ for x in _o.apps[an].viewers {x},
+	if _o.apps[an].viewers == _|_ if _o.viewers != _|_ for x in _o.viewers {x},
+	for x in _breakGlass {x},
+]}).out
+}}
+// everyone who can list the capability's projects in Kargo (users-<cap>): all promoters (every stage, app
 // overrides too), viewers and break-glass
 _allEmails: (_uniqSorted & {#in: [
 	if _o.promoters != _|_ for _, l in _o.promoters for x in l {x},

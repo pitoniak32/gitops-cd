@@ -7,5 +7,5 @@
   "namespace": "payments-onprem-dev",
   "branch": "env/payments/my-app/dc1-dev-k8s",
   "destination": "in-cluster",
-  "authorizedStage": "kargo-payments:my-app-dc1-dev-k8s"
+  "authorizedStage": "kargo-payments-my-app:dc1-dev-k8s"
 }

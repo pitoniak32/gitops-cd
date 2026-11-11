@@ -71,8 +71,8 @@ func TestCloudRunRender(t *testing.T) {
 		t.Error("cpu 500m must set containerConcurrency 1")
 	}
 
-	k := kargoPayments(t)
-	const w = "web-us-east4-npr-cr"
+	k := kargoApp(t, "web")
+	const w = "us-east4-npr-cr"
 	shard := st(t, k, w, "spec.shard")
 	if shard == "" {
 		shard = "-"
@@ -86,8 +86,8 @@ func TestCloudRunRender(t *testing.T) {
 	if varValue(k, w, "workflowFile") != "cloud-run.yaml" {
 		t.Error("cloud run workflow default")
 	}
-	us := stepUses(t, k, "web-us-east4-dev-k8s")
-	if st(t, k, "web-us-east4-dev-k8s", `metadata.labels."example.com/platform"`)+" "+st(t, k, "web-us-east4-dev-k8s", `metadata.labels."example.com/deploy-with"`)+" "+us[len(us)-1] != "k8s argocd argocd-update" {
+	us := stepUses(t, k, "us-east4-dev-k8s")
+	if st(t, k, "us-east4-dev-k8s", `metadata.labels."example.com/platform"`)+" "+st(t, k, "us-east4-dev-k8s", `metadata.labels."example.com/deploy-with"`)+" "+us[len(us)-1] != "k8s argocd argocd-update" {
 		t.Error("web K8S stage stays argocd")
 	}
 	if _, err := os.Stat(filepath.Join(out, "argocd/deploys/us-east4/payments/web-us-east4-dev-k8s.json")); err != nil {

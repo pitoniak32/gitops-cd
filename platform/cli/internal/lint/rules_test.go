@@ -284,32 +284,75 @@ func TestClusterTypes(t *testing.T) {
 // test.sh: "kargo stage name length ok"
 // Kargo Stage names must fit a label value (63): Kargo 1.12 labels every PromotionRequest with the
 // unshortened Stage name, so a longer name creates the Stage but fails every promotion into it.
+// Stage names carry no app prefix (one project per app, ADR 0029).
 func TestKargoStageNameLength(t *testing.T) {
 	t.Parallel()
-	const longApp = "webwebwebwebwebwebwebwebwebweb"           // 30
-	const longTgt = "us-east4-dev-k8s-aaaaaaaaaaaaaaaaaaaaaaa" // 40
-	const longStage = "ssssssssssssssssssssssssssssssssss"     // 34
+	longTgt := "us-east4-dev-k8s-" + strings.Repeat("a", 47)         // 64
+	longA, longB := strings.Repeat("a", 30), strings.Repeat("b", 30) // join node <a>-<b>-done: 66
 	r := fixture(t)
 	c := filepath.Join(r, payments)
 	cp(t, filepath.Join(c, "targets/us-east4-dev-k8s"), filepath.Join(c, "targets", longTgt))
 	must(t, yamledit.Set(filepath.Join(c, "targets", longTgt, "target.yml"), []string{"config", "namespace"}, "payments-long"))
-	must(t, os.Rename(filepath.Join(c, "apps/web"), filepath.Join(c, "apps", longApp)))
-	must(t, yamledit.Set(filepath.Join(c, "apps", longApp, "app.yml"), []string{"stages", "dev", "targets"}, map[string]any{longTgt: map[string]any{}}))
+	must(t, yamledit.Set(filepath.Join(c, "apps/web/app.yml"), []string{"stages", "dev", "targets"}, map[string]any{longTgt: map[string]any{}}))
 	got := lintOut(t, r)
-	if !matches(t, got, fmt.Sprintf(`^capabilities/payments/apps/%s/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s-%s is 71 characters \(max 63\): shorten the app or target name$`, longApp, longApp, longTgt)) {
+	if !matches(t, got, fmt.Sprintf(`^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s is 64 characters \(max 63\): shorten the target name$`, longTgt)) {
 		t.Errorf("long target Stage name not rejected:\n%s", got)
 	}
 
-	// control flow: a first stage with 2 targets gets an entry Stage <app>-<stage>
+	// control flow: stages c and d both depend on <a> and <b> (2 targets each side): one shared join
+	// Stage <a>-<b>-done, reported on <a>
 	r = fixture(t)
 	c = filepath.Join(r, payments)
-	write(t, filepath.Join(c, "stages", longStage+".yml"), "dependsOn: []\n")
-	must(t, yamledit.Set(filepath.Join(c, "owners.yml"), []string{"promoters", longStage}, []string{"doug@example.com"}))
-	must(t, os.Rename(filepath.Join(c, "apps/web"), filepath.Join(c, "apps", longApp)))
-	must(t, yamledit.Set(filepath.Join(c, "apps", longApp, "app.yml"), []string{"stages"}, map[string]any{longStage: map[string]any{"targets": map[string]any{"us-east4-dev-k8s": map[string]any{}, "dc1-dev-k8s": map[string]any{}}}}))
+	tg := func(n string) map[string]any { return map[string]any{"targets": map[string]any{n: map[string]any{}}} }
+	for st, deps := range map[string]string{longA: "[]", longB: "[]", "c": "[" + longA + ", " + longB + "]", "d": "[" + longA + ", " + longB + "]"} {
+		write(t, filepath.Join(c, "stages", st+".yml"), "dependsOn: "+deps+"\n")
+		must(t, yamledit.Set(filepath.Join(c, "owners.yml"), []string{"promoters", st}, []string{"doug@example.com"}))
+	}
+	must(t, yamledit.Set(filepath.Join(c, "apps/web/app.yml"), []string{"stages"}, map[string]any{
+		longA: tg("us-east4-dev-k8s"), longB: tg("dc1-dev-k8s"), "c": tg("us-east4-npr-k8s"), "d": tg("dc1-npr-k8s"),
+	}))
 	got = lintOut(t, r)
-	if !matches(t, got, fmt.Sprintf(`^capabilities/payments/apps/%s/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s-%s is 65 characters \(max 63\): shorten the app or stage names$`, longApp, longApp, longStage)) {
+	if !matches(t, got, fmt.Sprintf(`^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s-%s-done is 66 characters \(max 63\): shorten the stage names$`, longA, longB)) {
 		t.Errorf("long control-flow Stage name not rejected:\n%s", got)
+	}
+}
+
+// Without an app prefix, a control-flow Stage named after a stage can equal one of the app's target
+// Stages; lint reports it on the stage instead of a CUE conflict (ADR 0029).
+func TestStageNameCollision(t *testing.T) {
+	t.Parallel()
+	const n = "us-east4-dev-k8s"
+	r := fixture(t)
+	c := filepath.Join(r, payments)
+	write(t, filepath.Join(c, "stages", n+".yml"), "dependsOn: []\n")
+	must(t, yamledit.Set(filepath.Join(c, "owners.yml"), []string{"promoters", n}, []string{"doug@example.com"}))
+	must(t, yamledit.Set(filepath.Join(c, "apps/web/app.yml"), []string{"stages"}, map[string]any{n: map[string]any{"targets": map[string]any{n: map[string]any{}, "dc1-dev-k8s": map[string]any{}}}}))
+	got := lintOut(t, r)
+	if !matches(t, got, `^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name us-east4-dev-k8s is used by both stage us-east4-dev-k8s and target us-east4-dev-k8s: rename the stage$`) {
+		t.Errorf("stage/target Stage name collision not rejected:\n%s", got)
+	}
+}
+
+// The Kargo project kargo-<cap>-<app> is also a namespace: 63 characters max (ADR 0029).
+func TestProjectNameTooLong(t *testing.T) {
+	t.Parallel()
+	app := "w" + strings.Repeat("x", 39) // 40, the name max
+	r := fixture(t)
+	c := filepath.Join(r, "capabilities/search")
+	must(t, os.Rename(filepath.Join(c, "apps/api"), filepath.Join(c, "apps", app)))
+	capName := "searchsearchsearc" // kargo- (6) + 17 + - (1) + 40 = 64
+	must(t, os.Rename(c, filepath.Join(r, "capabilities", capName)))
+	d, err := All(r, []string{capName})
+	var ls []string
+	for _, x := range d {
+		ls = append(ls, x.String())
+	}
+	if err != nil {
+		ls = append(ls, "error: "+err.Error())
+	}
+	got := strings.Join(ls, "\n")
+	if !matches(t, got, fmt.Sprintf(`^capabilities/%s/apps/%s/app\.yml:1:1: .*Kargo project name kargo-%s-%s is 64 characters \(max 63\): shorten the app name$`, capName, app, capName, app)) {
+		t.Errorf("long project name not rejected:\n%s", got)
 	}
 }
 

@@ -13,6 +13,12 @@ func kargoPayments(t *testing.T) []map[string]any {
 	return docs(t, filepath.Join(sharedOut(t), "kargo/payments.yaml"))
 }
 
+// kargoApp is one payments app's Kargo project (ADR 0029) from the shared render.
+func kargoApp(t *testing.T, app string) []map[string]any {
+	t.Helper()
+	return inProject(kargoPayments(t), "kargo-payments-"+app)
+}
+
 // promotionTasks are the platform-level ClusterPromotionTasks of the shared render (ADR 0027).
 func promotionTasks(t *testing.T) []map[string]any {
 	t.Helper()
@@ -175,30 +181,30 @@ func TestStagesSatisfyPromotionTasks(t *testing.T) {
 // test.sh: "gha targets ok"
 func TestGhaTargets(t *testing.T) {
 	t.Parallel()
-	k := kargoPayments(t)
-	const w = "worker-us-east4-dev-k8s"
+	k := kargoApp(t, "worker")
+	const w = "us-east4-dev-k8s"
 	if got := strings.Join(stepUses(t, k, w), ","); got != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" {
-		t.Error("worker-us-east4-dev-k8s steps")
+		t.Error("worker us-east4-dev-k8s steps")
 	}
-	if u := stepUses(t, k, "worker-us-east4-npr-k8s"); u[len(u)-1] != "argocd-update" {
-		t.Error("worker-us-east4-npr-k8s must stay argocd")
+	if u := stepUses(t, k, "us-east4-npr-k8s"); u[len(u)-1] != "argocd-update" {
+		t.Error("worker us-east4-npr-k8s must stay argocd")
 	}
-	if st(t, k, w, `metadata.labels."example.com/deploy-with"`)+" "+st(t, k, "worker-us-east4-npr-k8s", `metadata.labels."example.com/deploy-with"`) != "gha argocd" {
+	if st(t, k, w, `metadata.labels."example.com/deploy-with"`)+" "+st(t, k, "us-east4-npr-k8s", `metadata.labels."example.com/deploy-with"`) != "gha argocd" {
 		t.Error("deploy-with label")
 	}
 	if varNames(k, w) != ghaVars {
 		t.Error("gha vars (kargo-restore reads repo/branch/image by name)")
 	}
-	if varNames(k, "worker-us-east4-npr-k8s") != commonVars {
+	if varNames(k, "us-east4-npr-k8s") != commonVars {
 		t.Error("argocd Stage has no workflow vars")
 	}
-	wf := func(n string) string {
-		return varValue(k, n, "workflowRepo") + " " + varValue(k, n, "workflowFile") + " " + varValue(k, n, "workflowRef")
+	wf := func(ds []map[string]any, n string) string {
+		return varValue(ds, n, "workflowRepo") + " " + varValue(ds, n, "workflowFile") + " " + varValue(ds, n, "workflowRef")
 	}
-	if wf(w) != "pitoniak32/gitops-cd deploy.yaml main" {
+	if wf(k, w) != "pitoniak32/gitops-cd deploy.yaml main" {
 		t.Error("default workflow")
 	}
-	if wf("my-app-dc1-npr-k8s") != "acme/deploys onprem.yml v1" {
+	if wf(kargoApp(t, "my-app"), "dc1-npr-k8s") != "acme/deploys onprem.yml v1" {
 		t.Error("target workflow override")
 	}
 	if varValue(k, w, "capability")+" "+varValue(k, w, "app")+" "+varValue(k, w, "stage")+" "+varValue(k, w, "target")+" "+varValue(k, w, "artifactKey") != "payments worker dev us-east4-dev-k8s image" {
@@ -247,7 +253,7 @@ func TestGhaTargets(t *testing.T) {
 	if str(get(wt, "config.errorExpression")) != "response.status != 200 ? response.body.message : 'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url" {
 		t.Error("wait error message (non-200 has no run fields)")
 	}
-	au := stepUsing(t, k, "worker-us-east4-npr-k8s", "argocd-update")
+	au := stepUsing(t, k, "us-east4-npr-k8s", "argocd-update")
 	if str(get(au, "config.apps.0.name"))+" "+str(get(au, "config.apps.0.sources.0.desiredRevision")) != "${{ vars.capability }}-${{ vars.app }}-${{ vars.target }} ${{ task.outputs.commit.commit }}" {
 		t.Error("argocd-update app name / revision")
 	}
@@ -332,8 +338,9 @@ func TestPreDeployChecks(t *testing.T) {
 				continue
 			}
 			name := str(get(s, "metadata.name"))
+			one := []map[string]any{s} // Stage names repeat across app projects (ADR 0029)
 			var as []string
-			for _, x := range stepsOf(ds, name) {
+			for _, x := range stepsOf(one, name) {
 				as = append(as, str(get(x, "as")))
 			}
 			ann := str(get(s, `metadata.annotations."example.com/pre-deploy"`))
@@ -349,7 +356,7 @@ func TestPreDeployChecks(t *testing.T) {
 				t.Errorf("%s: steps %v, want pre-1,promote", name, as)
 				continue
 			}
-			pre := templateStep(ds, name, "pre-1")
+			pre := templateStep(one, name, "pre-1")
 			repo := "pitoniak32/gitops-cd"
 			if label(s, "example.com/app") == "my-app" {
 				repo = "acme/my-app"
@@ -369,8 +376,8 @@ func TestPreDeployChecks(t *testing.T) {
 		t.Errorf("prd target Stages: %d, want 5", n)
 	}
 	// gha deploy on prd (terraform): pre-1's step vars don't replace the deploy workflow; module, not image
-	k := kargoPayments(t)
-	const i = "infra-us-east4-prd-tf"
+	k := kargoApp(t, "infra")
+	const i = "us-east4-prd-tf"
 	if varValue(k, i, "workflowFile") == "precheck.yaml" || varValue(k, i, "workflowFile") == "" {
 		t.Errorf("%s: deploy workflowFile %q", i, varValue(k, i, "workflowFile"))
 	}
