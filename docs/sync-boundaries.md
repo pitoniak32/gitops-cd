@@ -38,6 +38,7 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 | `platform/appsets/**` (chart pins, region values, which cluster gets what) | Push to `main`; the root app syncs the AppSets, which regenerate their Applications. |
 | Keycloak realm (`kargo-realm.json`) | Push; the configMap hash then restarts Keycloak, which re-imports the realm. |
 | Argo CD's own values (`argocd/`, `argocd-region/`, the AppSets' `valuesObject`) | Push; each Argo CD manages itself through its `argocd` Application. |
+| `platform/render/promotiontasks.cue` (promotion steps) | Merge; CI renders `rendered/kargo/_promotion-tasks.yaml`, hub `rendered-kargo` syncs it. Applies to every capability's next Promotion at once (ADR 0027). |
 | `platform/render/clusters.cue` regions | `mise run regions` (committed config; CI checks drift), merge; CI renders `rendered/infrastructure/regions/`. A new region also needs a clean `up`. |
 | Drift (manual `kubectl edit` of anything Argo CD manages) | Reverted by `selfHeal` to what's on `main`. |
 

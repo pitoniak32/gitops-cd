@@ -129,11 +129,13 @@ var lintCases = []struct {
 
 // test.sh: "lint case ok: <expr>" loop over lint-cases.tsv
 func TestLintCases(t *testing.T) {
+	t.Parallel()
 	if len(lintCases) != 64 {
 		t.Fatalf("lint-cases.tsv had 64 rows, table has %d", len(lintCases))
 	}
 	for i, c := range lintCases {
 		t.Run(strings.ReplaceAll(c.name, " ", "_"), func(t *testing.T) {
+			t.Parallel()
 			r := fixture(t)
 			c.edit(t, filepath.Join(r, c.file))
 			got := lintOut(t, r)

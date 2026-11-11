@@ -414,9 +414,11 @@ func repoRoot(t *testing.T) string {
 }
 
 func TestAppSets(t *testing.T) {
+	t.Parallel()
 	root := repoRoot(t)
 	for _, r := range rules {
 		t.Run(r.name, func(t *testing.T) {
+			t.Parallel()
 			for _, m := range r.check(root) {
 				t.Errorf("appsets: %s", m)
 			}
@@ -481,6 +483,7 @@ func write(t *testing.T, root, file, content string) {
 }
 
 func TestAppSetsNegative(t *testing.T) {
+	t.Parallel()
 	src := repoRoot(t)
 	byName := map[string]func(string) []string{}
 	for _, r := range rules {
@@ -559,6 +562,7 @@ func TestAppSetsNegative(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.rule+"/"+c.want, func(t *testing.T) {
+			t.Parallel()
 			root := fixture(t, src)
 			if got := byName[c.rule](root); len(got) != 0 {
 				t.Fatalf("baseline copy fails: %v", got)

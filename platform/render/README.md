@@ -12,6 +12,7 @@ Lives in the gitops monorepo; teams never edit it.
 | `pipeline.cue` | neutral per-app promotion graph (`pipelines/<cap>.json`) for Kargo / Temporal |
 | `k8s.cue` | ServiceAccount (WIF), Deployment, Service, ExternalSecret per (app, target) |
 | `delivery.cue` | Kargo Project/ProjectConfig/Warehouse/Stages + Argo CD Applications |
+| `promotiontasks.cue` | **platform-level** `ClusterPromotionTask`s `promote-argocd` / `promote-gha`: the steps every target Stage runs (ADR 0027) |
 | `files.cue` | every output file, keyed by rendered-repo path |
 | `gcd render` / `gcd codeowners` (`platform/cli/internal/{cueload,render}`, ADR 0026) | `mise run render` / `codeowners`: validate + write `files`, region files, CODEOWNERS |
 | `gcd lint` (`platform/cli/internal/{lint,yamlpos}`) | `mise run lint`: full CUE validation as `file:line:col: message` (editors, CI annotations) |
@@ -49,6 +50,7 @@ apps/<cap>/<app>/<stage>/<target>/{deployment.yaml,manifests.yaml}
 kargo/<cap>.yaml      pipelines/<cap>.json
 argocd/deploys/<region>/<cap>/<app>-<target>.json   argocd/projects/<region>/<cap>.yaml
 infrastructure/regions/<region>.json                 (gcd render, clusters.cue only)
+kargo/_promotion-tasks.yaml                          (gcd render, promotiontasks.cue only)
 ```
 
 ## Promotion
@@ -57,6 +59,8 @@ Freight creation is Manual: promoters assemble Freight = (commit, image) in the 
 Promoting target T copies `rendered/apps/<cap>/<app>/<stage>/T/` from the Freight commit to branch
 `env/<cap>/<app>/T`, sets the Freight's image (`yaml-update` on `deployment.yaml`, `<repo>:<tag>@<digest>`),
 and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availabilityStrategy: All`: ADR 0012.
+The steps live in ClusterPromotionTask `promote-<deployWith>`; each target Stage's template is one `task`
+step plus vars (ADR 0027).
 
 ## Editor feedback (two layers)
 - **Editor** — `schemas/*.json` from the CUE defs (`gcd schemas`, generic=true): structure, types, formats, cluster/env enums.

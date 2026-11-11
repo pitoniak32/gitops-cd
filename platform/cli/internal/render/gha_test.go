@@ -12,6 +12,12 @@ func kargoPayments(t *testing.T) []map[string]any {
 	return docs(t, filepath.Join(sharedOut(t), "kargo/payments.yaml"))
 }
 
+// promotionTasks are the platform-level ClusterPromotionTasks of the shared render (ADR 0027).
+func promotionTasks(t *testing.T) []map[string]any {
+	t.Helper()
+	return docs(t, filepath.Join(sharedOut(t), PromotionTasksFile))
+}
+
 // st mirrors test.sh's st(): a field of one Stage; "" when absent.
 func st(t *testing.T, ds []map[string]any, name, path string) string {
 	t.Helper()
@@ -22,10 +28,31 @@ func st(t *testing.T, ds []map[string]any, name, path string) string {
 	return str(get(s, path))
 }
 
+// taskOf is the ClusterPromotionTask a target Stage's single template step references.
+func taskOf(t *testing.T, ds []map[string]any, name string) map[string]any {
+	t.Helper()
+	steps := list(stage(ds, name), "spec.promotionTemplate.spec.steps")
+	if len(steps) != 1 || str(get(steps[0], "task.kind")) != "ClusterPromotionTask" {
+		t.Fatalf("Stage %s must have exactly one ClusterPromotionTask step", name)
+	}
+	n := str(get(steps[0], "task.name"))
+	task := find(promotionTasks(t), "ClusterPromotionTask", n)
+	if task == nil {
+		t.Fatalf("Stage %s: no ClusterPromotionTask %s", name, n)
+	}
+	return task
+}
+
+// taskSteps are the steps Kargo inflates into a Stage's Promotions.
+func taskSteps(t *testing.T, ds []map[string]any, name string) []any {
+	t.Helper()
+	return list(taskOf(t, ds, name), "spec.steps")
+}
+
 func stepUses(t *testing.T, ds []map[string]any, name string) []string {
 	t.Helper()
 	var out []string
-	for _, s := range list(stage(ds, name), "spec.promotionTemplate.spec.steps") {
+	for _, s := range taskSteps(t, ds, name) {
 		out = append(out, str(get(s, "uses")))
 	}
 	return out
@@ -39,24 +66,20 @@ func varNames(ds []map[string]any, name string) string {
 	return strings.Join(out, ",")
 }
 
-// varValuesFrom4 is `.vars[4:] | map(.value) | join(" ")`.
-func varValuesFrom4(ds []map[string]any, name string) string {
-	var out []string
-	vs := list(stage(ds, name), "spec.promotionTemplate.spec.vars")
-	if len(vs) > 4 {
-		vs = vs[4:]
-	} else {
-		vs = nil
+// varValue is a Stage's promotionTemplate var by name ("" when absent).
+func varValue(ds []map[string]any, name, v string) string {
+	for _, x := range list(stage(ds, name), "spec.promotionTemplate.spec.vars") {
+		if str(get(x, "name")) == v {
+			return str(get(x, "value"))
+		}
 	}
-	for _, v := range vs {
-		out = append(out, str(get(v, "value")))
-	}
-	return strings.Join(out, " ")
+	return ""
 }
 
-// stepAs finds the step with `as: <as>` (dispatch, wait).
-func stepAs(ds []map[string]any, name, as string) map[string]any {
-	for _, s := range list(stage(ds, name), "spec.promotionTemplate.spec.steps") {
+// stepAs finds the inflated step with `as: <as>` (dispatch, wait).
+func stepAs(t *testing.T, ds []map[string]any, name, as string) map[string]any {
+	t.Helper()
+	for _, s := range taskSteps(t, ds, name) {
 		if str(get(s, "as")) == as {
 			return s.(map[string]any)
 		}
@@ -64,8 +87,9 @@ func stepAs(ds []map[string]any, name, as string) map[string]any {
 	return nil
 }
 
-func stepUsing(ds []map[string]any, name, uses string) map[string]any {
-	for _, s := range list(stage(ds, name), "spec.promotionTemplate.spec.steps") {
+func stepUsing(t *testing.T, ds []map[string]any, name, uses string) map[string]any {
+	t.Helper()
+	for _, s := range taskSteps(t, ds, name) {
 		if str(get(s, "uses")) == uses {
 			return s.(map[string]any)
 		}
@@ -73,8 +97,48 @@ func stepUsing(ds []map[string]any, name, uses string) map[string]any {
 	return nil
 }
 
+const (
+	commonVars = "repo,src,branch,image,capability,app,stage,target,pinFile,pinKey,artifactKey"
+	ghaVars    = commonVars + ",workflowRepo,workflowFile,workflowRef"
+)
+
+// Every target Stage references an existing ClusterPromotionTask and sets every var it declares
+// (Kargo fails the Promotion otherwise: the task vars have no defaults).
+func TestStagesSatisfyPromotionTasks(t *testing.T) {
+	t.Parallel()
+	out := sharedOut(t)
+	for _, f := range []string{"payments", "search"} {
+		for _, s := range findAll(docs(t, filepath.Join(out, "kargo", f+".yaml")), "Stage") {
+			if label(s, "example.com/kind") != "target" {
+				continue
+			}
+			n := str(get(s, "metadata.name"))
+			task := taskOf(t, []map[string]any{s}, n)
+			if want := "promote-" + label(s, "example.com/deploy-with"); str(get(task, "metadata.name")) != want {
+				t.Errorf("%s: task %s, want %s", n, str(get(task, "metadata.name")), want)
+			}
+			for _, v := range list(task, "spec.vars") {
+				if varValue([]map[string]any{s}, n, str(get(v, "name"))) == "" {
+					t.Errorf("%s: no value for task var %s", n, str(get(v, "name")))
+				}
+			}
+		}
+	}
+	var tn []string
+	for _, x := range promotionTasks(t) {
+		if get(x, "metadata.namespace") != nil {
+			t.Error("ClusterPromotionTask must be cluster-scoped")
+		}
+		tn = append(tn, str(x["kind"])+"/"+str(get(x, "metadata.name")))
+	}
+	if strings.Join(tn, " ") != "ClusterPromotionTask/promote-argocd ClusterPromotionTask/promote-gha" {
+		t.Errorf("promotion tasks: %s", strings.Join(tn, " "))
+	}
+}
+
 // test.sh: "gha targets ok"
 func TestGhaTargets(t *testing.T) {
+	t.Parallel()
 	k := kargoPayments(t)
 	const w = "worker-us-east4-dev-k8s"
 	if got := strings.Join(stepUses(t, k, w), ","); got != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" {
@@ -86,19 +150,25 @@ func TestGhaTargets(t *testing.T) {
 	if st(t, k, w, `metadata.labels."example.com/deploy-with"`)+" "+st(t, k, "worker-us-east4-npr-k8s", `metadata.labels."example.com/deploy-with"`) != "gha argocd" {
 		t.Error("deploy-with label")
 	}
-	if varNames(k, w) != "repo,src,branch,image,workflowRepo,workflowFile,workflowRef" {
-		t.Error("vars order (kargo-restore reads by name)")
+	if varNames(k, w) != ghaVars {
+		t.Error("gha vars (kargo-restore reads repo/branch/image by name)")
 	}
-	if varNames(k, "worker-us-east4-npr-k8s") != "repo,src,branch,image" {
-		t.Error("argocd Stage keeps its four vars")
+	if varNames(k, "worker-us-east4-npr-k8s") != commonVars {
+		t.Error("argocd Stage has no workflow vars")
 	}
-	if varValuesFrom4(k, w) != "pitoniak32/gitops-cd deploy.yaml main" {
+	wf := func(n string) string {
+		return varValue(k, n, "workflowRepo") + " " + varValue(k, n, "workflowFile") + " " + varValue(k, n, "workflowRef")
+	}
+	if wf(w) != "pitoniak32/gitops-cd deploy.yaml main" {
 		t.Error("default workflow")
 	}
-	if varValuesFrom4(k, "my-app-dc1-npr-k8s") != "acme/deploys onprem.yml v1" {
+	if wf("my-app-dc1-npr-k8s") != "acme/deploys onprem.yml v1" {
 		t.Error("target workflow override")
 	}
-	d := stepAs(k, w, "dispatch")
+	if varValue(k, w, "capability")+" "+varValue(k, w, "app")+" "+varValue(k, w, "stage")+" "+varValue(k, w, "target")+" "+varValue(k, w, "artifactKey") != "payments worker dev us-east4-dev-k8s image" {
+		t.Error("identity vars (dispatch inputs, commit message)")
+	}
+	d := stepAs(t, k, w, "dispatch")
 	if str(get(d, "config.method"))+" "+str(get(d, "config.url")) != `POST https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches` {
 		t.Error("dispatch url")
 	}
@@ -121,13 +191,14 @@ func TestGhaTargets(t *testing.T) {
 	if strings.Join(outs, ",") != "runID=response.body.workflow_run_id,runURL=response.body.html_url" {
 		t.Error("dispatch outputs")
 	}
-	for _, f := range []string{"'ref': vars.workflowRef", "'return_run_details': true", "'commit': outputs.commit.commit", "'target': 'us-east4-dev-k8s'", "imageFrom(vars.image).Digest"} {
+	// inside a task, outputs of its other steps are task.outputs.<alias>
+	for _, f := range []string{"'ref': vars.workflowRef", "'return_run_details': true", "'commit': task.outputs.commit.commit", "'target': vars.target", "(vars.artifactKey): vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest"} {
 		if !strings.Contains(str(get(d, "config.body")), f) {
 			t.Errorf("dispatch body missing %s", f)
 		}
 	}
-	wt := stepAs(k, w, "wait")
-	if str(get(wt, "retry.timeout"))+" "+str(get(wt, "config.url")) != `30m https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}` {
+	wt := stepAs(t, k, w, "wait")
+	if str(get(wt, "retry.timeout"))+" "+str(get(wt, "config.url")) != `60m https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ task.outputs.dispatch.runID }}` {
 		t.Error("wait step")
 	}
 	if str(get(wt, "config.successExpression")) != "response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'" {
@@ -139,5 +210,9 @@ func TestGhaTargets(t *testing.T) {
 	}
 	if str(get(wt, "config.errorExpression")) != "response.status != 200 ? response.body.message : 'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url" {
 		t.Error("wait error message (non-200 has no run fields)")
+	}
+	au := stepUsing(t, k, "worker-us-east4-npr-k8s", "argocd-update")
+	if str(get(au, "config.apps.0.name"))+" "+str(get(au, "config.apps.0.sources.0.desiredRevision")) != "${{ vars.capability }}-${{ vars.app }}-${{ vars.target }} ${{ task.outputs.commit.commit }}" {
+		t.Error("argocd-update app name / revision")
 	}
 }

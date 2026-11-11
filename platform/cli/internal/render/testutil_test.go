@@ -3,6 +3,7 @@ package render
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -29,7 +30,7 @@ func renderFixture(t *testing.T, root string) string {
 	t.Helper()
 	out := t.TempDir()
 	renderTestRoot(t, root, out, "payments", "search")
-	if err := Regions(repoRoot(t), out); err != nil {
+	if err := Platform(repoRoot(t), out); err != nil {
 		t.Fatal(err)
 	}
 	return out
@@ -45,24 +46,37 @@ func renderCap(t *testing.T, root, capName string) string {
 
 var shared struct {
 	once sync.Once
-	out  string
+	out  string // set only after a successful render
+	err  error
 }
 
-// sharedOut is the unmodified fixture render, built once and read-only for the whole package.
+// sharedOut is the unmodified fixture render, built once and read-only for the whole package
+// (tests run in parallel: never write into it).
 func sharedOut(t *testing.T) string {
 	t.Helper()
 	shared.once.Do(func() {
-		shared.out, _ = os.MkdirTemp("", "render-shared-")
-		root := abs(t, "testdata/root")
-		renderTestRoot(t, root, shared.out, "payments", "search")
-		if err := Regions(repoRoot(t), shared.out); err != nil {
-			t.Fatal(err)
+		dir, err := os.MkdirTemp("", "render-shared-")
+		if err == nil {
+			err = renderShared(t, dir)
 		}
+		if err != nil {
+			shared.err = err
+			os.RemoveAll(dir)
+			return
+		}
+		shared.out = dir
 	})
-	if shared.out == "" {
-		t.Fatal("shared render failed")
+	if shared.err != nil {
+		t.Fatalf("shared render failed: %v", shared.err)
 	}
 	return shared.out
+}
+
+func renderShared(t *testing.T, dir string) error {
+	if err := Selected(abs(t, "testdata/root"), []string{"payments", "search"}, dir, io.Discard); err != nil {
+		return err
+	}
+	return Platform(repoRoot(t), dir)
 }
 
 func TestMain(m *testing.M) {

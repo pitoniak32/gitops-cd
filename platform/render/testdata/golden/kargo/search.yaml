@@ -74,45 +74,25 @@ spec:
           value: env/search/api/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: search
+        - name: app
+          value: api
+        - name: stage
+          value: dev
+        - name: target
+          value: us-east4-dev-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote search/api to dev/us-east4-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: search-api-us-east4-dev-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: v1
 kind: ServiceAccount

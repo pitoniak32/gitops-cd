@@ -40,6 +40,10 @@ _Avoid_: gate (ADR 0012's gate per stage is gone), join
 **Target stage**:
 The Kargo Stage `<app>-<target>` that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
 
+**Promotion task**:
+A platform `ClusterPromotionTask` (`promote-argocd`, `promote-gha`) holding the steps every target stage runs; the target stage passes only vars (ADR 0027).
+_Avoid_: promotion template (Kargo has none to share; each Stage keeps its own small `promotionTemplate`)
+
 **Target**:
 A reusable deployment destination (`targets/<name>/target.yml`). `platform: K8S` (default): one cluster + namespace + workload identity. `platform: TERRAFORM`: a **terraform target**, one GCP project + region + GCS state backend + workload identity, used only by terraform apps (ADR 0021). `platform: CLOUD_RUN`: a **Cloud Run target**, one GCP project + region + workload identity, for image apps, deployed by gha (ADR 0024). Named `<region>-<environmentType>-<k8s|tf|cr>[-<qualifier>]` (ADR 0025); lint checks it against the target's own fields.
 _Avoid_: env, region, location
