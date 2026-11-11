@@ -35,7 +35,7 @@ Rendering (Kargo project = capability):
 
 - One ServiceAccount + Role + RoleBinding `promote-<app>-<stage>` per app and stage the app uses. This replaces `promote-<app>`.
   - Claims: that stage's merged promoters plus `breakGlass`.
-  - `promote` on that app's Kargo Stages that belong to the stage: target Stages `<app>-<target>` and its control-flow Stages.
+  - `promote` on that app's Kargo Stages that belong to the stage: target Stages `<app>-<target>` (now `<target>`, ADR 0029) and its control-flow Stages.
   - Same `promotions` and `freights: create` rules as before.
 - Kargo grants the union of every SA whose claims match, so a dev+prod promoter gets both.
 - `viewers` SA, `users-<cap>` and Argo CD AppProject viewer roles: same as before. The email set is all stages' promoters (capability and app overrides) + viewers + breakGlass.

@@ -35,8 +35,8 @@ configs:
   rbac:
     # match policies/AppProject role `groups` against the `email` claim only (ADR 0011)
     scopes: "[email]"
-    # teams: only apps of capabilities they own, read-only, via the generated AppProject `viewer`
-    # roles (regional Argo CDs; rendered/argocd/projects/<region>/<cap>.yaml). Kargo does all syncing.
+    # teams: only the apps they're listed on, read-only, via the generated AppProject `viewer-<app>`
+    # roles (ADR 0029; regional Argo CDs; rendered/argocd/projects/<region>/<cap>.yaml). Kargo does all syncing.
     # platform admins by email: full admin, incl. infrastructure apps (ADR 0009).
     policy.default: ""
     policy.csv: |
