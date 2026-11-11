@@ -24,14 +24,21 @@
         },
         "promoters": {
           "$ref": "#/$defs/Promoters"
+        },
+        "viewers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Email"
+          }
         }
       },
       "propertyNames": {
         "enum": [
           "codeOwners",
-          "promoters"
+          "promoters",
+          "viewers"
         ],
-        "errorMessage": "Unknown key. Allowed: codeOwners, promoters"
+        "errorMessage": "Unknown key. Allowed: codeOwners, promoters, viewers"
       }
     },
     "Email": {
@@ -76,11 +83,11 @@
       }
     },
     "TeamRef": {
-      "type": "string",
-      "description": "capabilities/<cap>/owners.yml (required: codeOwners + promoters). One file per capability; apps\noverride codeOwners / promoters stages under `apps:` (ADR 0023)."
+      "type": "string"
     }
   },
   "type": "object",
+  "description": "capabilities/<cap>/owners.yml (required: codeOwners + promoters). One file per capability; apps\noverride codeOwners / promoters stages / viewers under `apps:` (ADR 0023).",
   "properties": {
     "apps": {
       "type": "object",

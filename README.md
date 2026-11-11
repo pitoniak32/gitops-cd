@@ -46,7 +46,7 @@ Nobody can create, edit or delete resources through the Kargo or Argo CD UIs; ch
 The only things created through the Kargo UI are Promotions and Freight (assembled from discovered commits/images).
 Access is by email (OIDC `email` claim), never IdP groups (ADR 0011). Users see only capabilities whose
 `owners.yml` lists them as `promoters` or `viewers`: in Argo CD their apps (read-only, generated AppProject
-`viewer` roles; syncing is done by Kargo), in Kargo their projects (generated `viewers` and per-app and stage
+`viewer` roles; syncing is done by Kargo), in Kargo their projects (generated `viewers` and per app+stage
 `promote-<app>-<stage>` roles).
 Kargo's project list still shows other projects' names (listing needs cluster-scoped read); use the
 "My projects" filter. Infrastructure apps aren't visible in the Argo CD UI (use kubectl).
@@ -95,7 +95,7 @@ See `capabilities/payments/apps/my-app/app.yml` for an example of every field.
 | Approve changes under `stages/`, `targets/` | union of the apps' `codeOwners` |
 | Approve changes to any `owners.yml` | @acme/platform |
 | Approve changes to `teams/<team>.yml` | that team or @acme/platform |
-| Promote verified Freight to a stage of an app | that stage's `promoters` (emails; Kargo role per app and stage) |
+| Promote verified Freight to a stage of an app | that stage's `promoters` (emails; Kargo role per app+stage) |
 | Approve Freight that skipped verification ("Manual approval required") | the app's `breakGlass` emails + admins (guard, `docs/break-glass.md`) |
 | View the capability in Kargo / Argo CD | all stages' `promoters` + `viewers` |
 

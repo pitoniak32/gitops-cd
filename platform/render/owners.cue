@@ -13,8 +13,6 @@ teams: [#Name]: #Team
 _emailDomain: "example.com"
 #Email:       =~"^[a-z0-9._%+-]+@example\\.com$" | error("expected a lowercase @\(_emailDomain) email")
 
-// capabilities/<cap>/owners.yml (required: codeOwners + promoters). One file per capability; apps
-// override codeOwners / promoters stages under `apps:` (ADR 0023).
 #TeamRef: [if generic {#Name}, or(_teamNames) | error("unknown team; allowed: \(_teamList)")][0]
 
 // stage -> emails that may promote into it. Unknown stage names get a custom error.
@@ -34,6 +32,7 @@ _emailDomain: "example.com"
 #AppOwners: {
 	codeOwners?: [...#TeamRef]
 	promoters?:  #Promoters
+	viewers?: [...#Email]
 	if !generic {
 		breakGlass?: error("breakGlass is capability-wide; set it at the top level")
 	}
@@ -42,6 +41,8 @@ _emailDomain: "example.com"
 	}
 }
 
+// capabilities/<cap>/owners.yml (required: codeOwners + promoters). One file per capability; apps
+// override codeOwners / promoters stages / viewers under `apps:` (ADR 0023).
 #Owners: {
 	// GitHub teams (teams/): approve the app's code changes (CODEOWNERS)
 	codeOwners?: [...#TeamRef]
@@ -103,10 +104,17 @@ for o in _capOwnerFiles {capOwners: [{
 				if len(ao.codeOwners) == 0 {codeOwners: error("needs at least one team")}
 				if len({for x in ao.codeOwners {"\(x)": _}}) != len(ao.codeOwners) {codeOwners: error("teams must not repeat")}
 			}
-			if ao.promoters != _|_ {promoters: {for sn, l in ao.promoters {
-				if len(l) == 0 {(sn): error("needs at least one email")}
-				if len({for x in l {"\(x)": _}}) != len(l) {(sn): error("emails must not repeat")}
-			}}}
+			if ao.viewers != _|_ {
+				if len({for x in ao.viewers {"\(x)": _}}) != len(ao.viewers) {viewers: error("emails must not repeat")}
+			}
+			if ao.promoters != _|_ {
+				if (ao.promoters & [...]) != _|_ {promoters: error("expected a map: <stage>: [email, ..]")}
+				if (ao.promoters & [...]) == _|_ {promoters: {for sn, l in ao.promoters {
+					if len(l) == 0 {(sn): error("needs at least one email")}
+					if len({for x in l {"\(x)": _}}) != len(l) {(sn): error("emails must not repeat")}
+					if _capApps[an] != _|_ if _capApps[an].stages[sn] == _|_ if list.Contains(_stageNames, sn) {(sn): error("app \(an) doesn't use stage \(sn)")}
+				}}}
+			}
 		}}}
 	}
 }]}
@@ -137,6 +145,7 @@ _allOwners: (_uniqSorted & {#in: [
 _allEmails: (_uniqSorted & {#in: [
 	if _o.promoters != _|_ for _, l in _o.promoters for x in l {x},
 	if _o.apps != _|_ for _, ao in _o.apps if ao.promoters != _|_ for _, l in ao.promoters for x in l {x},
+	if _o.apps != _|_ for _, ao in _o.apps if ao.viewers != _|_ for x in ao.viewers {x},
 	if _o.viewers != _|_ for x in _o.viewers {x},
 	for x in _breakGlass {x},
 ]}).out

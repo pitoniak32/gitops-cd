@@ -198,6 +198,13 @@ scripts/render.sh "$r" search "$o" >/dev/null
 grep -qx '/capabilities/search/ @acme/team2' "$o/codeowners/search" || { echo "stages/targets approvers must be the apps' owners:" >&2; cat "$o/codeowners/search" >&2; exit 1; }
 rm -rf "${r:?}" "${o:?}"; echo "override-all owners ok"
 
+# App viewers (apps.<a>.viewers) are included in the viewers SA claims
+r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
+yq -i '.apps.worker.viewers = ["erin@example.com"]' "$r/capabilities/payments/owners.yml"
+scripts/render.sh "$r" payments "$o" >/dev/null
+[[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "viewers") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$o/kargo/payments.yaml")" == *erin@example.com* ]] || { echo "app viewer missing from viewers SA" >&2; exit 1; }
+rm -rf "${r:?}" "${o:?}"; echo "app viewers ok"
+
 # Leftover apps/<a>/owners.yml (pre-ADR 0023 layout) fails loudly
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 printf 'owners: [team1]\n' >"$r/capabilities/payments/apps/worker/owners.yml"
