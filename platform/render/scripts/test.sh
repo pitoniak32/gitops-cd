@@ -31,8 +31,8 @@ k="$tmp/kargo/payments.yaml"
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "users-payments") | .metadata.namespace + " " + .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == 'kargo-shared-resources {"email":["alice@example.com","bob@example.com","carol@example.com","doug@example.com"]}' ]] || { echo "missing users-payments global SA" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "ClusterRoleBinding" and .metadata.name == "kargo-users-payments") | .roleRef.name + "/" + .subjects[0].namespace + "/" + .subjects[0].name' "$k")" == "kargo-user/kargo-shared-resources/users-payments" ]] || { echo "missing kargo-users-payments ClusterRoleBinding" >&2; exit 1; }
 # Kargo's promote API needs create on promotions as well as promote on the (named) stages
-for r in $(yq 'select(.kind == "Role" and (.metadata.name | test("^promote-"))) | .metadata.name' "$tmp/kargo/payments.yaml" | grep -v -- "^---"); do
-  yq -e "select(.kind == \"Role\" and .metadata.name == \"$r\") | .rules[] | select(.resources[0] == \"promotions\" and (.verbs[] == \"create\"))" "$tmp/kargo/payments.yaml" >/dev/null || { echo "$r can't create promotions" >&2; exit 1; }
+for role in $(yq 'select(.kind == "Role" and (.metadata.name | test("^promote-"))) | .metadata.name' "$tmp/kargo/payments.yaml" | grep -v -- "^---"); do
+  yq -e "select(.kind == \"Role\" and .metadata.name == \"$role\") | .rules[] | select(.resources[0] == \"promotions\" and (.verbs[] == \"create\"))" "$tmp/kargo/payments.yaml" >/dev/null || { echo "$role can't create promotions" >&2; exit 1; }
 done
 # promoters are per app: worker's app owners.yml replaces promoters; my-app inherits the capability's
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-worker-dev") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["alice@example.com","carol@example.com","doug@example.com"]}' ]] || { echo "promote-worker-dev claims" >&2; exit 1; }
@@ -78,8 +78,8 @@ done
 [[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker-staging") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-stg" ]] || { echo "promote-worker-staging resourceNames" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker-prod") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-prod" ]] || { echo "promote-worker-prod resourceNames" >&2; exit 1; }
 [[ -z "$(yq 'select(.kind == "Role" and (.metadata.name == "promote-worker-perf" or .metadata.name == "promote-worker" or .metadata.name == "promote-my-app")) | .metadata.name' "$k")" ]] || { echo "unexpected promote role" >&2; exit 1; }
-for s in staging perf; do
-  yq -e "select(.kind == \"Role\" and .metadata.name == \"promote-my-app-$s\") | .rules[0].resourceNames[] | select(. == \"my-app-dev-done\")" "$k" >/dev/null || { echo "promote-my-app-$s must include shared my-app-dev-done" >&2; exit 1; }
+for st in staging perf; do
+  yq -e "select(.kind == \"Role\" and .metadata.name == \"promote-my-app-$st\") | .rules[0].resourceNames[] | select(. == \"my-app-dev-done\")" "$k" >/dev/null || { echo "promote-my-app-$st must include shared my-app-dev-done" >&2; exit 1; }
 done
 [[ "$(yq 'select(.kind == "Role" and (.metadata.name | test("^promote-my-app-"))) | .rules[0].resourceNames[]' "$k" | grep -v -- "^---" | sort -u | paste -sd, -)" == "my-app-dev,my-app-dev-done,my-app-onprem-dev,my-app-onprem-prod,my-app-onprem-stg,my-app-prod,my-app-staging,my-app-us-dev,my-app-us-perf,my-app-us-prod,my-app-us-stg" ]] || { echo "promote-my-app-* union must cover targets + control flow" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-onprem-prod") | .spec.promotionTemplate.spec.vars[2].value' "$k")" == "env/payments/my-app/onprem-prod" ]] || { echo "target stage must push its own branch" >&2; exit 1; }
