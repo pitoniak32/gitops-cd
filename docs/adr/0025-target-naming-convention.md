@@ -1,6 +1,6 @@
 # Target naming convention
 
-Status: proposed. Adds `environmentType`, changes the cluster regions (ADR 0015); ADR 0024 builds on it.
+Status: accepted. Adds `environmentType`, changes the cluster regions (ADR 0015); ADR 0024 builds on it.
 
 Target names were ad hoc (`us-stg`, `onprem-prod`, `tf-dev`) and said nothing reliable about where or what a target is. Target names end up in Kargo Stage names, `env/*` branches and Argo CD Applications, so a fixed shape makes them readable everywhere. This is still a demo, so renaming everything now is cheap.
 

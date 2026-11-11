@@ -42,6 +42,7 @@ The Kargo Stage `<app>-<target>` that promotes one target: it copies that target
 
 **Target**:
 A reusable deployment destination (`targets/<name>/target.yml`). `platform: K8S` (default): one cluster + namespace + workload identity. `platform: TERRAFORM`: a **terraform target**, one GCP project + GCS state backend + workload identity, used only by terraform apps (ADR 0021).
+Named `<region>-<environmentType>-<k8s|tf>[-<qualifier>]` (ADR 0025); lint checks it against the target's own fields.
 _Avoid_: env, region, location
 
 **Environment-variables file**:
@@ -75,14 +76,14 @@ Labels on each Argo CD's own `in-cluster` Secret that its ApplicationSets' clust
 _Avoid_: cluster roles (Kubernetes RBAC term)
 
 **Cluster**:
-A Kubernetes cluster from the platform-owned registry, accepting a fixed set of environments. Each belongs to one region.
+A Kubernetes cluster from the platform-owned registry, accepting a fixed set of environment types. Each belongs to one region.
 
 **Hub**:
 The kind cluster `kargo-demo` running the Kargo control plane, Keycloak, Traefik and the platform Argo CD. It runs no workloads and holds no credentials to regions (ADR 0015).
 _Avoid_: management cluster, control cluster
 
 **Region**:
-A workload cluster `region-<r>` (listed in `platform/cluster/regions`) with its own Argo CD and Kargo shard. A cluster's `region` decides which Argo CD and shard deploy its targets.
+A workload cluster `region-<r>` (listed in `platform/cluster/regions`; `<r>` from the fixed GCP/datacenter lists in `clusters.cue`, e.g. `us-east4`, `dc1`) with its own Argo CD and Kargo shard. A cluster's `region` decides which Argo CD and shard deploy its targets.
 _Avoid_: zone, location (a target is a deploy destination; a region is the Argo CD + Kargo shard behind it)
 
 **Shard**:
@@ -90,8 +91,11 @@ The Kargo controller in a region (`shardName` = region). It talks to that region
 _Avoid_: agent (Kargo's docs use it loosely)
 
 **Environment**:
-The policy class of a target (`dev`, `staging`, `perf`, `prod`) that determines rules such as minimum replicas.
-_Avoid_: stage (a stage is a capability's pipeline step; an environment is platform policy)
+The free-form name of where a target runs (`dev`, `staging`, `perf`, `prod`, `qa1`); label `example.com/environment`.
+_Avoid_: stage (a stage is a capability's pipeline step)
+
+**Environment type**:
+Required `environmentType` of a target: `dev | npr | prd`. Platform policy keys on it (minimum replicas, no autoPromote to `prd`); label `example.com/environment-type`.
 
 **Deploy**:
 The fully merged configuration of one app on one target.

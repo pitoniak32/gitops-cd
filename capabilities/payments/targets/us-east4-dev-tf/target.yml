@@ -11,4 +11,4 @@ config:
   terraform:
     gcpProject: team1-dev
     backend:
-      bucket: tfstate-team1-dev  # prefix defaults to payments/infra/us-dev-tf
+      bucket: tfstate-team1-dev  # prefix defaults to payments/infra/us-east4-dev-tf

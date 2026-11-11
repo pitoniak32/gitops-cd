@@ -57,3 +57,14 @@ kubectl delete ns <cap>-<target>                                                
 Afterwards the targets show sync `Unknown` until they're promoted again (`docs/gotchas.md`).
 
 **C. Remove the capability.** Delete `capabilities/<cap>/` and merge. CI drops it from `rendered/`, and Argo CD prunes the Kargo project, the AppProject and the Applications. The workloads aren't deleted with the Applications (no cascade finalizer), so do the namespace and branch steps from B as well.
+
+## Rename targets / regions
+
+Renaming a target or region (ADR 0025) makes all its Kargo Stages, Argo CD apps and `env/*` branches new; `kargo-restore` can't map old Freight to new names.
+1. `mise run down && mise run up`, after the rename is merged and CI has rendered.
+2. Delete the old targets' `env/*` branches:
+```sh
+gh api repos/<owner>/<repo>/git/matching-refs/heads/env/    # list
+gh api -X DELETE repos/<owner>/<repo>/git/refs/heads/env/<cap>/<app>/<old-target>   # per old branch
+```
+3. Promote again from the Warehouse (assemble new Freight; dev auto-promotes).
