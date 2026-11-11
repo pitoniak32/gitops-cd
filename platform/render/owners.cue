@@ -122,8 +122,11 @@ if !generic if len(_capOwnerFiles) == 0 {capOwners: error("capability needs owne
 
 _uniqSorted: {#in: [...string], out: list.SortStrings([for x, _ in {for x in #in {(x): _}} {x}])}
 
-// the capability's owners.yml (empty struct when missing; capOwners reports that)
-_o: {for o in capOwners {o}}
+// the capability's owners.yml, raw (empty struct when missing). capOwners validates it; values here read the
+// raw file because the validated one is closed over _stageNames, and `stages` depends on deploys (prod
+// autoPromote rule): reading it from outputs made closedness evaluation-order dependent in CUE v0.17
+// ("_o.promoters.<stage>: field not allowed").
+_o: {for o in _capOwnerFiles {o}}
 
 // Per app, sorted: the app's field if set, else the capability's.
 codeOwners: {for an, _ in _capApps {(an): (_uniqSorted & {#in: [if _o.apps[an].codeOwners != _|_ {_o.apps[an].codeOwners}, _o.codeOwners][0]}).out}}

@@ -59,8 +59,22 @@ func TestKindClusterArgoCD(t *testing.T) {
 		t.Error("fixture lost its secret: env value")
 	}
 
-	// Argo CD visibility: promoters + viewers (emails) get read-only access to their capability's apps, nothing else
-	want := `{"name":"viewer","policies":["p, proj:payments:viewer, applications, get, payments/*, allow"],"groups":["alice@example.com","bob@example.com","carol@example.com","doug@example.com"]}`
+	// Argo CD visibility (ADR 0029): one viewer-<app> role per app with argocd deploys in the region, naming
+	// exactly its Applications, for its promoters + viewers + break-glass; infra (terraform, gha only) gets none
+	pol := func(app string, tgts ...string) string {
+		var ps []string
+		for _, tg := range tgts {
+			ps = append(ps, `"p, proj:payments:viewer-`+app+`, applications, get, payments/payments-`+app+`-`+tg+`, allow"`)
+		}
+		return `"policies":[` + strings.Join(ps, ",") + `]`
+	}
+	const std = `"groups":["bob@example.com","carol@example.com","doug@example.com"]`
+	want := strings.Join([]string{
+		`{"name":"viewer-my-app",` + pol("my-app", "us-east4-dev-k8s", "us-east4-npr-k8s", "us-east4-npr-k8s-perf", "us-east4-prd-k8s") + `,` + std + `}`,
+		`{"name":"viewer-payments",` + pol("payments", "us-east4-dev-k8s", "us-east4-npr-k8s", "us-east4-prd-k8s") + `,` + std + `}`,
+		`{"name":"viewer-web",` + pol("web", "us-east4-dev-k8s") + `,` + std + `}`,
+		`{"name":"viewer-worker",` + pol("worker", "us-east4-npr-k8s", "us-east4-prd-k8s") + `,"groups":["alice@example.com","bob@example.com","carol@example.com","doug@example.com"]}`,
+	}, "\n")
 	type role struct {
 		Name     string   `json:"name"`
 		Policies []string `json:"policies"`

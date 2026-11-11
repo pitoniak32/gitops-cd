@@ -215,16 +215,23 @@ _appProject: {
 		}]
 		clusterResourceWhitelist: [{group: "", kind: "Namespace"}] // CreateNamespace=true
 		namespaceResourceWhitelist: [{group: "*", kind: "*"}]
-		// Argo CD UI/CLI: owners see this capability's apps, read-only (Kargo does all syncing)
-		roles: [{
-			name:        "viewer"
-			description: "read-only view of \(_cap) apps for its promoters and viewers"
-			policies: ["p, proj:\(_cap):viewer, applications, get, \(_cap)/*, allow"]
-			// matched against the OIDC email claim (argocd-rbac-cm scopes: [email])
-			groups: _allEmails
-		}]
+		// Argo CD UI/CLI, per app (ADR 0029)
+		roles: _viewerRoles[#region]
 	}
 }
+
+// per region, one role per app with argocd deploys there: its promoters, viewers and break-glass see its
+// Applications, read-only (Kargo does all syncing). Exact names: a glob <cap>-<app>-* would also match an app
+// named <app>-<x>.
+_viewerRoles: {for r, _ in _deployRegion {(r): [for an in list.SortStrings([for an, _ in {for _, d in _argoDeploys if clusters[d.tgt.cluster].region == r {(d.app): _}} {an}]) {
+	name:        "viewer-\(an)"
+	description: "read-only view of \(_cap)/\(an) for its promoters and viewers"
+	policies: list.SortStrings([for _, d in _argoDeploys if d.app == an if clusters[d.tgt.cluster].region == r {
+		"p, proj:\(_cap):viewer-\(an), applications, get, \(_cap)/\(_cap)-\(an)-\(d.target), allow"
+	}])
+	// matched against the OIDC email claim (argocd-rbac-cm scopes: [email])
+	groups: _appEmails[an]
+}]}}
 
 argocdProjects: {for r, _ in _deployRegion {(r): _appProject & {#region: r}}}
 
