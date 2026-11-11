@@ -1,0 +1,46 @@
+# Example platform pre-deploy check (ADR 0028). Kargo's gha-check step dispatches this to the app's
+# sourceRepo before a prd target Stage pushes anything, and waits for the run: any conclusion other than
+# success fails the Promotion. Image apps send `image`, terraform apps `module` (GitHub rejects undeclared
+# inputs, so both are declared). Demo: fails when the repo variable PRECHECK_FAIL is "true"
+# (`gh variable set PRECHECK_FAIL --body true`).
+name: precheck (example)
+run-name: "precheck ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }}"
+on:
+  workflow_dispatch:
+    inputs:
+      capability: {description: capability, required: true, type: string}
+      app: {description: app, required: true, type: string}
+      stage: {description: stage, required: true, type: string}
+      target: {description: target, required: true, type: string}
+      commit: {description: "rendered-branch commit of the Freight (nothing pushed yet)", required: true, type: string}
+      image: {description: "<repo>:<tag>@<digest> (image apps)", required: false, type: string}
+      module: {description: "<repo>:<tag>@<digest> (terraform apps)", required: false, type: string}
+permissions:
+  contents: read
+jobs:
+  precheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:  # inputs via env, never inline in run: (script injection)
+      CAPABILITY: ${{ inputs.capability }}
+      APP: ${{ inputs.app }}
+      STAGE: ${{ inputs.stage }}
+      TARGET: ${{ inputs.target }}
+      COMMIT: ${{ inputs.commit }}
+      ARTIFACT: ${{ inputs.image || inputs.module }}
+      PRECHECK_FAIL: ${{ vars.PRECHECK_FAIL }}
+    steps:
+      - name: check
+        run: |
+          if [[ "$PRECHECK_FAIL" == "true" ]]; then
+            echo "::error::PRECHECK_FAIL is set: blocking $CAPABILITY/$APP → $TARGET"; exit 1
+          fi
+      - name: summary
+        if: always()
+        run: |
+          {
+            echo "### precheck $CAPABILITY/$APP → $TARGET"
+            echo "| stage | target | commit | artifact |"
+            echo "|---|---|---|---|"
+            echo "| $STAGE | $TARGET | \`$COMMIT\` | \`$ARTIFACT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

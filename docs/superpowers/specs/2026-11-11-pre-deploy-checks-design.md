@@ -53,13 +53,13 @@ sourceRepo: example-org/payments-api   # required
 - Validation: `sourceRepo!: =~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" | error("expected <owner>/<name>")`. Required for every app (image and terraform), whether or not it deploys to an environment type with checks: one rule, no surprise when an app first reaches prod. Missing ⇒ lint error at the app.yml.
 - Migration (same change): add `sourceRepo: <this repo>` to every existing `capabilities/*/apps/*/app.yml` and `platform/render/testdata/root/.../app.yml`.
 - `mise run schemas` regenerates `app.json`; lint cases cover a bad value.
-- **Contract for teams** (documented in the README/gotchas, not enforced at render): the repo must contain every check file the platform lists for an environment type the app deploys to, on the check's `ref`, declaring the six inputs below. Missing file ⇒ dispatch 404 ⇒ that prod Promotion fails, with GitHub's message.
+- **Contract for teams** (documented in the README/gotchas, not enforced at render): the repo must contain every check file the platform lists for an environment type the app deploys to, on the check's `ref`, declaring the inputs below (`image` and `module` both optional). Missing file ⇒ dispatch 404 ⇒ that prod Promotion fails, with GitHub's message.
 - Only used for pre-deploy checks here. Defaulting `workflow.repo` (gha deploys) to it is a possible follow-up, not in scope.
 
 ## Behaviour
 
 - Runs on every **target Stage** (app × target) whose target's environment type has checks, before `git-clone`, in list order. N apps × M prd targets ⇒ N×M dispatches per check, each with its own `app`/`target`.
-- Dispatch inputs (fixed set; GitHub returns 422 for undeclared inputs, so each check workflow must declare all six as `workflow_dispatch` inputs):
+- Dispatch inputs (fixed set; GitHub returns 422 for undeclared inputs, so each check workflow must declare all of them as `workflow_dispatch` inputs; `image` and `module` both, optional, since an app sends one):
   - `capability`, `app`, `stage`, `target`
   - `commit`: the Freight's rendered-branch commit (`commitFrom(vars.repo).ID`); nothing is pushed yet
   - `image`: `<repo>:<tag>@<digest>` (terraform apps: key `module`, same as `promote-gha` via `artifactKey`)
@@ -102,7 +102,7 @@ steps: list.Concat([
 
 ## Example workflow
 
-`.github/workflows/precheck.yaml` declares the six inputs, writes a job summary, and fails when the repo variable `PRECHECK_FAIL` is `true`, so a failing check can be shown without a code change (`gh variable set PRECHECK_FAIL --body true`).
+`.github/workflows/precheck.yaml` declares the inputs (`image`, `module` optional), writes a job summary, and fails when the repo variable `PRECHECK_FAIL` is `true`, so a failing check can be shown without a code change (`gh variable set PRECHECK_FAIL --body true`).
 
 ## Testing
 
