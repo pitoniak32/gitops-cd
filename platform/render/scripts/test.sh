@@ -31,10 +31,13 @@ k="$tmp/kargo/payments.yaml"
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "users-payments") | .metadata.namespace + " " + .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == 'kargo-shared-resources {"email":["alice@example.com","bob@example.com","carol@example.com","doug@example.com"]}' ]] || { echo "missing users-payments global SA" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "ClusterRoleBinding" and .metadata.name == "kargo-users-payments") | .roleRef.name + "/" + .subjects[0].namespace + "/" + .subjects[0].name' "$k")" == "kargo-user/kargo-shared-resources/users-payments" ]] || { echo "missing kargo-users-payments ClusterRoleBinding" >&2; exit 1; }
 # Kargo's promote API needs create on promotions as well as promote on the (named) stages
-yq -e 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[] | select(.resources[0] == "promotions" and (.verbs[] == "create"))' "$tmp/kargo/payments.yaml" >/dev/null || { echo "promote role can't create promotions" >&2; exit 1; }
+for r in $(yq 'select(.kind == "Role" and (.metadata.name | test("^promote-"))) | .metadata.name' "$tmp/kargo/payments.yaml" | grep -v -- "^---"); do
+  yq -e "select(.kind == \"Role\" and .metadata.name == \"$r\") | .rules[] | select(.resources[0] == \"promotions\" and (.verbs[] == \"create\"))" "$tmp/kargo/payments.yaml" >/dev/null || { echo "$r can't create promotions" >&2; exit 1; }
+done
 # promoters are per app: worker's app owners.yml replaces promoters; my-app inherits the capability's
-[[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-worker") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["alice@example.com","carol@example.com","doug@example.com"]}' ]] || { echo "promote-worker must use the app's promoters + inherited break-glass" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-my-app") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["carol@example.com","doug@example.com"]}' ]] || { echo "promote-my-app must inherit the capability's promoters + break-glass" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-worker-dev") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["alice@example.com","carol@example.com","doug@example.com"]}' ]] || { echo "promote-worker-dev claims" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-worker-staging") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["carol@example.com","doug@example.com"]}' ]] || { echo "promote-worker-staging must inherit" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-worker-prod") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$k")" == '{"email":["alice@example.com","carol@example.com"]}' ]] || { echo "promote-worker-prod claims" >&2; exit 1; }
 # break-glass (ADR 0013): every control-flow and target Stage carries the app's list for the approve guard
 [[ "$(yq 'select(.kind == "Stage" and .metadata.labels."example.com/app" == "my-app") | .metadata.annotations."example.com/break-glass"' "$k" | sort -u | grep -v '^---$')" == '["carol@example.com"]' ]] || { echo "every my-app Stage needs the break-glass annotation" >&2; exit 1; }
 # Kargo graph (ADR 0019): control-flow Stages only for fan-in/out and one-click stage release; targets <app>-<target>
@@ -71,8 +74,14 @@ for n in my-app-dev my-app-dev-done my-app-prod my-app-staging; do
 done
 [[ "$(yq 'select(.kind=="Stage" and .metadata.name=="my-app-dev-done") | .metadata.labels."example.com/stage"' "$k") $(yq 'select(.kind=="Stage" and .metadata.name=="my-app-staging") | .metadata.labels."example.com/stage"' "$k")" == "dev staging" ]] || { echo "control-flow stage labels" >&2; exit 1; }
 [[ "$(yq 'select(.kind=="ProjectConfig") | .spec.promotionPolicies[] | .stageSelector.name' "$k" | sort | paste -sd' ' -)" == "infra-tf-dev my-app-dev my-app-dev-done my-app-onprem-dev my-app-prod my-app-staging my-app-us-dev payments-us-dev worker-us-dev" ]] || { echo "auto-promotion: every control-flow Stage + targets of autoPromote stages only" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-dev,worker-us-prod,worker-us-stg" ]] || { echo "promote-worker must cover exactly worker's Stages" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-my-app") | .rules[0].resourceNames | join(",")' "$k")" == "my-app-dev,my-app-dev-done,my-app-onprem-dev,my-app-onprem-prod,my-app-onprem-stg,my-app-prod,my-app-staging,my-app-us-dev,my-app-us-perf,my-app-us-prod,my-app-us-stg" ]] || { echo "promote-my-app must cover targets + control flow" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker-dev") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-dev" ]] || { echo "promote-worker-dev resourceNames" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker-staging") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-stg" ]] || { echo "promote-worker-staging resourceNames" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker-prod") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-prod" ]] || { echo "promote-worker-prod resourceNames" >&2; exit 1; }
+[[ -z "$(yq 'select(.kind == "Role" and (.metadata.name == "promote-worker-perf" or .metadata.name == "promote-worker" or .metadata.name == "promote-my-app")) | .metadata.name' "$k")" ]] || { echo "unexpected promote role" >&2; exit 1; }
+for s in staging perf; do
+  yq -e "select(.kind == \"Role\" and .metadata.name == \"promote-my-app-$s\") | .rules[0].resourceNames[] | select(. == \"my-app-dev-done\")" "$k" >/dev/null || { echo "promote-my-app-$s must include shared my-app-dev-done" >&2; exit 1; }
+done
+[[ "$(yq 'select(.kind == "Role" and (.metadata.name | test("^promote-my-app-"))) | .rules[0].resourceNames[]' "$k" | grep -v -- "^---" | sort -u | paste -sd, -)" == "my-app-dev,my-app-dev-done,my-app-onprem-dev,my-app-onprem-prod,my-app-onprem-stg,my-app-prod,my-app-staging,my-app-us-dev,my-app-us-perf,my-app-us-prod,my-app-us-stg" ]] || { echo "promote-my-app-* union must cover targets + control flow" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Stage" and .metadata.name == "my-app-onprem-prod") | .spec.promotionTemplate.spec.vars[2].value' "$k")" == "env/payments/my-app/onprem-prod" ]] || { echo "target stage must push its own branch" >&2; exit 1; }
 d="$tmp/argocd/deploys/onprem/payments/my-app-onprem-prod.json"
 [[ "$(jq -r '.appName + " " + .branch + " " + .authorizedStage + " " + .destination + "/" + .namespace' "$d")" == "payments-my-app-onprem-prod env/payments/my-app/onprem-prod kargo-payments:my-app-onprem-prod in-cluster/payments-onprem-prod" ]] || { echo "deploy params must track the target branch, authorized for its target stage" >&2; exit 1; }
@@ -185,7 +194,7 @@ r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 printf 'codeOwners: [team1]\npromoters: {dev: [carol@example.com]}\napps: {api: {codeOwners: [team2], promoters: {dev: [dave@example.com]}}}\n' >"$r/capabilities/search/owners.yml"
 scripts/render.sh "$r" search "$o" >/dev/null
 [[ -f "$o/kargo/search.yaml" ]] || { echo "missing $o/kargo/search.yaml" >&2; exit 1; }
-[[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-api") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$o/kargo/search.yaml")" == '{"email":["dave@example.com"]}' ]] || { echo "capability-only promoter got promote rights" >&2; exit 1; }
+[[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-api-dev") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$o/kargo/search.yaml")" == '{"email":["dave@example.com"]}' ]] || { echo "capability-only promoter got promote rights" >&2; exit 1; }
 grep -qx '/capabilities/search/ @acme/team2' "$o/codeowners/search" || { echo "stages/targets approvers must be the apps' owners:" >&2; cat "$o/codeowners/search" >&2; exit 1; }
 rm -rf "${r:?}" "${o:?}"; echo "override-all owners ok"
 

@@ -252,9 +252,9 @@ argocdDeploys: {for _, d in _argoDeploys {
 	}
 }}
 
-// Promote RBAC: one Kargo ServiceAccount per app, mapped from the OIDC email claim to the app's
-// promoters, allowed to promote (and manually approve Freight for) every control-flow and target Stage of that app.
-// Only apps with stages: an empty resourceNames would mean *every* stage.
+// Promote RBAC (ADR 0023): one Kargo ServiceAccount per app and stage, mapped from the OIDC email claim to
+// that stage's promoters + break-glass, allowed to promote (and manually approve Freight for) the Kargo Stages
+// of that capability stage. Only stages with Kargo Stages: an empty resourceNames would mean *every* stage.
 _rbacMeta: {
 	#name:     string
 	name:      #name
@@ -262,12 +262,22 @@ _rbacMeta: {
 	labels: "app.kubernetes.io/managed-by":      "gitops-platform"
 	annotations: "rbac.kargo.akuity.io/managed": "true"
 }
-_kargoRBAC: [for an in list.SortStrings([for an, _ in apps {an}]) if len(apps[an].stages) > 0 {
-	let meta = _rbacMeta & {#name: "promote-\(an)"}
+// Capability stages each Kargo Stage (graph node) belongs to: targets and entry control-flow Stages to their
+// own stage; a shared control-flow Stage to every stage consuming it.
+_nodeStages: {for an, nodes in _graph {(an): {for n, x in nodes {
+	(n): [
+		if x.kind == "target" {[x.stage]},
+		if n == "\(an)-\(x.stage)" {[x.stage]},
+		[for _, g in _gp[an].grp if g.shared if g.name == n for m in g.mem {m}],
+	][0]
+}}}}
+_kargoRBAC: [for an in list.SortStrings([for an, _ in _promoters {an}]) for sn in list.SortStrings([for sn, _ in _promoters[an] {sn}]) let _names = list.SortStrings([for n, _ in _graph[an] if list.Contains(_nodeStages[an][n], sn) {n}]) if len(_names) > 0 {
+	let meta = _rbacMeta & {#name: "promote-\(an)-\(sn)"}
+	let _emails = (_uniqSorted & {#in: list.Concat([_promoters[an][sn], _breakGlass])}).out
 	[{
 		apiVersion: "v1"
 		kind:       "ServiceAccount"
-		metadata: meta & {annotations: "rbac.kargo.akuity.io/claims": json.Marshal({email: _canPromote[an]})}
+		metadata: meta & {annotations: "rbac.kargo.akuity.io/claims": json.Marshal({email: _emails})}
 	}, {
 		apiVersion: "rbac.authorization.k8s.io/v1"
 		kind:       "Role"
@@ -275,7 +285,7 @@ _kargoRBAC: [for an in list.SortStrings([for an, _ in apps {an}]) if len(apps[an
 		rules: [{
 			apiGroups: ["kargo.akuity.io"]
 			resources: ["stages"]
-			resourceNames: list.SortStrings(_kargoStages[an])
+			resourceNames: _names
 			verbs: ["promote"]
 		}, {
 			// the promote API creates the Promotion as the user; which stages is limited above

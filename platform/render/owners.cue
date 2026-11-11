@@ -126,9 +126,6 @@ _promoters: {for an, a in _capApps {(an): {for sn, _ in a.stages {
 }}}}
 // capability-wide
 _breakGlass: (_uniqSorted & {#in: [if _o.breakGlass != _|_ {_o.breakGlass}, []][0]}).out
-// TEMPORARY (task 2 deletes): Kargo checks `promote` for both promoting and approving, so an app's
-// promote role is every stage's promoters + break-glass
-_canPromote: {for an, ps in _promoters {(an): (_uniqSorted & {#in: list.Concat([[for _, l in ps for x in l {x}], _breakGlass])}).out}}
 
 // stages/ + targets/ approvers: union of the apps' codeOwners (capability codeOwners when there are no apps)
 _allOwners: (_uniqSorted & {#in: [
