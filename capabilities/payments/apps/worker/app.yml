@@ -8,7 +8,7 @@ stages:
       us-east4-dev-k8s: {}
   staging:
     targets:
-      us-east4-npr-k8s: {}
+      us-east4-npr-cr: {}
   prod:
     replicas: 3
     targets:

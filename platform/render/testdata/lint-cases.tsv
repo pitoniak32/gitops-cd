@@ -7,7 +7,7 @@ capabilities/payments/owners.yml	del(.promoters)	^capabilities/payments/owners\.
 capabilities/payments/owners.yml	.promoters = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*expected a map
 capabilities/payments/owners.yml	.owners = .codeOwners | del(.codeOwners)	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*renamed to codeOwners
 capabilities/payments/owners.yml	.promoters.qa = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown stage; allowed: dev, perf, prod, staging
-capabilities/payments/owners.yml	.apps.nope = {}	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown app; allowed: infra, my-app, payments, worker
+capabilities/payments/owners.yml	.apps.nope = {}	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown app; allowed: infra, my-app, payments, web, worker
 capabilities/payments/owners.yml	del(.promoters.staging)	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*app my-app uses stage staging: needs promoters\.staging
 capabilities/payments/owners.yml	.promoters.dev = []	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*needs at least one email
 capabilities/payments/owners.yml	.apps.worker.promoters.dev = ["doug@example.com", "doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*emails must not repeat
@@ -42,7 +42,7 @@ capabilities/payments/apps/infra/app.yml	.stages.dev.port = 80	^capabilities/pay
 capabilities/payments/apps/infra/app.yml	.stages.dev.targets.us-east4-dev-tf.deployWith = "argocd"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*deployWith not allowed on a terraform app
 capabilities/payments/apps/infra/app.yml	.resources.cpu = "1"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*resources not allowed on a terraform app
 capabilities/payments/apps/infra/app.yml	.stages.dev.targets = {"us-east4-dev-k8s": {}}	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*target us-east4-dev-k8s is K8S; terraform apps need TERRAFORM targets
-capabilities/payments/apps/worker/app.yml	.stages.dev.targets = {"us-east4-dev-tf": {}}	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*target us-east4-dev-tf is TERRAFORM; K8s apps need K8S targets
+capabilities/payments/apps/worker/app.yml	.stages.dev.targets = {"us-east4-dev-tf": {}}	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*target us-east4-dev-tf is TERRAFORM; K8s apps need K8S or CLOUD_RUN targets
 capabilities/payments/owners.yml	.apps.worker.viewers = ["carol@example.com", "carol@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*emails must not repeat
 capabilities/payments/owners.yml	.apps.worker.promoters = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*expected a map
 capabilities/payments/owners.yml	.apps.worker.promoters.perf = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*app worker doesn't use stage perf
@@ -60,3 +60,5 @@ capabilities/payments/targets/us-east4-npr-cr/target.yml	.config.namespace = "x"
 capabilities/payments/targets/us-east4-npr-cr/target.yml	.config.backend = {"bucket": "bkt"}	^capabilities/payments/targets/us-east4-npr-cr/target\.yml:[0-9]+:[0-9]+: .*backend not allowed on a CLOUD_RUN target
 capabilities/payments/targets/us-east4-npr-cr/target.yml	del(.config.gcpProject)	^capabilities/payments/targets/us-east4-npr-cr/target\.yml:[0-9]+:[0-9]+: config\.gcpProject: 
 capabilities/payments/targets/us-east4-npr-cr/target.yml	.config.platform = "LAMBDA"	^capabilities/payments/targets/us-east4-npr-cr/target\.yml:[0-9]+:[0-9]+: .*expected K8S, TERRAFORM or CLOUD_RUN
+capabilities/payments/apps/infra/app.yml	.stages.dev.targets = {"us-east4-npr-cr": {}}	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*target us-east4-npr-cr is CLOUD_RUN; terraform apps need TERRAFORM targets
+capabilities/payments/apps/web/app.yml	.stages.staging.targets = {"us-east4-dev-tf": {}}	^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*target us-east4-dev-tf is TERRAFORM; K8s apps need K8S or CLOUD_RUN targets

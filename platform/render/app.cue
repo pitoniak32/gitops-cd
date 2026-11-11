@@ -87,6 +87,10 @@ _defaults: {
 	deployWith: "argocd"
 	workflow: {repo: _ghRepo, file: "deploy.yaml", ref: "main"}
 	tfWorkflow: {repo: _ghRepo, file: "terraform.yaml", ref: "main"}
+	// Cloud Run (ADR 0024): scale to zero, Cloud Run's default container port
+	crReplicas: 0
+	crPort:     8080
+	crWorkflow: {repo: _ghRepo, file: "cloud-run.yaml", ref: "main"}
 }
 
 // app.yml checks on the raw files (conditions on apps itself would cycle): exactly one of
@@ -125,25 +129,33 @@ deploys: {for an, a in apps for sn, s in a.stages for tn, t in s.targets {
 		target: tn
 		tgt:    targets[tn].config
 		kind: [if a.module != _|_ {"terraform"}, "k8s"][0]
-		let _want = {k8s: "K8S", terraform: "TERRAFORM"}[kind]
-		if tgt.platform != _want {
+		let _want = {k8s: "K8S or CLOUD_RUN", terraform: "TERRAFORM"}[kind]
+		if !list.Contains({k8s: ["K8S", "CLOUD_RUN"], terraform: ["TERRAFORM"]}[kind], tgt.platform) {
 			platform: error("target \(tn) is \(tgt.platform); \({k8s: "K8s", terraform: "terraform"}[kind]) apps need \(_want) targets")
 		}
 
 		if kind == "k8s" {
 			image: a.image
+			// K8S: Service on :80 when set. CLOUD_RUN: the container port, default 8080.
 			if a.port != _|_ {port: a.port}
+			if a.port == _|_ && tgt.platform == "CLOUD_RUN" {port: _defaults.crPort}
 
-			replicas: [
+			// CLOUD_RUN: the minReplicas policy is K8S-only; replicas is minScale
+			let _replicas = [
 				if t.replicas != _|_ {t.replicas},
 				if s.replicas != _|_ {s.replicas},
 				if a.replicas != _|_ {a.replicas},
+				if tgt.platform == "CLOUD_RUN" {_defaults.crReplicas},
 				_defaults.replicas,
-			][0] & [
-				// no policy when the type is missing (reported on the target)
-				if tgt.environmentType == _|_ {_},
-				(>=policy[tgt.environmentType].minReplicas | error("\(tgt.environmentType) requires replicas >= \(policy[tgt.environmentType].minReplicas)")),
 			][0]
+			if tgt.platform == "CLOUD_RUN" {replicas: _replicas}
+			if tgt.platform != "CLOUD_RUN" {
+				replicas: _replicas & [
+					// no policy when the type is missing (reported on the target)
+					if tgt.environmentType == _|_ {_},
+					(>=policy[tgt.environmentType].minReplicas | error("\(tgt.environmentType) requires replicas >= \(policy[tgt.environmentType].minReplicas)")),
+				][0]
+			}
 
 			cpu: [
 				if t.resources.cpu != _|_ {t.resources.cpu},
@@ -158,7 +170,9 @@ deploys: {for an, a in apps for sn, s in a.stages for tn, t in s.targets {
 				_defaults.memory,
 			][0]
 
+			// CLOUD_RUN is always gha (a layer's deployWith is ignored)
 			deployWith: [
+				if tgt.platform == "CLOUD_RUN" {"gha"},
 				if t.deployWith != _|_ {t.deployWith},
 				if s.deployWith != _|_ {s.deployWith},
 				if a.deployWith != _|_ {a.deployWith},
@@ -180,7 +194,7 @@ deploys: {for an, a in apps for sn, s in a.stages for tn, t in s.targets {
 				}
 			}
 		}
-		let _wfDefaults = [if kind == "terraform" {_defaults.tfWorkflow}, _defaults.workflow][0]
+		let _wfDefaults = [if kind == "terraform" {_defaults.tfWorkflow}, if tgt.platform == "CLOUD_RUN" {_defaults.crWorkflow}, _defaults.workflow][0]
 		workflow: {for f, dv in _wfDefaults {
 			(f): [
 				if t.workflow[f] != _|_ {t.workflow[f]},

@@ -19,6 +19,7 @@ files: {
 		}
 	}
 	for p, f in terraformFiles {(p): yaml.Marshal(f)}
+	for p, f in cloudRunFiles {(p): yaml.Marshal(f)}
 	"kargo/\(_cap).yaml": yaml.MarshalStream(kargo)
 	for r, p in argocdProjects {
 		"argocd/projects/\(r)/\(_cap).yaml": yaml.Marshal(p)

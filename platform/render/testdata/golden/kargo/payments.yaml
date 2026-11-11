@@ -42,6 +42,9 @@ spec:
         name: payments-us-east4-dev-k8s
       autoPromotionEnabled: true
     - stageSelector:
+        name: web-us-east4-dev-k8s
+      autoPromotionEnabled: true
+    - stageSelector:
         name: worker-us-east4-dev-k8s
       autoPromotionEnabled: true
 ---
@@ -98,6 +101,24 @@ spec:
           - regexp:^rendered/apps/payments/payments/
     - image:
         repoURL: ghcr.io/pitoniak32/nginx
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 10
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: web
+  namespace: kargo-payments
+spec:
+  freightCreationPolicy: Manual
+  subscriptions:
+    - git:
+        repoURL: https://github.com/pitoniak32/gitops-cd
+        branch: rendered
+        includePaths:
+          - regexp:^rendered/apps/payments/web/
+    - image:
+        repoURL: ghcr.io/example/web
         imageSelectionStrategy: SemVer
         discoveryLimit: 10
 ---
@@ -1236,6 +1257,194 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
+  name: web-us-east4-dev-k8s
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: web
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: us-east4-dev-k8s
+    example.com/deploy-with: argocd
+    example.com/platform: k8s
+  annotations:
+    example.com/break-glass: '["carol@example.com"]'
+    kargo.akuity.io/color: blue
+spec:
+  shard: us-east4
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: web
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/web/dev/us-east4-dev-k8s/
+        - name: branch
+          value: env/payments/web/us-east4-dev-k8s
+        - name: image
+          value: ghcr.io/example/web
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: yaml-update
+          config:
+            path: ./out/deployment.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/web to dev/us-east4-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: argocd-update
+          config:
+            apps:
+              - name: payments-web-us-east4-dev-k8s
+                namespace: argocd
+                sources:
+                  - repoURL: ${{ vars.repo }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: web-us-east4-npr-cr
+  namespace: kargo-payments
+  labels:
+    example.com/capability: payments
+    example.com/app: web
+    example.com/kind: target
+    example.com/stage: staging
+    example.com/target: us-east4-npr-cr
+    example.com/deploy-with: gha
+    example.com/platform: cloudrun
+  annotations:
+    example.com/break-glass: '["carol@example.com"]'
+    kargo.akuity.io/color: green
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: web
+      sources:
+        stages:
+          - web-us-east4-dev-k8s
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/web/staging/us-east4-npr-cr/
+        - name: branch
+          value: env/payments/web/us-east4-npr-cr
+        - name: image
+          value: ghcr.io/example/web
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: cloud-run.yaml
+        - name: workflowRef
+          value: main
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repo }}
+            checkout:
+              - commit: ${{ commitFrom(vars.repo).ID }}
+                path: ./src
+              - branch: ${{ vars.branch }}
+                create: true
+                path: ./out
+        - uses: git-clear
+          config:
+            path: ./out
+        - uses: copy
+          config:
+            inPath: ${{ vars.src }}
+            outPath: ./out/
+        - uses: yaml-update
+          config:
+            path: ./out/service.yaml
+            updates:
+              - key: spec.template.spec.containers.0.image
+                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: promote payments/web to staging/us-east4-npr-cr from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+        - uses: git-push
+          config:
+            path: ./out
+        - uses: http
+          as: dispatch
+          config:
+            method: POST
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+              - name: Content-Type
+                value: application/json
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''web'', ''stage'': ''staging'', ''target'': ''us-east4-npr-cr'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            successExpression: response.status == 200
+            failureExpression: response.status != 200
+            errorExpression: response.body.message
+            outputs:
+              - name: runID
+                fromExpression: response.body.workflow_run_id
+              - name: runURL
+                fromExpression: response.body.html_url
+        - uses: http
+          as: wait
+          retry:
+            timeout: 30m
+          config:
+            method: GET
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
+            failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')
+            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
   name: worker-us-east4-dev-k8s
   namespace: kargo-payments
   labels:
@@ -2071,6 +2280,132 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: promote-payments-staging
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-web-dev
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["carol@example.com","doug@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-web-dev
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - web-us-east4-dev-k8s
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-web-dev
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-web-dev
+subjects:
+  - kind: ServiceAccount
+    name: promote-web-dev
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-web-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["carol@example.com","doug@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-web-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - web-us-east4-npr-cr
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-web-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-web-staging
+subjects:
+  - kind: ServiceAccount
+    name: promote-web-staging
     namespace: kargo-payments
 ---
 apiVersion: v1
