@@ -1,14 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
   "description": "stages/<name>.yml",
   "properties": {
     "autoPromote": {
-      "type": "boolean",
-      "description": "promote automatically once upstream stages are verified"
+      "description": "promote automatically once upstream stages are verified",
+      "type": "boolean"
     },
     "color": {
-      "description": "Kargo UI color for all of this stage's Kargo Stages (control flow + targets); default picked per stage",
       "anyOf": [
         {
           "anyOf": [
@@ -77,13 +75,14 @@
             }
           ]
         }
-      ]
+      ],
+      "description": "Kargo UI color for all of this stage's Kargo Stages (control flow + targets); default picked per stage"
     },
     "dependsOn": {
-      "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "type": "array"
     }
   },
   "propertyNames": {
@@ -93,5 +92,6 @@
       "dependsOn"
     ],
     "errorMessage": "Unknown key. Allowed: autoPromote, color, dependsOn"
-  }
+  },
+  "type": "object"
 }

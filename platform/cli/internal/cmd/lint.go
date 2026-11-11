@@ -25,12 +25,13 @@ func init() {
 			} else if root, err = filepath.Abs(root); err != nil {
 				return err
 			}
+			// print what was located before any error that couldn't be (it must not hide them)
 			diags, err := lint.All(root, args)
-			if err != nil {
-				return err
-			}
 			for _, d := range diags {
 				fmt.Fprintln(cmd.OutOrStdout(), d)
+			}
+			if err != nil {
+				return err
 			}
 			if len(diags) > 0 {
 				cmd.SilenceErrors = true // the diagnostics are the output; exit 1 only

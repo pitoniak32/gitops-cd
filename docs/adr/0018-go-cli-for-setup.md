@@ -9,7 +9,7 @@ Now it is one Go CLI, `gcd` (`platform/cli`, own module, Go pinned in `.mise.tom
 - **Libraries over CLIs.** kind (`sigs.k8s.io/kind/pkg/cluster`), Helm v4 SDK, client-go (typed core, dynamic client for Argo CD and Kargo CRDs as unstructured; no argo-cd or kargo module imports). Typed errors, `context` cancellation, `errgroup` for parallel hub/region work (first error cancels the rest); output lines prefixed `[hub]`, `[region-<r>]`.
 - **Still subprocesses** where a tool is the interface: `docker` (v4-only network, hub IP), `mkcert`, `fnox` (secrets), `cue` (region list), `gh` (env branch heads), `open`.
 - **Pure functions for logic.** `kargo.FreightFromBranch`, `kargo.KickCertPods` filter, Corefile rewrite, `argocd.RegionValues` (`{{.values.region}}` substitution) are unit-tested without a cluster; `argocd.WaitApp` is tested against the dynamic fake. `go vet` + `go test` run in `mise run test` and CI.
-- **Stays outside Go:** the renderer (CUE, `platform/render/scripts/`), `platform/appsets/check.sh`, CI glue. Teams still never write code.
+- **Stays outside Go:** the renderer (CUE, `platform/render/scripts/`), `platform/appsets/check.sh`, CI glue. Teams still never write code. Superseded in part by ADR 0026 (renderer, lint, schemas, CI checks now in gcd).
 
 ## Considered Options
 
