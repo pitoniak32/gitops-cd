@@ -2,9 +2,10 @@
 # Golden test: render testdata/root (capabilities payments, search) and diff against testdata/golden. UPDATE=1 to regenerate.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+GCD="$(cd ../.. && pwd)/.bin/gcd"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-for cap in payments search; do scripts/render.sh testdata/root "$cap" "$tmp" >/dev/null; done
-scripts/regions.sh "$tmp" >/dev/null  # platform-level outputs from clusters.cue
+for cap in payments search; do "$GCD" render "$tmp" --root testdata/root --capability "$cap" >/dev/null; done
+"$GCD" render "$tmp" --root testdata/root --regions >/dev/null  # platform-level outputs from clusters.cue
 if [[ "${UPDATE:-}" == 1 ]]; then rm -rf testdata/golden; cp -R "$tmp" testdata/golden; echo updated; exit; fi
 diff -ru testdata/golden "$tmp"; echo "golden ok"
 # regions registry (clusters.cue): one JSON per region for hub-side AppSets; projects dir exists per region
@@ -161,7 +162,7 @@ cr="$tmp/apps/payments/web/staging/us-east4-npr-cr"
 # below 1 vCPU Cloud Run needs containerConcurrency 1
 c="$(mktemp -d)"; cp -R testdata/root/. "$c/"
 yq -i '.stages.staging.targets.us-east4-npr-cr.resources.cpu = "500m"' "$c/capabilities/payments/apps/web/app.yml"
-o="$(mktemp -d)"; scripts/render.sh "$c" payments "$o" >/dev/null
+o="$(mktemp -d)"; "$GCD" render "$o" --root "$c" --capability payments >/dev/null
 [[ "$(yq '.spec.template.spec.containerConcurrency + " " + .spec.template.spec.containers[0].resources.limits.cpu' "$o/apps/payments/web/staging/us-east4-npr-cr/service.yaml")" == "1 500m" ]] || { echo "cpu 500m must set containerConcurrency 1" >&2; exit 1; }
 rm -rf "$c" "$o"
 [[ "$(st web-us-east4-npr-cr '(.spec.shard // "-") + " " + .metadata.labels."example.com/platform" + " " + .metadata.labels."example.com/deploy-with"')" == "- cloudrun gha" ]] || { echo "web-us-east4-npr-cr: no shard, cloudrun, gha" >&2; exit 1; }
@@ -184,19 +185,19 @@ echo "target schema ok"
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
 yq -i '.workflow.ref = "release" | .stages.dev.deployWith = "gha" | .stages.dev.targets.dc1-dev-k8s = {"deployWith": "argocd", "workflow": {"file": "x.yml"}} | .stages.dev.targets.us-east4-dev-k8s.workflow.repo = "acme/deploys"' "$c"
 scripts/lint.sh "$r" payments >/dev/null || { echo "app-level workflow with argocd targets must lint clean" >&2; exit 1; }
-scripts/render.sh "$r" payments "$o" >/dev/null
+"$GCD" render "$o" --root "$r" --capability payments >/dev/null
 pt() { jq -r ".\"my-app\".stages.$1.targets.\"$2\".deployWith" "$o/pipelines/payments.json"; }
 [[ "$(pt dev us-east4-dev-k8s) $(pt dev dc1-dev-k8s) $(pt prod us-east4-prd-k8s)" == "gha argocd argocd" ]] || { echo "deployWith resolution: $(pt dev us-east4-dev-k8s) $(pt dev dc1-dev-k8s) $(pt prod us-east4-prd-k8s)" >&2; exit 1; }
 rm -rf "${r:?}" "${o:?}"; echo "deployWith resolution ok"
 
 # CODEOWNERS: assemble from the fragments into a copy of root
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
-scripts/codeowners.sh "$r" "$tmp"
+"$GCD" codeowners --root "$r" --out "$tmp"
 diff -u testdata/golden-codeowners "$r/.github/CODEOWNERS"; echo "codeowners ok"
 # a deleted capability drops out on the next full render
 rm -rf "${r:?}/capabilities/search"; out2="$(mktemp -d)"
-scripts/render.sh "$r" payments "$out2" >/dev/null
-scripts/codeowners.sh "$r" "$out2"
+"$GCD" render "$out2" --root "$r" --capability payments >/dev/null
+"$GCD" codeowners --root "$r" --out "$out2"
 if grep -q search "$r/.github/CODEOWNERS"; then echo "deleted capability still in CODEOWNERS" >&2; exit 1; fi
 rm -rf "${r:?}" "${out2:?}"; echo "codeowners prune ok"
 scripts/lint.sh testdata/root payments; echo "lint ok"
@@ -237,7 +238,7 @@ nospur $tg/us-east4-dev-tf/target.yml '.config.namespace = "payments"' 'namespac
 # views; stages/targets approvers (CODEOWNERS) are the apps' owners.
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 printf 'codeOwners: [team1]\npromoters: {dev: [carol@example.com]}\napps: {api: {codeOwners: [team2], promoters: {dev: [dave@example.com]}}}\n' >"$r/capabilities/search/owners.yml"
-scripts/render.sh "$r" search "$o" >/dev/null
+"$GCD" render "$o" --root "$r" --capability search >/dev/null
 [[ -f "$o/kargo/search.yaml" ]] || { echo "missing $o/kargo/search.yaml" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-api-dev") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$o/kargo/search.yaml")" == '{"email":["dave@example.com"]}' ]] || { echo "capability-only promoter got promote rights" >&2; exit 1; }
 grep -qx '/capabilities/search/ @acme/team2' "$o/codeowners/search" || { echo "stages/targets approvers must be the apps' owners:" >&2; cat "$o/codeowners/search" >&2; exit 1; }
@@ -246,7 +247,7 @@ rm -rf "${r:?}" "${o:?}"; echo "override-all owners ok"
 # App viewers (apps.<a>.viewers) are included in the viewers SA claims
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 yq -i '.apps.worker.viewers = ["erin@example.com"]' "$r/capabilities/payments/owners.yml"
-scripts/render.sh "$r" payments "$o" >/dev/null
+"$GCD" render "$o" --root "$r" --capability payments >/dev/null
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "viewers") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$o/kargo/payments.yaml")" == *erin@example.com* ]] || { echo "app viewer missing from viewers SA" >&2; exit 1; }
 rm -rf "${r:?}" "${o:?}"; echo "app viewers ok"
 
@@ -302,7 +303,7 @@ echo "envFrom precedence ok"
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments"
 printf 'LD_RELAY_URL: https://other\nLD_SDK_KEY: secret:acme-dev-us/launchdarkly-sdk-key\n' >"$c/targets/us-east4-dev-k8s/environment-variables/flags.yml"
 yq -i '.stages.dev.targets.us-east4-dev-k8s.envFrom = ["flags"]' "$c/apps/my-app/app.yml"
-scripts/render.sh "$r" payments "$o" >/dev/null
+"$GCD" render "$o" --root "$r" --capability payments >/dev/null
 v="$(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "LD_RELAY_URL") | .value' "$o/apps/payments/my-app/dev/us-east4-dev-k8s/deployment.yaml")"
 [[ $v == https://other ]] || { echo "target-level envFrom must win: LD_RELAY_URL=$v" >&2; exit 1; }
 yq -i '.stages.dev.targets.us-east4-dev-k8s.envFrom = ["flags", "launchdarkly"]' "$c/apps/my-app/app.yml"
@@ -313,23 +314,17 @@ echo "envFrom clash ok"
 
 # capability names that prefix each other (pay vs payments): re-rendering one must not wipe the other's deploys
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; cp -R "$r/capabilities/payments" "$r/capabilities/pay"
-scripts/render.sh "$r" payments "$o" >/dev/null; scripts/render.sh "$r" pay "$o" >/dev/null; scripts/render.sh "$r" pay "$o" >/dev/null
+"$GCD" render "$o" --root "$r" --capability payments >/dev/null; "$GCD" render "$o" --root "$r" --capability pay >/dev/null; "$GCD" render "$o" --root "$r" --capability pay >/dev/null
 [[ -f "$o/argocd/deploys/us-east4/payments/my-app-us-east4-dev-k8s.json" && -f "$o/argocd/deploys/us-east4/pay/my-app-us-east4-dev-k8s.json" ]] || { echo "re-render of pay wiped payments deploys" >&2; exit 1; }
 rm -rf "${r:?}" "${o:?}"; echo "prefix caps ok"
 
-# workload Application names are global per region Argo CD: a duplicate breaks the whole workloads AppSet
-o="$(mktemp -d)"; scripts/render.sh testdata/root payments "$o" >/dev/null
-scripts/unique-apps.sh "$o" >/dev/null || { echo "unique-apps rejected a clean render" >&2; exit 1; }
-mkdir -p "$o/argocd/deploys/us-east4/payments-my"; cp "$o/argocd/deploys/us-east4/payments/my-app-us-east4-dev-k8s.json" "$o/argocd/deploys/us-east4/payments-my/app-us-east4-dev-k8s.json"
-got="$(scripts/unique-apps.sh "$o" 2>&1 || true)"; rm -rf "${o:?}"
-grep -q 'duplicate workload Application name payments-my-app-us-east4-dev-k8s' <<<"$got" || { printf 'duplicate appName not rejected:\n%s\n' "$got" >&2; exit 1; }
-echo "unique app names ok"
+# workload Application names are unique per region: covered by Go TestUniqueApps (platform/cli/internal/render)
 
 # Kargo graph rules on synthetic variants (ADR 0019): skipped stage, 1->N, shared upstream target, multi-upstream naming
 synth() { # <cap> <setup cmds...>: copy testdata/root to $r, run setup in it, render <cap> into $o
   r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
   (cd "$r/capabilities" && eval "$2")
-  scripts/render.sh "$r" "$1" "$o" >/dev/null; kk="$o/kargo/$1.yaml"
+  "$GCD" render "$o" --root "$r" --capability "$1" >/dev/null; kk="$o/kargo/$1.yaml"
 }
 # a) app skips perf: dev fans into staging alone (fan-in node named for staging), staging fans into prod
 synth payments 'yq -i "del(.stages.perf)" payments/apps/my-app/app.yml'
