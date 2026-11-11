@@ -182,13 +182,19 @@ done < testdata/lint-cases.tsv
 # Every app overrides promoters: the capability-level promoter gets no promote role but still
 # views; stages/targets approvers (CODEOWNERS) are the apps' owners.
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
-printf 'owners: [team1]\npromoters: [carol@example.com]\n' >"$r/capabilities/search/owners.yml"
-printf 'owners: [team2]\npromoters: [dave@example.com]\n' >"$r/capabilities/search/apps/api/owners.yml"
+printf 'codeOwners: [team1]\npromoters: {dev: [carol@example.com]}\napps: {api: {codeOwners: [team2], promoters: {dev: [dave@example.com]}}}\n' >"$r/capabilities/search/owners.yml"
 scripts/render.sh "$r" search "$o" >/dev/null
 [[ -f "$o/kargo/search.yaml" ]] || { echo "missing $o/kargo/search.yaml" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "ServiceAccount" and .metadata.name == "promote-api") | .metadata.annotations."rbac.kargo.akuity.io/claims"' "$o/kargo/search.yaml")" == '{"email":["dave@example.com"]}' ]] || { echo "capability-only promoter got promote rights" >&2; exit 1; }
 grep -qx '/capabilities/search/ @acme/team2' "$o/codeowners/search" || { echo "stages/targets approvers must be the apps' owners:" >&2; cat "$o/codeowners/search" >&2; exit 1; }
 rm -rf "${r:?}" "${o:?}"; echo "override-all owners ok"
+
+# Leftover apps/<a>/owners.yml (pre-ADR 0023 layout) fails loudly
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
+printf 'owners: [team1]\n' >"$r/capabilities/payments/apps/worker/owners.yml"
+got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+grep -qE 'apps/worker/owners\.yml:[0-9]+:[0-9]+: .*move into capabilities/payments/owners\.yml apps\.worker' <<<"$got" || { printf 'legacy app owners.yml not rejected:\n%s\n' "$got" >&2; exit 1; }
+echo "legacy app owners ok"
 # no Role may ever render an empty resourceNames
 ls testdata/golden/kargo/*.yaml >/dev/null || exit 1
 if yq -e 'select(.kind == "Role") | .rules[] | select(has("resourceNames") and (.resourceNames | length) == 0)' testdata/golden/kargo/*.yaml >/dev/null 2>&1; then echo "empty resourceNames in golden" >&2; exit 1; fi
@@ -272,6 +278,7 @@ oneclick "$kk"
 rm -rf "${r:?}" "${o:?}"
 # b) 1->N: single dev target feeds both prod targets directly
 synth search 'printf "dependsOn: [dev]\n" > search/stages/prod.yml
+  yq -i ".promoters.prod = [\"alice@example.com\"]" search/owners.yml
   for t in us-prod onprem-prod; do cp -R payments/targets/$t search/targets/$t; yq -i ".config.namespace = \"search-$t\"" search/targets/$t/target.yml; yq -i ".stages.prod.targets.\"$t\" = {}" search/apps/api/app.yml; done'
 [[ "$(stages_of api "$kk")" == "api-onprem-prod api-us-dev api-us-prod" ]] || { echo "b) 1->N needs no control flow: $(stages_of api "$kk")" >&2; exit 1; }
 want api-us-prod "false::api-us-dev" "$kk"; want api-onprem-prod "false::api-us-dev" "$kk"
@@ -285,6 +292,7 @@ oneclick "$kk"
 rm -rf "${r:?}" "${o:?}"
 # d) qa and prod both depend on staging+perf: one shared node named after both upstream stages
 synth payments 'printf "dependsOn: [staging, perf]\n" > payments/stages/qa.yml
+  yq -i ".promoters.qa = [\"doug@example.com\"]" payments/owners.yml
   for t in us onprem; do cp -R payments/targets/$t-stg payments/targets/$t-qa; yq -i ".config.namespace = \"payments-$t-qa\"" payments/targets/$t-qa/target.yml; yq -i ".stages.qa.targets.\"$t-qa\" = {}" payments/apps/my-app/app.yml; done'
 want my-app-perf-staging-done "false:All:my-app-onprem-stg,my-app-us-perf,my-app-us-stg" "$kk"
 want my-app-prod "false::my-app-perf-staging-done" "$kk"; want my-app-qa "false::my-app-perf-staging-done" "$kk"
@@ -295,6 +303,7 @@ oneclick "$k"
 # f) a single upstream target that also feeds an M->1 join: the multi-target stage it feeds still needs an entry
 synth payments 'yq -i "del(.stages.staging.targets.onprem-stg) | del(.stages.prod.targets.onprem-prod)" payments/apps/my-app/app.yml
   printf "dependsOn: [staging]\n" > payments/stages/qa.yml
+  yq -i ".promoters.qa = [\"doug@example.com\"]" payments/owners.yml
   for t in us onprem; do cp -R payments/targets/$t-stg payments/targets/$t-qa; yq -i ".config.namespace = \"payments-$t-qa\"" payments/targets/$t-qa/target.yml; yq -i ".stages.qa.targets.\"$t-qa\" = {}" payments/apps/my-app/app.yml; done'
 want my-app-qa "false::my-app-us-stg" "$kk"; want my-app-us-qa "false::my-app-qa" "$kk"
 want my-app-us-prod "false:All:my-app-us-perf,my-app-us-stg" "$kk"

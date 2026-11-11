@@ -23,7 +23,7 @@ _nameRe: "^[a-z][a-z0-9-]{0,39}$"
 
 // YAML is routed here by render.sh as in."<path relative to repo root>":
 //   capabilities/<cap>/stages/dev.yml, .../targets/<t>/target.yml,
-//   .../targets/<t>/environment-variables/<name>.yml, .../apps/<app>/{app,owners}.yml,
+//   .../targets/<t>/environment-variables/<name>.yml, .../apps/<app>/app.yml,
 //   capabilities/<cap>/owners.yml, teams/<team>.yml
 in: [string]: _
 let C = "capabilities/\(capability)/"
@@ -31,7 +31,6 @@ _route: {
 	stages:    "^\(C)stages/([^/]+)\\.ya?ml$"
 	targets:   "^\(C)targets/([^/]+)/target\\.ya?ml$"
 	apps:      "^\(C)apps/([^/]+)/app\\.ya?ml$"
-	appOwners: "^\(C)apps/([^/]+)/owners\\.ya?ml$"
 	teams:     "^teams/([^/]+)\\.ya?ml$"
 }
 for f, re in _route {(f): {for k, v in in if k =~ re {(regexp.FindSubmatch(re, k)[1]): v}}}
@@ -51,6 +50,12 @@ for k, _ in in if k =~ _targetEnvRe let tn = regexp.FindSubmatch(_targetEnvRe, k
 _legacyTargetRe: "^\(C)targets/([^/]+)\\.ya?ml$"
 for k, _ in in if k =~ _legacyTargetRe let tn = regexp.FindSubmatch(_legacyTargetRe, k)[1] {
 	legacyTargets: (tn): error("move to targets/\(tn)/target.yml")
+}
+
+// pre-ADR 0023 apps/<app>/owners.yml: inputs.sh still passes them so they fail loudly
+_legacyAppOwnersRe: "^\(C)apps/([^/]+)/owners\\.ya?ml$"
+for k, _ in in if k =~ _legacyAppOwnersRe let an = regexp.FindSubmatch(_legacyAppOwnersRe, k)[1] {
+	legacyAppOwners: (an): error("move into capabilities/\(capability)/owners.yml apps.\(an)")
 }
 
 _capOwnerFiles: [for k, v in in if k =~ "^\(C)owners\\.ya?ml$" {v}] // 0 or 1 element
@@ -84,6 +89,7 @@ apps: [_]: {
 }
 
 _stageNames: [for k, _ in stages {k}]
+_appNames: [for k, _ in apps {k}]
 _targetNames: [for k, _ in targets {k}]
 
 // "not one of these names", for custom unknown-key errors
@@ -93,9 +99,12 @@ _stageList: strings.Join(_stageNames, ", ")
 _teamNames: [for k, _ in teams {k}]
 _teamList:   strings.Join(_teamNames, ", ")
 _targetList: strings.Join(_targetNames, ", ")
+_appList:    strings.Join(_appNames, ", ")
+_notApp: and([for n in _appNames {!=n}])
 
 // unshadowable aliases for use inside structs that have fields of the same name
 _cap:        capability
 _repoURL:    repoURL
 _capStages:  stages
+_capApps:    apps
 _capTargets: targets

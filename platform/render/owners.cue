@@ -1,9 +1,6 @@
 package render
 
-import (
-	"list"
-	"regexp"
-)
+import "list"
 
 // teams/<team>.yml: a GitHub team, used only for CODEOWNERS (code review).
 // UI access is by email (owners.yml), never by IdP groups (ADR 0011).
@@ -16,22 +13,59 @@ teams: [#Name]: #Team
 _emailDomain: "example.com"
 #Email:       =~"^[a-z0-9._%+-]+@example\\.com$" | error("expected a lowercase @\(_emailDomain) email")
 
-// capabilities/<cap>/owners.yml (required: owners + promoters) and apps/<app>/owners.yml
-// (optional; each field it sets replaces the capability's).
+// capabilities/<cap>/owners.yml (required: codeOwners + promoters). One file per capability; apps
+// override codeOwners / promoters stages under `apps:` (ADR 0023).
+#TeamRef: [if generic {#Name}, or(_teamNames) | error("unknown team; allowed: \(_teamList)")][0]
+
+// stage -> emails that may promote into it. Unknown stage names get a custom error.
+#Promoters: {
+	if generic {[#Name]: [...#Email]}
+	if !generic {
+		for n in _stageNames {(n)?: [...#Email]}
+		[_notStage]: error("unknown stage; allowed: \(_stageList)")
+	}
+	if generic {
+		// editor schema: minItems/uniqueItems
+		[#Name]: [_, ...] & list.UniqueItems()
+	}
+}
+
+// per-app overrides: each field set replaces the capability's (promoters: per stage)
+#AppOwners: {
+	codeOwners?: [...#TeamRef]
+	promoters?:  #Promoters
+	if !generic {
+		breakGlass?: error("breakGlass is capability-wide; set it at the top level")
+	}
+	if generic {
+		codeOwners?: [_, ...] & list.UniqueItems()
+	}
+}
+
 #Owners: {
 	// GitHub teams (teams/): approve the app's code changes (CODEOWNERS)
-	owners?: [...[if generic {#Name}, or(_teamNames) | error("unknown team; allowed: \(_teamList)")][0]]
-	// emails: promote the app to any stage (and approve Freight); can also view
-	promoters?: [...#Email]
+	codeOwners?: [...#TeamRef]
+	// stage -> emails: promote the app into that stage (and approve its Freight); can also view
+	promoters?: #Promoters
 	// emails: read-only view of the capability in Kargo and Argo CD
 	viewers?: [...#Email]
 	// emails: break-glass. Can approve Freight that skipped upstream verification (Kargo's "Manual
 	// approval required" popup), then promote it. Reserved for critical promotions (ADR 0013).
 	breakGlass?: [...#Email]
+	// per-app overrides of codeOwners / promoters
+	apps?: {
+		if generic {[#Name]: #AppOwners}
+		if !generic {
+			for n in _appNames {(n)?: #AppOwners}
+			[_notApp]: error("unknown app; allowed: \(_appList)")
+		}
+	}
+	if !generic {
+		owners?: error("renamed to codeOwners")
+	}
 	if generic {
 		// editor schema: minItems/uniqueItems
-		owners?: [_, ...] & list.UniqueItems()
-		promoters?: [_, ...] & list.UniqueItems()
+		codeOwners?: [_, ...] & list.UniqueItems()
 		viewers?:    list.UniqueItems()
 		breakGlass?: list.UniqueItems()
 	}
@@ -40,47 +74,72 @@ _emailDomain: "example.com"
 // Custom messages, computed from the raw YAML: conditions on the checked field itself would cycle,
 // and a disjunction on the whole list would hide element errors like "unknown team". Written inline
 // (not via a helper struct) so the error lands on the owners.yml field and lint can locate it.
-_ownerWhat: {owners: "team", promoters: "email", viewers: "email", breakGlass: "email"}
+_ownerWhat: {codeOwners: "team", viewers: "email", breakGlass: "email"}
 _ownerOptional: {viewers: _, breakGlass: _} // may be absent or empty
 capOwners: [...#Owners]
-for o in _capOwnerFiles {capOwners: [{for fld, w in _ownerWhat {
-	if o[fld] == _|_ if _ownerOptional[fld] == _|_ {(fld): error("capability owners.yml needs \(fld): [\(w), ..]")}
-	if o[fld] != _|_ {
+for o in _capOwnerFiles {capOwners: [{
+	if o.codeOwners == _|_ {codeOwners: error("capability owners.yml needs codeOwners: [team, ..]")}
+	if o.promoters == _|_ {promoters: error("capability owners.yml needs promoters: {<stage>: [email, ..]}")}
+	for fld, w in _ownerWhat if o[fld] != _|_ {
 		if _ownerOptional[fld] == _|_ if len(o[fld]) == 0 {(fld): error("needs at least one \(w)")}
 		if len({for x in o[fld] {"\(x)": _}}) != len(o[fld]) {(fld): error("\(w)s must not repeat")}
 	}
-}}]}
+	if o.promoters != _|_ {
+		if (o.promoters & [...]) != _|_ {promoters: error("expected a map: <stage>: [email, ..]")}
+		if (o.promoters & [...]) == _|_ {
+			promoters: {for sn, l in o.promoters {
+				if len(l) == 0 {(sn): error("needs at least one email")}
+				if len({for x in l {"\(x)": _}}) != len(l) {(sn): error("emails must not repeat")}
+			}}
+			// every stage an app uses needs a promoter, after the per-app merge
+			for an, a in _capApps for sn, _ in a.stages if o.promoters[sn] == _|_ if o.apps[an].promoters[sn] == _|_ {
+				promoters: error("app \(an) uses stage \(sn): needs promoters.\(sn) (or apps.\(an).promoters.\(sn))")
+			}
+		}
+	}
+	if o.apps != _|_ {
+		apps: {for an, ao in o.apps {(an): {
+			if ao.codeOwners != _|_ {
+				if len(ao.codeOwners) == 0 {codeOwners: error("needs at least one team")}
+				if len({for x in ao.codeOwners {"\(x)": _}}) != len(ao.codeOwners) {codeOwners: error("teams must not repeat")}
+			}
+			if ao.promoters != _|_ {promoters: {for sn, l in ao.promoters {
+				if len(l) == 0 {(sn): error("needs at least one email")}
+				if len({for x in l {"\(x)": _}}) != len(l) {(sn): error("emails must not repeat")}
+			}}}
+		}}}
+	}
+}]}
 if !generic if len(_capOwnerFiles) == 0 {capOwners: error("capability needs owners.yml")}
-appOwners: [#Name]: #Owners
-for an, o in {for k, v in in if k =~ _route.appOwners {(regexp.FindSubmatch(_route.appOwners, k)[1]): v}} {
-	appOwners: (an): {for fld, w in _ownerWhat if o[fld] != _|_ {
-		if _ownerOptional[fld] == _|_ if len(o[fld]) == 0 {(fld): error("needs at least one \(w)")}
-		if len({for x in o[fld] {"\(x)": _}}) != len(o[fld]) {(fld): error("\(w)s must not repeat")}
-	}}
-}
 
-_capField: {for f, _ in _ownerWhat {
-	(f): [for o in capOwners if o[f] != _|_ for x in o[f] {x}]
-}}
 _uniqSorted: {#in: [...string], out: list.SortStrings([for x, _ in {for x in #in {(x): _}} {x}])}
 
-// effective owners/promoters/viewers per app, sorted: the app's field if set, else the capability's
-_effective: {for an, _ in apps {(an): {for f, capList in _capField {
-	(f): (_uniqSorted & {#in: [if appOwners[an][f] != _|_ {appOwners[an][f]}, capList][0]}).out
-}}}}
-owners: {for an, e in _effective {(an): e.owners}}
-_promoters: {for an, e in _effective {(an): e.promoters}}
-_breakGlass: {for an, e in _effective {(an): e.breakGlass}}
-// Kargo checks `promote` for both promoting and approving: break-glass users promote too
-_canPromote: {for an, e in _effective {(an): (_uniqSorted & {#in: list.Concat([e.promoters, e.breakGlass])}).out}}
+// the capability's owners.yml (empty struct when missing; capOwners reports that)
+_o: {for o in capOwners {o}}
 
-// stages/ + targets/ approvers: union of the apps' owners (capability owners when there are no apps)
+// Per app, sorted: the app's field if set, else the capability's.
+codeOwners: {for an, _ in _capApps {(an): (_uniqSorted & {#in: [if _o.apps[an].codeOwners != _|_ {_o.apps[an].codeOwners}, _o.codeOwners][0]}).out}}
+// per app, per stage the app uses (a stage in apps/<a>/app.yml `stages`)
+_promoters: {for an, a in _capApps {(an): {for sn, _ in a.stages {
+	if _o.apps[an].promoters[sn] != _|_ {(sn): (_uniqSorted & {#in: _o.apps[an].promoters[sn]}).out}
+	if _o.apps[an].promoters[sn] == _|_ if _o.promoters[sn] != _|_ {(sn): (_uniqSorted & {#in: _o.promoters[sn]}).out}
+}}}}
+// capability-wide
+_breakGlass: (_uniqSorted & {#in: [if _o.breakGlass != _|_ {_o.breakGlass}, []][0]}).out
+// TEMPORARY (task 2 deletes): Kargo checks `promote` for both promoting and approving, so an app's
+// promote role is every stage's promoters + break-glass
+_canPromote: {for an, ps in _promoters {(an): (_uniqSorted & {#in: list.Concat([[for _, l in ps for x in l {x}], _breakGlass])}).out}}
+
+// stages/ + targets/ approvers: union of the apps' codeOwners (capability codeOwners when there are no apps)
 _allOwners: (_uniqSorted & {#in: [
-	for _, o in owners for t in o {t},
-	if len(owners) == 0 for t in _capField.owners {t},
+	for _, c in codeOwners for t in c {t},
+	if len(codeOwners) == 0 if _o.codeOwners != _|_ for t in _o.codeOwners {t},
 ]}).out
-// everyone who can see the capability in Kargo / Argo CD: all promoters, viewers and break-glass
+// everyone who can see the capability in Kargo / Argo CD: all promoters (every stage, app
+// overrides too), viewers and break-glass
 _allEmails: (_uniqSorted & {#in: [
-	for _, e in _effective for x in list.Concat([e.promoters, e.viewers, e.breakGlass]) {x},
-	if len(_effective) == 0 for x in list.Concat([_capField.promoters, _capField.viewers, _capField.breakGlass]) {x},
+	if _o.promoters != _|_ for _, l in _o.promoters for x in l {x},
+	if _o.apps != _|_ for _, ao in _o.apps if ao.promoters != _|_ for _, l in ao.promoters for x in l {x},
+	if _o.viewers != _|_ for x in _o.viewers {x},
+	for x in _breakGlass {x},
 ]}).out

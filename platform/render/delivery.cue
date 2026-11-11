@@ -45,7 +45,7 @@ _stageAnnotations: {
 
 	// read by the break-glass guard (platform/infrastructure/break-glass): who may approve unverified
 	// Freight for this Stage (ADR 0013)
-	"example.com/break-glass": json.Marshal(_breakGlass[#app])
+	"example.com/break-glass": json.Marshal(_breakGlass)
 	// Kargo UI: a stage's control-flow and target Stages share its color
 	"kargo.akuity.io/color": stages[#stage].color
 }
