@@ -1,6 +1,8 @@
 config:
   platform: TERRAFORM
+  region: us-east4
   environment: prod
+  environmentType: prd
   auth:
     wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
   billing: prod

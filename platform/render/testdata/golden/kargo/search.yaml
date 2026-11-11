@@ -56,7 +56,7 @@ metadata:
     example.com/break-glass: '[]'
     kargo.akuity.io/color: blue
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse

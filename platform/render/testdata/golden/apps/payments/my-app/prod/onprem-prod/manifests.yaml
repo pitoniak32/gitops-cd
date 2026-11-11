@@ -10,6 +10,7 @@ metadata:
     example.com/stage: prod
     example.com/target: onprem-prod
     example.com/environment: prod
+    example.com/environment-type: prd
     example.com/billing: prod
   name: my-app
   namespace: payments-onprem-prod
@@ -24,6 +25,7 @@ metadata:
     example.com/stage: prod
     example.com/target: onprem-prod
     example.com/environment: prod
+    example.com/environment-type: prd
     example.com/billing: prod
   name: my-app
   namespace: payments-onprem-prod

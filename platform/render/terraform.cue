@@ -12,6 +12,7 @@ terraformFiles: {for _, d in deploys if d.kind == "terraform" if d.tgt.platform 
 		target:      d.target
 		environment: d.tgt.environment
 		gcpProject:  d.tgt.terraform.gcpProject
+		region:      d.tgt.region
 		wifEmail:    d.tgt.auth.wifEmail
 		backend:     d.backend
 		module:      d.module

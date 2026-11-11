@@ -8,6 +8,7 @@ metadata:
     example.com/stage: perf
     example.com/target: us-perf
     example.com/environment: perf
+    example.com/environment-type: npr
     example.com/billing: nonprod
   name: my-app
   namespace: payments-us-perf
@@ -25,6 +26,7 @@ spec:
         example.com/stage: perf
         example.com/target: us-perf
         example.com/environment: perf
+        example.com/environment-type: npr
         example.com/billing: nonprod
     spec:
       containers:

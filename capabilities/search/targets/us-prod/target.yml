@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 config:
-  cluster: us
+  cluster: us-east4
   namespace: search-us-prod
   environment: prod
+  environmentType: prd
   auth:
     wifEmail: team2-prod@team2-prod.iam.gserviceaccount.com
   billing: prod

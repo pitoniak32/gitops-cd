@@ -37,9 +37,10 @@ pipelines: {for an, a in apps {
 							namespace: _capTargets[tn].config.namespace
 						}
 						if platform == "TERRAFORM" {gcpProject: _capTargets[tn].config.terraform.gcpProject}
-						environment: _capTargets[tn].config.environment
-						path:        "apps/\(_cap)/\(an)/\(sn)/\(tn)"
-						deployWith:  deploys["\(an)/\(tn)"].deployWith
+						environment:     _capTargets[tn].config.environment
+						environmentType: _capTargets[tn].config.environmentType
+						path:            "apps/\(_cap)/\(an)/\(sn)/\(tn)"
+						deployWith:      deploys["\(an)/\(tn)"].deployWith
 					}
 				}}
 			}

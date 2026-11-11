@@ -10,6 +10,7 @@ metadata:
     example.com/stage: dev
     example.com/target: us-dev
     example.com/environment: dev
+    example.com/environment-type: dev
     example.com/billing: dev
   name: api
   namespace: search-us-dev
@@ -24,6 +25,7 @@ metadata:
     example.com/stage: dev
     example.com/target: us-dev
     example.com/environment: dev
+    example.com/environment-type: dev
     example.com/billing: dev
   name: api
   namespace: search-us-dev

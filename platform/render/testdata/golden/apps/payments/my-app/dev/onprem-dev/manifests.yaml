@@ -10,6 +10,7 @@ metadata:
     example.com/stage: dev
     example.com/target: onprem-dev
     example.com/environment: dev
+    example.com/environment-type: dev
     example.com/billing: dev
   name: my-app
   namespace: payments-onprem-dev
@@ -24,6 +25,7 @@ metadata:
     example.com/stage: dev
     example.com/target: onprem-dev
     example.com/environment: dev
+    example.com/environment-type: dev
     example.com/billing: dev
   name: my-app
   namespace: payments-onprem-dev

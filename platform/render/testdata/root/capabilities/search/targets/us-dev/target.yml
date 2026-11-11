@@ -1,7 +1,8 @@
 config:
-  cluster: us
+  cluster: us-east4
   namespace: search-us-dev
   environment: dev
+  environmentType: dev
   auth:
     wifEmail: search-dev@search-dev.iam.gserviceaccount.com
   billing: dev

@@ -4,6 +4,7 @@ stage: dev
 target: tf-dev
 environment: dev
 gcpProject: team1-dev
+region: us-east4
 wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
 backend:
   bucket: tfstate-team1-dev

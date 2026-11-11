@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 config:
-  cluster: onprem
+  cluster: dc1
   namespace: search-onprem-prod
   environment: prod
+  environmentType: prd
   auth:
     wifEmail: team2-prod@team2-prod.iam.gserviceaccount.com
   billing: prod

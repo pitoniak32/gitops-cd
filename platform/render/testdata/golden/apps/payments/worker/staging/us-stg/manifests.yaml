@@ -10,6 +10,7 @@ metadata:
     example.com/stage: staging
     example.com/target: us-stg
     example.com/environment: staging
+    example.com/environment-type: npr
     example.com/billing: nonprod
   name: worker
   namespace: payments-us-stg

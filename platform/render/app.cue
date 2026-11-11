@@ -139,7 +139,7 @@ deploys: {for an, a in apps for sn, s in a.stages for tn, t in s.targets {
 				if s.replicas != _|_ {s.replicas},
 				if a.replicas != _|_ {a.replicas},
 				_defaults.replicas,
-			][0] & (>=policy[tgt.environment].minReplicas | error("\(tgt.environment) requires replicas >= \(policy[tgt.environment].minReplicas)"))
+			][0] & (>=policy[tgt.environmentType].minReplicas | error("\(tgt.environmentType) requires replicas >= \(policy[tgt.environmentType].minReplicas)"))
 
 			cpu: [
 				if t.resources.cpu != _|_ {t.resources.cpu},

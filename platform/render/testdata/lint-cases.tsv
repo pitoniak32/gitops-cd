@@ -21,7 +21,7 @@ capabilities/payments/apps/my-app/app.yml	.envFrom = ["statsig"]	^capabilities/p
 capabilities/payments/targets/us-dev/environment-variables/launchdarkly.yml	."1BAD" = "x"	^capabilities/payments/targets/us-dev/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: .*1BAD
 capabilities/payments/targets/us-dev/environment-variables/launchdarkly.yml	.LD_SDK_KEY = "secret:BAD"	^capabilities/payments/targets/us-dev/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: LD_SDK_KEY: .*secret:<gcp-project>
 capabilities/payments/stages/dev.yml	.color = "puce"	^capabilities/payments/stages/dev\.yml:[0-9]+:[0-9]+: .*unknown color; allowed: red
-capabilities/payments/targets/us-dev/target.yml	.config.cluster = "eu"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*unknown cluster; allowed: us, onprem
+capabilities/payments/targets/us-dev/target.yml	.config.cluster = "eu"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*unknown cluster; allowed: us-east4, dc1
 capabilities/payments/apps/worker/app.yml	.image = "ghcr.io/pitoniak32/nginx:1.0.0"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+:
 capabilities/payments/apps/worker/app.yml	.stages.dev.workflow.file = "deploy.sh"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*workflow\.file: expected a \.yml or \.yaml file name
 capabilities/payments/apps/worker/app.yml	.deployWith = "jenkins"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: deployWith: expected argocd or gha$
@@ -44,3 +44,8 @@ capabilities/payments/owners.yml	.apps.worker.viewers = ["carol@example.com", "c
 capabilities/payments/owners.yml	.apps.worker.promoters = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*expected a map
 capabilities/payments/owners.yml	.apps.worker.promoters.perf = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*app worker doesn't use stage perf
 capabilities/payments/owners.yml	.apps.worker.promoters.qa = ["doug@example.com"]	^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown stage; allowed: dev, perf, prod, staging
+capabilities/payments/targets/us-dev/target.yml	del(.config.environmentType)	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: config\.environmentType: incomplete value "dev" \| "npr" \| "prd"
+capabilities/payments/targets/us-dev/target.yml	.config.environmentType = "staging"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*expected dev, npr or prd
+capabilities/payments/targets/tf-dev/target.yml	.config.region = "us-east9"	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*unknown region; allowed: us-central1, us-east1, us-east4
+capabilities/payments/targets/tf-dev/target.yml	del(.config.region)	^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: .*region
+capabilities/payments/targets/us-dev/target.yml	.config.region = "us-east4"	^capabilities/payments/targets/us-dev/target\.yml:[0-9]+:[0-9]+: .*region not allowed on a K8S target \(it's the cluster's\)

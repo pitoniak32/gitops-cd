@@ -4,6 +4,7 @@ stage: prod
 target: tf-prod
 environment: prod
 gcpProject: team1-prod
+region: us-east4
 wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
 backend:
   bucket: tfstate-team1-prod

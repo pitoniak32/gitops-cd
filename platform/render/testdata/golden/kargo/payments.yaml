@@ -453,7 +453,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -529,7 +529,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
 spec:
-  shard: onprem
+  shard: dc1
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -605,7 +605,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: green
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -681,7 +681,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: green
 spec:
-  shard: onprem
+  shard: dc1
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -795,7 +795,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: amber
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -871,7 +871,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -947,7 +947,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
 spec:
-  shard: onprem
+  shard: dc1
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -1023,7 +1023,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -1098,7 +1098,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: green
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -1174,7 +1174,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -1250,7 +1250,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: blue
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -1363,7 +1363,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: green
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -1439,7 +1439,7 @@ metadata:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
 spec:
-  shard: us
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
