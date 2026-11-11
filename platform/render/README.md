@@ -67,4 +67,4 @@ and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availab
   environment type/cluster mismatch, prod replicas). An app's computed checks (e.g. prod replicas) appear once its structural errors are fixed.
 
 ## Dev loop
-`mise run test` (vet + render testdata/root (capability payments) + golden diff), `UPDATE=1 mise run test` to accept.
+`mise run test` (Go tests in `platform/cli/internal/{render,lint}`: golden diff of testdata/root, render assertions, lint cases), `UPDATE=1 mise run test` to accept.
