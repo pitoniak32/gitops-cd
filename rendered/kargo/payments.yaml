@@ -1214,7 +1214,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: promote-infra
+  name: promote-infra-dev
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1225,7 +1225,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: promote-infra
+  name: promote-infra-dev
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1238,6 +1238,68 @@ rules:
       - stages
     resourceNames:
       - infra-us-dev-tf
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-infra-dev
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-infra-dev
+subjects:
+  - kind: ServiceAccount
+    name: promote-infra-dev
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-infra-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","oncall@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-infra-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
       - infra-us-stg-tf
     verbs:
       - promote
@@ -1260,7 +1322,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: promote-infra
+  name: promote-infra-staging
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1269,16 +1331,16 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: promote-infra
+  name: promote-infra-staging
 subjects:
   - kind: ServiceAccount
-    name: promote-infra
+    name: promote-infra-staging
     namespace: kargo-payments
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: promote-my-app
+  name: promote-my-app-dev
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1289,7 +1351,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: promote-my-app
+  name: promote-my-app-dev
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1302,15 +1364,202 @@ rules:
       - stages
     resourceNames:
       - my-app-dev
-      - my-app-dev-done
       - my-app-onprem-dev
-      - my-app-onprem-prod
-      - my-app-onprem-stg
-      - my-app-prod
-      - my-app-staging
       - my-app-us-dev
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-my-app-dev
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-my-app-dev
+subjects:
+  - kind: ServiceAccount
+    name: promote-my-app-dev
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-my-app-perf
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","oncall@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-my-app-perf
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - my-app-dev-done
       - my-app-us-perf
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-my-app-perf
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-my-app-perf
+subjects:
+  - kind: ServiceAccount
+    name: promote-my-app-perf
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-my-app-prod
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","oncall@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-my-app-prod
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - my-app-onprem-prod
+      - my-app-prod
       - my-app-us-prod
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-my-app-prod
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-my-app-prod
+subjects:
+  - kind: ServiceAccount
+    name: promote-my-app-prod
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-my-app-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","oncall@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-my-app-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - my-app-dev-done
+      - my-app-onprem-stg
+      - my-app-staging
       - my-app-us-stg
     verbs:
       - promote
@@ -1333,7 +1582,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: promote-my-app
+  name: promote-my-app-staging
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1342,16 +1591,16 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: promote-my-app
+  name: promote-my-app-staging
 subjects:
   - kind: ServiceAccount
-    name: promote-my-app
+    name: promote-my-app-staging
     namespace: kargo-payments
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: promote-worker
+  name: promote-worker-dev
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1362,7 +1611,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: promote-worker
+  name: promote-worker-dev
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1375,7 +1624,131 @@ rules:
       - stages
     resourceNames:
       - worker-us-dev
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-worker-dev
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-worker-dev
+subjects:
+  - kind: ServiceAccount
+    name: promote-worker-dev
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-worker-prod
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","oncall@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-worker-prod
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
       - worker-us-prod
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-worker-prod
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-worker-prod
+subjects:
+  - kind: ServiceAccount
+    name: promote-worker-prod
+    namespace: kargo-payments
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-worker-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","oncall@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-worker-staging
+  namespace: kargo-payments
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
       - worker-us-stg
     verbs:
       - promote
@@ -1398,7 +1771,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: promote-worker
+  name: promote-worker-staging
   namespace: kargo-payments
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -1407,10 +1780,10 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: promote-worker
+  name: promote-worker-staging
 subjects:
   - kind: ServiceAccount
-    name: promote-worker
+    name: promote-worker-staging
     namespace: kargo-payments
 ---
 apiVersion: v1

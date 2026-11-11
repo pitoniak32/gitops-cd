@@ -269,7 +269,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: promote-api
+  name: promote-api-dev
   namespace: kargo-search
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -280,7 +280,70 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: promote-api
+  name: promote-api-dev
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - api-us-dev
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-api-dev
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-api-dev
+subjects:
+  - kind: ServiceAccount
+    name: promote-api-dev
+    namespace: kargo-search
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-api-prod
+  namespace: kargo-search
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["alice@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-api-prod
   namespace: kargo-search
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -293,7 +356,6 @@ rules:
       - stages
     resourceNames:
       - api-onprem-prod
-      - api-us-dev
       - api-us-prod
     verbs:
       - promote
@@ -316,7 +378,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: promote-api
+  name: promote-api-prod
   namespace: kargo-search
   labels:
     app.kubernetes.io/managed-by: gitops-platform
@@ -325,10 +387,10 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: promote-api
+  name: promote-api-prod
 subjects:
   - kind: ServiceAccount
-    name: promote-api
+    name: promote-api-prod
     namespace: kargo-search
 ---
 apiVersion: v1
