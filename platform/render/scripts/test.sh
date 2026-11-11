@@ -380,6 +380,28 @@ got="$("$p/render/scripts/lint.sh" "$r" payments || true)"; rm -rf "${p:?}" "${r
 grep -qE '^capabilities/payments/targets/dc1-prd-k8s/target\.yml:[0-9]+:[0-9]+: config\.environmentType: cluster dc1 accepts environment types: dev$' <<<"$got" || { printf 'cluster environment-type check failed:\n%s\n' "$got" >&2; exit 1; }
 echo "cluster types ok"
 
+# Kargo Stage names must fit a label value (63): Kargo 1.12 labels every PromotionRequest with the
+# unshortened Stage name, so a longer name creates the Stage but fails every promotion into it.
+long_app=webwebwebwebwebwebwebwebwebweb                     # 30
+long_tgt=us-east4-dev-k8s-aaaaaaaaaaaaaaaaaaaaaaa           # 40
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments"
+cp -R "$c/targets/us-east4-dev-k8s" "$c/targets/$long_tgt"
+yq -i '.config.namespace = "payments-long"' "$c/targets/$long_tgt/target.yml"
+mv "$c/apps/web" "$c/apps/$long_app"
+yq -i ".stages.dev.targets = {\"$long_tgt\": {}}" "$c/apps/$long_app/app.yml"
+got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+grep -qE "^capabilities/payments/apps/$long_app/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name $long_app-$long_tgt is 71 characters \(max 63\): shorten the app or target name$" <<<"$got" || { printf 'long target Stage name not rejected:\n%s\n' "$got" >&2; exit 1; }
+# control flow: a first stage with 2 targets gets an entry Stage <app>-<stage>
+long_stage=ssssssssssssssssssssssssssssssssss            # 34
+r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments"
+printf 'dependsOn: []\n' >"$c/stages/$long_stage.yml"
+yq -i ".promoters.\"$long_stage\" = [\"doug@example.com\"]" "$c/owners.yml"
+mv "$c/apps/web" "$c/apps/$long_app"
+yq -i ".stages = {\"$long_stage\": {\"targets\": {\"us-east4-dev-k8s\": {}, \"dc1-dev-k8s\": {}}}}" "$c/apps/$long_app/app.yml"
+got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+grep -qE "^capabilities/payments/apps/$long_app/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name $long_app-$long_stage is 65 characters \(max 63\): shorten the app or stage names$" <<<"$got" || { printf 'long control-flow Stage name not rejected:\n%s\n' "$got" >&2; exit 1; }
+echo "kargo stage name length ok"
+
 # Target name must be <region>-<env>-<platform>[-<qualifier>] (ADR 0025); dir renames, so not lint-cases.tsv edits
 name_case() { # <from> <to> <want: ok | grep -E pattern>
   r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/targets"
