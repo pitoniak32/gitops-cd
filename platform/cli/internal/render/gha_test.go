@@ -2,6 +2,7 @@ package render
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -28,17 +29,46 @@ func st(t *testing.T, ds []map[string]any, name, path string) string {
 	return str(get(s, path))
 }
 
-// taskOf is the ClusterPromotionTask a target Stage's single template step references.
+// stepsOf are a Stage's promotionTemplate steps: pre-<n> gha-check steps (ADR 0028), then promote.
+func stepsOf(ds []map[string]any, name string) []any {
+	return list(stage(ds, name), "spec.promotionTemplate.spec.steps")
+}
+
+// templateStep is the Stage's promotionTemplate step with `as: <as>` (nil when absent).
+func templateStep(ds []map[string]any, name, as string) map[string]any {
+	for _, s := range stepsOf(ds, name) {
+		if str(get(s, "as")) == as {
+			return s.(map[string]any)
+		}
+	}
+	return nil
+}
+
+// stepVar is a template step's own var by name ("" when absent).
+func stepVar(s map[string]any, v string) string {
+	for _, x := range list(s, "vars") {
+		if str(get(x, "name")) == v {
+			return str(get(x, "value"))
+		}
+	}
+	return ""
+}
+
+// taskOf is the ClusterPromotionTask a target Stage's `promote` step references.
 func taskOf(t *testing.T, ds []map[string]any, name string) map[string]any {
 	t.Helper()
-	steps := list(stage(ds, name), "spec.promotionTemplate.spec.steps")
-	if len(steps) != 1 || str(get(steps[0], "task.kind")) != "ClusterPromotionTask" {
-		t.Fatalf("Stage %s must have exactly one ClusterPromotionTask step", name)
+	p := templateStep(ds, name, "promote")
+	if p == nil || str(get(p, "task.kind")) != "ClusterPromotionTask" {
+		t.Fatalf("Stage %s must have a ClusterPromotionTask step `promote`", name)
 	}
-	n := str(get(steps[0], "task.name"))
+	return taskNamed(t, name, str(get(p, "task.name")))
+}
+
+func taskNamed(t *testing.T, stageName, n string) map[string]any {
+	t.Helper()
 	task := find(promotionTasks(t), "ClusterPromotionTask", n)
 	if task == nil {
-		t.Fatalf("Stage %s: no ClusterPromotionTask %s", name, n)
+		t.Fatalf("Stage %s: no ClusterPromotionTask %s", stageName, n)
 	}
 	return task
 }
@@ -117,9 +147,15 @@ func TestStagesSatisfyPromotionTasks(t *testing.T) {
 			if want := "promote-" + label(s, "example.com/deploy-with"); str(get(task, "metadata.name")) != want {
 				t.Errorf("%s: task %s, want %s", n, str(get(task, "metadata.name")), want)
 			}
-			for _, v := range list(task, "spec.vars") {
-				if varValue([]map[string]any{s}, n, str(get(v, "name"))) == "" {
-					t.Errorf("%s: no value for task var %s", n, str(get(v, "name")))
+			// Kargo promotionTaskVarsToStepVars: Promotion vars ∪ the step's own vars cover the task's vars
+			for _, x := range stepsOf([]map[string]any{s}, n) {
+				step := x.(map[string]any)
+				task := taskNamed(t, n, str(get(step, "task.name")))
+				for _, v := range list(task, "spec.vars") {
+					vn := str(get(v, "name"))
+					if varValue([]map[string]any{s}, n, vn) == "" && stepVar(step, vn) == "" {
+						t.Errorf("%s step %s: no value for task var %s", n, str(get(step, "as")), vn)
+					}
 				}
 			}
 		}
@@ -131,7 +167,7 @@ func TestStagesSatisfyPromotionTasks(t *testing.T) {
 		}
 		tn = append(tn, str(x["kind"])+"/"+str(get(x, "metadata.name")))
 	}
-	if strings.Join(tn, " ") != "ClusterPromotionTask/promote-argocd ClusterPromotionTask/promote-gha" {
+	if strings.Join(tn, " ") != "ClusterPromotionTask/promote-argocd ClusterPromotionTask/promote-gha ClusterPromotionTask/gha-check" {
 		t.Errorf("promotion tasks: %s", strings.Join(tn, " "))
 	}
 }
@@ -214,5 +250,158 @@ func TestGhaTargets(t *testing.T) {
 	au := stepUsing(t, k, "worker-us-east4-npr-k8s", "argocd-update")
 	if str(get(au, "config.apps.0.name"))+" "+str(get(au, "config.apps.0.sources.0.desiredRevision")) != "${{ vars.capability }}-${{ vars.app }}-${{ vars.target }} ${{ task.outputs.commit.commit }}" {
 		t.Error("argocd-update app name / revision")
+	}
+}
+
+// gha-check (ADR 0028): pre-deploy check dispatched before anything is pushed; same dispatch/wait as
+// promote-gha, but inputs come from the Freight and the wait has a per-check timeout under a 2h cap.
+func TestGhaCheckTask(t *testing.T) {
+	t.Parallel()
+	ts := promotionTasks(t)
+	c := find(ts, "ClusterPromotionTask", "gha-check")
+	g := find(ts, "ClusterPromotionTask", "promote-gha")
+	if c == nil || g == nil {
+		t.Fatal("need ClusterPromotionTasks gha-check and promote-gha")
+	}
+	var vs []string
+	for _, v := range list(c, "spec.vars") {
+		vs = append(vs, str(get(v, "name")))
+	}
+	if strings.Join(vs, ",") != "repo,image,capability,app,stage,target,artifactKey,workflowRepo,workflowFile,workflowRef,checkTimeout" {
+		t.Errorf("gha-check vars: %s", strings.Join(vs, ","))
+	}
+	stepByAs := func(task map[string]any, as string) map[string]any {
+		for _, s := range list(task, "spec.steps") {
+			if str(get(s, "as")) == as {
+				return s.(map[string]any)
+			}
+		}
+		t.Fatalf("%s: no step %s", str(get(task, "metadata.name")), as)
+		return nil
+	}
+	var uses []string
+	for _, s := range list(c, "spec.steps") {
+		uses = append(uses, str(get(s, "uses"))+":"+str(get(s, "as")))
+	}
+	if strings.Join(uses, ",") != "http:dispatch,http:wait" {
+		t.Errorf("gha-check steps: %s", strings.Join(uses, ","))
+	}
+	cd, gd := stepByAs(c, "dispatch"), stepByAs(g, "dispatch")
+	for _, f := range []string{"config.url", "config.method", "config.successExpression", "config.failureExpression", "config.errorExpression"} {
+		if str(get(cd, f)) != str(get(gd, f)) {
+			t.Errorf("dispatch %s differs from promote-gha", f)
+		}
+	}
+	if len(list(cd, "config.headers")) != len(list(gd, "config.headers")) {
+		t.Error("dispatch headers differ from promote-gha")
+	}
+	body := str(get(cd, "config.body"))
+	for _, f := range []string{"'commit': commitFrom(vars.repo).ID", "'return_run_details': true", "'ref': vars.workflowRef", "(vars.artifactKey): vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest"} {
+		if !strings.Contains(body, f) {
+			t.Errorf("gha-check dispatch body missing %s", f)
+		}
+	}
+	if strings.Contains(body, "task.outputs.commit") {
+		t.Error("gha-check runs before the push: no commit output to read")
+	}
+	cw, gw := stepByAs(c, "wait"), stepByAs(g, "wait")
+	if str(get(cw, "retry.timeout")) != "2h" {
+		t.Errorf("gha-check wait cap: %s", str(get(cw, "retry.timeout")))
+	}
+	if str(get(cw, "config.url")) != str(get(gw, "config.url")) || str(get(cw, "config.successExpression")) != str(get(gw, "config.successExpression")) {
+		t.Error("gha-check wait url/success differ from promote-gha")
+	}
+	if want := str(get(gw, "config.failureExpression")) + " || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}'))"; str(get(cw, "config.failureExpression")) != want {
+		t.Errorf("gha-check wait failure:\n got %s\nwant %s", str(get(cw, "config.failureExpression")), want)
+	}
+	if !strings.Contains(str(get(cw, "config.errorExpression")), "' exceeded ${{ vars.checkTimeout }}: '") {
+		t.Error("gha-check wait error must name the exceeded timeout")
+	}
+}
+
+// Platform pre-deploy checks (ADR 0028): prd target Stages run gha-check (pre-<n>) before promote, dispatched
+// to the app's sourceRepo; all other target Stages only promote.
+func TestPreDeployChecks(t *testing.T) {
+	t.Parallel()
+	out := sharedOut(t)
+	n := 0
+	for _, f := range []string{"payments", "search"} {
+		ds := docs(t, filepath.Join(out, "kargo", f+".yaml"))
+		for _, s := range findAll(ds, "Stage") {
+			if label(s, "example.com/kind") != "target" {
+				continue
+			}
+			name := str(get(s, "metadata.name"))
+			var as []string
+			for _, x := range stepsOf(ds, name) {
+				as = append(as, str(get(x, "as")))
+			}
+			ann := str(get(s, `metadata.annotations."example.com/pre-deploy"`))
+			// target name <region>-<environmentType>-<platform>[-<q>] (ADR 0025, lint-enforced)
+			if !strings.Contains(label(s, "example.com/target"), "-prd-") {
+				if strings.Join(as, ",") != "promote" || ann != "" {
+					t.Errorf("%s (not prd): steps %v, pre-deploy %q", name, as, ann)
+				}
+				continue
+			}
+			n++
+			if strings.Join(as, ",") != "pre-1,promote" {
+				t.Errorf("%s: steps %v, want pre-1,promote", name, as)
+				continue
+			}
+			pre := templateStep(ds, name, "pre-1")
+			repo := "pitoniak32/gitops-cd"
+			if label(s, "example.com/app") == "my-app" {
+				repo = "acme/my-app"
+			}
+			if got := str(get(pre, "task.kind")) + "/" + str(get(pre, "task.name")); got != "ClusterPromotionTask/gha-check" {
+				t.Errorf("%s pre-1 task %s", name, got)
+			}
+			if got := stepVar(pre, "workflowRepo") + " " + stepVar(pre, "workflowFile") + " " + stepVar(pre, "workflowRef") + " " + stepVar(pre, "checkTimeout"); got != repo+" precheck.yaml main 30m" {
+				t.Errorf("%s pre-1 vars: %s", name, got)
+			}
+			if ann != repo+"/precheck.yaml@main" {
+				t.Errorf("%s pre-deploy annotation %q", name, ann)
+			}
+		}
+	}
+	if n != 5 {
+		t.Errorf("prd target Stages: %d, want 5", n)
+	}
+	// gha deploy on prd (terraform): pre-1's step vars don't replace the deploy workflow; module, not image
+	k := kargoPayments(t)
+	const i = "infra-us-east4-prd-tf"
+	if varValue(k, i, "workflowFile") == "precheck.yaml" || varValue(k, i, "workflowFile") == "" {
+		t.Errorf("%s: deploy workflowFile %q", i, varValue(k, i, "workflowFile"))
+	}
+	if stepVar(templateStep(k, i, "pre-1"), "workflowFile") != "precheck.yaml" {
+		t.Errorf("%s: pre-1 workflowFile", i)
+	}
+	if templateStep(k, i, "promote")["vars"] != nil {
+		t.Errorf("%s: promote step must take Promotion vars only", i)
+	}
+	if varValue(k, i, "artifactKey") != "module" {
+		t.Errorf("%s: artifactKey %q", i, varValue(k, i, "artifactKey"))
+	}
+}
+
+// Kargo's http step runs success/failure/errorExpression with only `response` in scope
+// (http_requester.go buildExprEnv); vars, task outputs etc. must be templated in with ${{ }} first.
+func TestHTTPExpressionsOnlyUseResponse(t *testing.T) {
+	t.Parallel()
+	tmpl := regexp.MustCompile(`\$\{\{.*?\}\}`)
+	bad := regexp.MustCompile(`\b(vars|task|outputs|ctx|secrets)\.`)
+	for _, task := range promotionTasks(t) {
+		for _, s := range list(task, "spec.steps") {
+			if str(get(s, "uses")) != "http" {
+				continue
+			}
+			for _, f := range []string{"successExpression", "failureExpression", "errorExpression"} {
+				e := tmpl.ReplaceAllString(str(get(s, "config."+f)), "")
+				if m := bad.FindString(e); m != "" {
+					t.Errorf("%s %s %s uses %s outside ${{ }}", str(get(task, "metadata.name")), str(get(s, "as")), f, m)
+				}
+			}
+		}
 	}
 }

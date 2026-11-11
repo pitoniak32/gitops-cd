@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=../../../../../../schemas/app.json
 # mixed app (ADR 0024): dev on K8S, staging on CLOUD_RUN
 image: ghcr.io/example/web
+sourceRepo: pitoniak32/gitops-cd
 deployWith: argocd # app-level; must not affect the CLOUD_RUN target
 env:
   GREETING: hello

@@ -25,6 +25,8 @@ _ghHeaders: [
 ]
 // one timeout for every gha run: retry is not an expression, and terraform applies need the longest
 _ghaWaitTimeout: "60m"
+// gha-check hard cap; each check's own timeout (vars.checkTimeout, at most this) fails it sooner
+_ghaCheckCap: "2h"
 
 // vars every task needs, all set per Stage (none has a default: Kargo fails the Promotion if one is missing)
 _promoteVars: ["repo", "src", "branch", "image", "capability", "app", "stage", "target", "pinFile", "pinKey", "artifactKey"]
@@ -56,6 +58,50 @@ _promoteSteps: [
 	}},
 	{uses: "git-push", config: path: "./out"},
 ]
+
+// dispatch the workflow (return_run_details: GitHub answers 200 with the run id); #inputs: the inputs that
+// differ per task (commit), spliced in before the identity and artifact inputs
+_ghaDispatch: {
+	#inputs: string
+	uses:    "http"
+	as:      "dispatch"
+	config: {
+		method: "POST"
+		url:    "\(_ghAPI)/actions/workflows/${{ vars.workflowFile }}/dispatches"
+		headers: list.Concat([_ghHeaders, [{name: "Content-Type", value: "application/json"}]])
+		// "} }": Kargo ends an expression at the first "}}"; (vars.artifactKey): computed key (image|module)
+		body:              "${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': vars.capability, 'app': vars.app, 'stage': vars.stage, 'target': vars.target, \(#inputs), (vars.artifactKey): vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest} }) }}"
+		successExpression: "response.status == 200"
+		failureExpression: "response.status != 200"
+		errorExpression:   "response.body.message"
+		outputs: [
+			{name: "runID", fromExpression: "response.body.workflow_run_id"},
+			{name: "runURL", fromExpression: "response.body.html_url"},
+		]
+	}
+}
+
+// poll the dispatched run until it completes; Running (neither expression true) is retried until #timeout.
+// #failure/#error: extra conditions (gha-check's own timeout), ORed in / checked first. These expressions
+// see only `response` (Kargo http step); anything else must be templated in with ${{ }}
+_ghaWait: {
+	#timeout: string
+	#failure: *"" | string
+	#error:   *"" | string
+	uses:     "http"
+	as:       "wait"
+	retry: timeout: #timeout
+	config: {
+		method:            "GET"
+		url:               "\(_ghAPI)/actions/runs/${{ task.outputs.dispatch.runID }}"
+		headers:           _ghHeaders
+		successExpression: "response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'"
+		// 404 = run not readable yet right after dispatch (GitHub returns its id first): neither expression
+		// is true, so the step stays Running and is retried
+		failureExpression: "(response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')\(#failure)"
+		errorExpression:   "response.status != 200 ? response.body.message : \(#error)'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url"
+	}
+}
 
 _promotionTask: {
 	#name: string
@@ -91,31 +137,23 @@ promotionTasks: [
 		#name: "promote-gha"
 		#vars: list.Concat([_promoteVars, _ghaVars])
 		#steps: list.Concat([_promoteSteps, [
-			{uses: "http", as: "dispatch", config: {
-				method: "POST"
-				url:    "\(_ghAPI)/actions/workflows/${{ vars.workflowFile }}/dispatches"
-				headers: list.Concat([_ghHeaders, [{name: "Content-Type", value: "application/json"}]])
-				// "} }": Kargo ends an expression at the first "}}"; (vars.artifactKey): computed key (image|module)
-				body:              "${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': vars.capability, 'app': vars.app, 'stage': vars.stage, 'target': vars.target, 'commit': task.outputs.commit.commit, (vars.artifactKey): vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest} }) }}"
-				successExpression: "response.status == 200"
-				failureExpression: "response.status != 200"
-				errorExpression:   "response.body.message"
-				outputs: [
-					{name: "runID", fromExpression: "response.body.workflow_run_id"},
-					{name: "runURL", fromExpression: "response.body.html_url"},
-				]
-			}},
-			{uses: "http", as: "wait", retry: timeout: _ghaWaitTimeout, config: {
-				method:            "GET"
-				url:               "\(_ghAPI)/actions/runs/${{ task.outputs.dispatch.runID }}"
-				headers:           _ghHeaders
-				successExpression: "response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'"
-				// 404 = run not readable yet right after dispatch (GitHub returns its id first): neither expression
-				// is true, so the step stays Running and is retried
-				failureExpression: "(response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')"
-				errorExpression:   "response.status != 200 ? response.body.message : 'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url"
-			}},
+			_ghaDispatch & {#inputs: "'commit': task.outputs.commit.commit"},
+			_ghaWait & {#timeout: _ghaWaitTimeout},
 		]])
+	},
+	// pre-deploy check (ADR 0028, prechecks.cue): runs before the push, so the commit input is the Freight's
+	// rendered commit; the run may take vars.checkTimeout (per check), 2h at most
+	_promotionTask & {
+		#name: "gha-check"
+		#vars: ["repo", "image", "capability", "app", "stage", "target", "artifactKey", "workflowRepo", "workflowFile", "workflowRef", "checkTimeout"]
+		#steps: [
+			_ghaDispatch & {#inputs: "'commit': commitFrom(vars.repo).ID"},
+			_ghaWait & {
+				#timeout: _ghaCheckCap
+				#failure: " || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}'))"
+				#error:   "response.body.status != 'completed' ? 'run ' + string(response.body.id) + ' exceeded ${{ vars.checkTimeout }}: ' + response.body.html_url : "
+			},
+		]
 	},
 ]
 

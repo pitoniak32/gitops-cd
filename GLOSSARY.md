@@ -132,6 +132,14 @@ _Avoid_: deploy (as a verb for this step)
 The branch `env/<cap>/<app>/<target>` that Argo CD syncs one target from (manifests at the root). It doesn't exist until the target's first promotion; until then its Argo CD app shows sync `Unknown`.
 _Avoid_: stage branch (the pre-ADR 0012 layout `env/<cap>/<app>/<stage>`)
 
+**Pre-deploy check**:
+A platform-owned GitHub Actions workflow Kargo dispatches to the app's source repo and waits for before a target Stage pushes anything; configured per environment type in `platform/render/prechecks.cue` (initially `prd`), never by teams. Any result but success fails the Promotion (ADR 0028).
+_Avoid_: verification (that runs after the deploy), gate
+
+**Source repo**:
+The GitHub repo of an app's code, `sourceRepo` in `app.yml` (required); where pre-deploy checks are dispatched.
+_Avoid_: image repo (`image`), config repo (this repo)
+
 ### Validation
 
 **Editor schema**:

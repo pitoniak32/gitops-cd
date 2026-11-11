@@ -54,6 +54,8 @@ import (
 	// SemVer range for discovered module tags; unset: any SemVer tag.
 	moduleConstraint?: string & !=""
 	port?:             int & >0 & <65536 // set => Service on :80
+	// GitHub repo of the app's code; platform pre-deploy checks are dispatched there (ADR 0028)
+	sourceRepo!: =~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" | error("expected <owner>/<name>")
 
 	// Subset of the capability's stages. Skipped stages are bypassed in the pipeline
 	// (prod depends on [staging, perf]; without perf, prod depends on staging).

@@ -1,4 +1,4 @@
-# ADR 0022: rendered/ lives on the orphan branch `rendered`, written only by this workflow on pushes to main;
+# ADR 0022: rendered/ lives on the orphan branch `rendered`, written only by this workflow on main (push, or workflow_dispatch to re-run);
 # main gets no bot commits. PRs comment the render diff against it. CODEOWNERS stays on main (GitHub reads it
 # there): authors regenerate it with `mise run codeowners`, CI checks it.
 name: ci
@@ -6,6 +6,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # re-run the main render by hand (`gh workflow run ci --ref main`), e.g. when a push run gets stuck queued
+  workflow_dispatch:
 permissions:
   contents: read           # the rendered push uses the gitops-cd-demo app token (ruleset bypass actor)
   pull-requests: write
@@ -104,7 +106,7 @@ jobs:
       # (GITHUB_TOKEN can't be a bypass actor). Short-lived installation token, contents:write on this repo only.
       - name: render app token
         id: app
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/create-github-app-token@v3
         with:
           client-id: ${{ vars.RENDER_APP_CLIENT_ID }}
@@ -112,9 +114,9 @@ jobs:
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
 
-      # pushes to main run one at a time (concurrency group); each replaces the branch's tree with its render
+      # main runs (push or workflow_dispatch) run one at a time (concurrency group); each replaces the branch's tree with its render
       - name: commit render to the rendered branch
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           SOURCE: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
           APP_TOKEN: ${{ steps.app.outputs.token }}

@@ -122,7 +122,9 @@ _kargoCore: [
 		spec: requestedFreight: [_freightRequest & {#app: an, #node: x}]
 	},
 	for an, p in pipelines for sn, s in p.stages for tn, _ in s.targets
-	let d = deploys["\(an)/\(tn)"] {
+	let d = deploys["\(an)/\(tn)"]
+	// platform pre-deploy checks for this target's environment type (prechecks.cue, ADR 0028)
+	let _checks = [if preDeploy[d.tgt.environmentType] != _|_ {preDeploy[d.tgt.environmentType]}, []][0] {
 		apiVersion: _kargoAPI
 		kind:       "Stage"
 		metadata: {
@@ -130,6 +132,9 @@ _kargoCore: [
 			namespace: _kargoProject
 			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn, "example.com/deploy-with": d.deployWith, "example.com/platform": _platformLabel[d.tgt.platform]}
 			annotations: _stageAnnotations & {#app: an, #stage: sn}
+			if len(_checks) > 0 {
+				annotations: "example.com/pre-deploy": strings.Join([for c in _checks {"\(apps[an].sourceRepo)/\(c.file)@\(c.ref)"}], ",")
+			}
 		}
 		spec: {
 			// the region's Kargo controller promotes it (control-flow Stages and Warehouses stay on the hub controller);
@@ -155,7 +160,18 @@ _kargoCore: [
 					if d.deployWith == "gha" {{name: "workflowFile", value: d.workflow.file}},
 					if d.deployWith == "gha" {{name: "workflowRef", value: d.workflow.ref}},
 				]
-				steps: [{as: "promote", task: {kind: "ClusterPromotionTask", name: "promote-\(d.deployWith)"}}]
+				// pre-<n>: gha-check per platform check, dispatched to the app's sourceRepo; workflow vars on the
+				// step itself so a gha deploy's Promotion-level workflow vars stay for `promote`
+				steps: list.Concat([[for i, c in _checks {
+					as: "pre-\(i+1)"
+					task: {kind: "ClusterPromotionTask", name: "gha-check"}
+					vars: [
+						{name: "workflowRepo", value: apps[an].sourceRepo},
+						{name: "workflowFile", value: c.file},
+						{name: "workflowRef", value: c.ref},
+						{name: "checkTimeout", value: c.timeout},
+					]
+				}], [{as: "promote", task: {kind: "ClusterPromotionTask", name: "promote-\(d.deployWith)"}}]])
 			}
 		}
 	},
