@@ -7,16 +7,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/cueload"
 	"gopkg.in/yaml.v3"
 )
 
-// Config is the output of `cue export ... -e regionConfig`.
+// Config is the output of regionConfig.
 type Config struct {
 	Regions         []string          `json:"regions"`
 	KeycloakClients []json.RawMessage `json:"keycloakClients"`
@@ -29,16 +29,16 @@ const (
 	kargoValues = "platform/infrastructure/kargo/values.yaml"
 )
 
-// Load runs cue in platform/render to get the region config.
+// Load evaluates regionConfig from clusters.cue + regions.cue in platform/render.
 func Load(root string) (Config, error) {
 	var c Config
-	cmd := exec.Command("cue", "export", "clusters.cue", "regions.cue", "-e", "regionConfig", "--out", "json")
-	cmd.Dir = filepath.Join(root, "platform", "render")
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
+	v, err := cueload.Platform(root, "clusters.cue", "regions.cue")
 	if err != nil {
-		return c, fmt.Errorf("cue export: %w: %s", err, stderr.String())
+		return c, fmt.Errorf("load cue: %w", err)
+	}
+	out, err := v.LookupPath(cueload.Lookup("regionConfig")).MarshalJSON()
+	if err != nil {
+		return c, fmt.Errorf("regionConfig: %w", err)
 	}
 	if err := json.Unmarshal(out, &c); err != nil {
 		return c, fmt.Errorf("parse cue output: %w", err)

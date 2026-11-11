@@ -13,6 +13,7 @@ Lives in the gitops monorepo; teams never edit it.
 | `k8s.cue` | ServiceAccount (WIF), Deployment, Service, ExternalSecret per (app, target) |
 | `delivery.cue` | Kargo Project/ProjectConfig/Warehouse/Stages + Argo CD Applications |
 | `files.cue` | every output file, keyed by rendered-repo path |
+| `gcd render` / `gcd codeowners` (`platform/cli/internal/{cueload,render}`, ADR 0026) | `mise run render` / `codeowners`: validate + write `files`, region files, CODEOWNERS |
 | `scripts/schemas.sh` | generic editor JSON Schemas → `schemas/` (committed, versioned with the platform) |
 | `scripts/lint.sh` (`mise run lint`) | full CUE validation as `file:line:col: message` (editors, CI annotations) |
 
@@ -47,7 +48,7 @@ apps/<app>/app.yml        image (repo only), imageConstraint, port, replicas, en
 apps/<cap>/<app>/<stage>/<target>/{deployment.yaml,manifests.yaml}
 kargo/<cap>.yaml      pipelines/<cap>.json
 argocd/deploys/<region>/<cap>/<app>-<target>.json   argocd/projects/<region>/<cap>.yaml
-infrastructure/regions/<region>.json                 (scripts/regions.sh, clusters.cue only)
+infrastructure/regions/<region>.json                 (gcd render, clusters.cue only)
 ```
 
 ## Promotion
