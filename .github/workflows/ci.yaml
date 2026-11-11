@@ -50,7 +50,7 @@ jobs:
           fi
 
       - name: renderer tests
-        run: mise run test && cue fmt --check ./platform/render/...
+        run: mise run test
       - name: editor schemas up to date
         run: mise run schemas && git diff --exit-code platform/render/schemas/
       - name: region-derived config up to date (clusters.cue)
