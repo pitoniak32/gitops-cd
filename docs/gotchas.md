@@ -27,6 +27,7 @@ Non-obvious failures hit while building this, with the fix in place. Check here 
 
 ## Kargo
 
+- **Stage names max 63 characters.** Kargo 1.12 labels every PromotionRequest with the unshortened Stage name (`pkg/api/promotion_request.go`), so a longer Stage is created but every promotion into it fails. Lint rejects rendered Stage names over 63 (`stageNameErrors` in `delivery.cue`). Argo CD Application names aren't capped (annotation tracking allows 253).
 - **REST API** is `/v1beta1/...` (e.g. `GET /v1beta1/projects`, `POST /v1beta1/resources`). Connect-style paths return 405.
 - **Role claims** map via annotation `rbac.kargo.akuity.io/claims: '{"email":[...]}'` on the project's `kargo-admin` / `kargo-promoter` / `kargo-viewer` ServiceAccount.
 - **Default `additionalScopes` is `[groups]`**, which the Keycloak realm doesn't define; it's overridden to `[]`.
