@@ -1,6 +1,7 @@
 package render
 
 import (
+	"list"
 	"regexp"
 	"strings"
 	"struct"
@@ -44,6 +45,29 @@ targetEnvs: [_]: [!~_nameRe]: badName
 _targetFiles: {for k, _ in in if k =~ _route.targets {(regexp.FindSubmatch(_route.targets, k)[1]): _}}
 for k, _ in in if k =~ _targetEnvRe let tn = regexp.FindSubmatch(_targetEnvRe, k)[1] if _targetFiles[tn] == _|_ {
 	targetEnvs: (tn): error("environment-variables without targets/\(tn)/target.yml")
+}
+
+// environmentType is required; the raw file is checked so a missing value gets a located message
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.environmentType == _|_ {
+	targets: (tn): config: environmentType: error("expected dev, npr or prd")
+}
+
+// a TERRAFORM target needs a region (a K8S target's is its cluster's)
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform == "TERRAFORM" if v.config.region == _|_ {
+	targets: (tn): config: region: error("region required on a TERRAFORM target; allowed: \(strings.Join(_gcpRegions, ", "))")
+}
+
+// name must be <region>-<env>-<platform>[-<qualifier>] (ADR 0025); from the raw file so it can't cycle through targets.
+// Skipped while the region can't be resolved (unknown cluster / missing region already error).
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.environmentType != _|_ if list.Contains(["dev", "npr", "prd"], v.config.environmentType) {
+	let _plat = [if v.config.platform != _|_ {v.config.platform}, "K8S"][0]
+	let _reg = [if _plat == "TERRAFORM" if v.config.region != _|_ if list.Contains(_gcpRegions, v.config.region) {v.config.region}, if _plat == "K8S" if v.config.cluster != _|_ if clusters[v.config.cluster] != _|_ {clusters[v.config.cluster].region}, _|_][0]
+	if _platformSuffix[_plat] != _|_ if _reg != _|_ {
+		let _p = "\(_reg)-\(v.config.environmentType)-\(_platformSuffix[_plat])"
+		if !regexp.Match("^\(_p)(-[a-z0-9]+)?$", tn) {
+			targets: (tn): error("name must be <region>-<env>-<platform>[-<qualifier>]: expected \(_p)[-<qualifier>]")
+		}
+	}
 }
 
 // pre-dir layout targets/<t>.yml: inputs.sh still passes them so they fail loudly

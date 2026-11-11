@@ -1,14 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
-    "Environment": {
-      "description": "Platform-owned. Team targets may only point at clusters listed here,\nand only with an environment the cluster accepts.",
+    "EnvironmentType": {
+      "description": "Platform-owned. Team targets may only point at clusters listed here,\nand only with an environment type the cluster accepts.",
       "enum": [
         "dev",
-        "staging",
-        "perf",
-        "prod"
+        "npr",
+        "prd"
       ]
+    },
+    "Name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$"
     }
   },
   "type": "object",
@@ -45,17 +48,25 @@
             {
               "anyOf": [
                 {
-                  "const": "us"
+                  "const": "us-east4"
                 },
                 {
-                  "const": "onprem"
+                  "const": "dc1"
                 }
               ]
             }
           ]
         },
         "environment": {
-          "$ref": "#/$defs/Environment"
+          "description": "free name (namespaces, labels); the type drives policy",
+          "$ref": "#/$defs/Name"
+        },
+        "environmentType": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvironmentType"
+            }
+          ]
         },
         "namespace": {
           "type": "string",
@@ -68,6 +79,24 @@
             },
             {
               "const": "TERRAFORM"
+            }
+          ]
+        },
+        "region": {
+          "description": "TERRAFORM only: the GCP region (a K8S target's is its cluster's)",
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "const": "us-central1"
+                },
+                {
+                  "const": "us-east1"
+                },
+                {
+                  "const": "us-east4"
+                }
+              ]
             }
           ]
         },
@@ -131,7 +160,8 @@
       "required": [
         "auth",
         "billing",
-        "environment"
+        "environment",
+        "environmentType"
       ],
       "propertyNames": {
         "enum": [
@@ -139,11 +169,13 @@
           "billing",
           "cluster",
           "environment",
+          "environmentType",
           "namespace",
           "platform",
+          "region",
           "terraform"
         ],
-        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, namespace, platform, terraform"
+        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, environmentType, namespace, platform, region, terraform"
       }
     }
   },

@@ -8,11 +8,12 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "tf-dev": {
+          "us-east4-dev-tf": {
             "gcpProject": "team1-dev",
             "platform": "TERRAFORM",
             "environment": "dev",
-            "path": "apps/payments/infra/dev/tf-dev",
+            "environmentType": "dev",
+            "path": "apps/payments/infra/dev/us-east4-dev-tf",
             "deployWith": "gha"
           }
         }
@@ -24,11 +25,12 @@
         "autoPromote": false,
         "level": 2,
         "targets": {
-          "tf-prod": {
+          "us-east4-prd-tf": {
             "gcpProject": "team1-prod",
             "platform": "TERRAFORM",
             "environment": "prod",
-            "path": "apps/payments/infra/prod/tf-prod",
+            "environmentType": "prd",
+            "path": "apps/payments/infra/prod/us-east4-prd-tf",
             "deployWith": "gha"
           }
         }
@@ -52,20 +54,22 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "us-dev": {
-            "cluster": "us",
+          "us-east4-dev-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-dev",
             "platform": "K8S",
             "environment": "dev",
-            "path": "apps/payments/my-app/dev/us-dev",
+            "environmentType": "dev",
+            "path": "apps/payments/my-app/dev/us-east4-dev-k8s",
             "deployWith": "argocd"
           },
-          "onprem-dev": {
-            "cluster": "onprem",
+          "dc1-dev-k8s": {
+            "cluster": "dc1",
             "namespace": "payments-onprem-dev",
             "platform": "K8S",
             "environment": "dev",
-            "path": "apps/payments/my-app/dev/onprem-dev",
+            "environmentType": "dev",
+            "path": "apps/payments/my-app/dev/dc1-dev-k8s",
             "deployWith": "argocd"
           }
         }
@@ -77,20 +81,22 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-stg": {
-            "cluster": "us",
+          "us-east4-npr-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-stg",
             "platform": "K8S",
             "environment": "staging",
-            "path": "apps/payments/my-app/staging/us-stg",
+            "environmentType": "npr",
+            "path": "apps/payments/my-app/staging/us-east4-npr-k8s",
             "deployWith": "argocd"
           },
-          "onprem-stg": {
-            "cluster": "onprem",
+          "dc1-npr-k8s": {
+            "cluster": "dc1",
             "namespace": "payments-onprem-stg",
             "platform": "K8S",
             "environment": "staging",
-            "path": "apps/payments/my-app/staging/onprem-stg",
+            "environmentType": "npr",
+            "path": "apps/payments/my-app/staging/dc1-npr-k8s",
             "deployWith": "gha"
           }
         }
@@ -102,12 +108,13 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-perf": {
-            "cluster": "us",
+          "us-east4-npr-k8s-perf": {
+            "cluster": "us-east4",
             "namespace": "payments-us-perf",
             "platform": "K8S",
             "environment": "perf",
-            "path": "apps/payments/my-app/perf/us-perf",
+            "environmentType": "npr",
+            "path": "apps/payments/my-app/perf/us-east4-npr-k8s-perf",
             "deployWith": "argocd"
           }
         }
@@ -120,20 +127,22 @@
         "autoPromote": false,
         "level": 2,
         "targets": {
-          "us-prod": {
-            "cluster": "us",
+          "us-east4-prd-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-prod",
             "platform": "K8S",
             "environment": "prod",
-            "path": "apps/payments/my-app/prod/us-prod",
+            "environmentType": "prd",
+            "path": "apps/payments/my-app/prod/us-east4-prd-k8s",
             "deployWith": "argocd"
           },
-          "onprem-prod": {
-            "cluster": "onprem",
+          "dc1-prd-k8s": {
+            "cluster": "dc1",
             "namespace": "payments-onprem-prod",
             "platform": "K8S",
             "environment": "prod",
-            "path": "apps/payments/my-app/prod/onprem-prod",
+            "environmentType": "prd",
+            "path": "apps/payments/my-app/prod/dc1-prd-k8s",
             "deployWith": "argocd"
           }
         }
@@ -161,12 +170,13 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "us-dev": {
-            "cluster": "us",
+          "us-east4-dev-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-dev",
             "platform": "K8S",
             "environment": "dev",
-            "path": "apps/payments/payments/dev/us-dev",
+            "environmentType": "dev",
+            "path": "apps/payments/payments/dev/us-east4-dev-k8s",
             "deployWith": "argocd"
           }
         }
@@ -178,12 +188,13 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-stg": {
-            "cluster": "us",
+          "us-east4-npr-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-stg",
             "platform": "K8S",
             "environment": "staging",
-            "path": "apps/payments/payments/staging/us-stg",
+            "environmentType": "npr",
+            "path": "apps/payments/payments/staging/us-east4-npr-k8s",
             "deployWith": "argocd"
           }
         }
@@ -195,12 +206,13 @@
         "autoPromote": false,
         "level": 2,
         "targets": {
-          "us-prod": {
-            "cluster": "us",
+          "us-east4-prd-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-prod",
             "platform": "K8S",
             "environment": "prod",
-            "path": "apps/payments/payments/prod/us-prod",
+            "environmentType": "prd",
+            "path": "apps/payments/payments/prod/us-east4-prd-k8s",
             "deployWith": "argocd"
           }
         }
@@ -227,12 +239,13 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "us-dev": {
-            "cluster": "us",
+          "us-east4-dev-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-dev",
             "platform": "K8S",
             "environment": "dev",
-            "path": "apps/payments/worker/dev/us-dev",
+            "environmentType": "dev",
+            "path": "apps/payments/worker/dev/us-east4-dev-k8s",
             "deployWith": "gha"
           }
         }
@@ -244,12 +257,13 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-stg": {
-            "cluster": "us",
+          "us-east4-npr-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-stg",
             "platform": "K8S",
             "environment": "staging",
-            "path": "apps/payments/worker/staging/us-stg",
+            "environmentType": "npr",
+            "path": "apps/payments/worker/staging/us-east4-npr-k8s",
             "deployWith": "argocd"
           }
         }
@@ -261,12 +275,13 @@
         "autoPromote": false,
         "level": 2,
         "targets": {
-          "us-prod": {
-            "cluster": "us",
+          "us-east4-prd-k8s": {
+            "cluster": "us-east4",
             "namespace": "payments-us-prod",
             "platform": "K8S",
             "environment": "prod",
-            "path": "apps/payments/worker/prod/us-prod",
+            "environmentType": "prd",
+            "path": "apps/payments/worker/prod/us-east4-prd-k8s",
             "deployWith": "argocd"
           }
         }

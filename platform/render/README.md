@@ -6,7 +6,7 @@ Lives in the gitops monorepo; teams never edit it.
 | file | role |
 |---|---|
 | `input.cue` | tags (`capability`, `repo`), routes YAML by path into `stages` / `targets` / `apps` / owners / `teams` |
-| `clusters.cue` | **platform-owned** cluster registry + per-environment policy |
+| `clusters.cue` | **platform-owned** cluster registry + per-environment-type policy |
 | `team.cue` | `#Stage`, `#Target`, DAG depth (cycle detection) |
 | `app.cue` | `#App`, layered merge app → stage → target → `deploys` |
 | `pipeline.cue` | neutral per-app promotion graph (`pipelines/<cap>.json`) for Kargo / Temporal |
@@ -22,8 +22,9 @@ owners.yml                codeOwners: [team, ..], promoters: {<stage>: [email, .
                           breakGlass: [email, ..], apps: {<app>: {codeOwners?, promoters?, viewers?}}
 ../../teams/<team>.yml    githubTeam
 stages/<stage>.yml        dependsOn: [..], autoPromote: bool
-targets/<t>/target.yml    config: {platform (K8S|TERRAFORM), environment, auth.wifEmail, billing,
-                          K8S: cluster, namespace; TERRAFORM: terraform.{gcpProject, backend.{bucket, prefix}}}
+targets/<t>/target.yml    config: {platform (K8S|TERRAFORM), environmentType (dev|npr|prd), auth.wifEmail, billing,
+                          K8S: cluster, namespace; TERRAFORM: region, terraform.{gcpProject, backend.{bucket, prefix}}}
+                          dir name: <region>-<env>-<platform>[-<qualifier>] (k8s|tf), ADR 0025
 targets/<t>/environment-variables/<name>.yml   KEY: value (flat)
 apps/<app>/app.yml        image (repo only), imageConstraint, port, replicas, env, envFrom, resources, stages.<s>.targets.<t>
                           terraform app (ADR 0021): module (OCI repo) + moduleConstraint instead of image; env, envFrom,
@@ -59,7 +60,7 @@ and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availab
   `platform/render/schemas/*.json` by relative path, so any editor works with no local tooling.
 - **CI** — `mise run lint` (platform/render/scripts/lint.sh <root> <cap>): `cue vet -c -E` over the capability's files (+ `teams/`), as `file:line:col: message`
   (PR annotations). CUE paths without a YAML position are mapped back with yq. Linux CI only. Custom messages come from `error("...")` in the CUE (unknown stage/target/cluster,
-  env/cluster mismatch, prod replicas). An app's computed checks (e.g. prod replicas) appear once its structural errors are fixed.
+  environment type/cluster mismatch, prod replicas). An app's computed checks (e.g. prod replicas) appear once its structural errors are fixed.
 
 ## Dev loop
 `mise run test` (vet + render testdata/root (capability payments) + golden diff), `UPDATE=1 mise run test` to accept.

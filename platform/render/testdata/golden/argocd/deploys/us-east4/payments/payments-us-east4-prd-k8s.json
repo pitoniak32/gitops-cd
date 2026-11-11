@@ -1,0 +1,11 @@
+{
+  "appName": "payments-payments-us-east4-prd-k8s",
+  "capability": "payments",
+  "app": "payments",
+  "stage": "prod",
+  "target": "us-east4-prd-k8s",
+  "namespace": "payments-us-prod",
+  "branch": "env/payments/payments/us-east4-prd-k8s",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-payments:payments-us-east4-prd-k8s"
+}

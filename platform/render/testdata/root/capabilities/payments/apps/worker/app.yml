@@ -3,12 +3,12 @@ image: ghcr.io/pitoniak32/nginx
 stages:
   dev:
     targets:
-      us-dev: {}
+      us-east4-dev-k8s: {}
     deployWith: gha
   staging:
     targets:
-      us-stg: {}
+      us-east4-npr-k8s: {}
   prod:
     replicas: 3
     targets:
-      us-prod: {}
+      us-east4-prd-k8s: {}

@@ -41,41 +41,41 @@
       }
     },
     {
-      "clientId": "argocd-onprem",
-      "name": "Argo CD (onprem)",
+      "clientId": "argocd-dc1",
+      "name": "Argo CD (dc1)",
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
-        "https://argocd-onprem.localhost/pkce/verify",
-        "https://argocd-onprem.localhost/auth/callback",
+        "https://argocd-dc1.localhost/pkce/verify",
+        "https://argocd-dc1.localhost/auth/callback",
         "http://localhost:8085/auth/callback"
       ],
       "webOrigins": [
-        "https://argocd-onprem.localhost"
+        "https://argocd-dc1.localhost"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://argocd-onprem.localhost/*"
+        "post.logout.redirect.uris": "https://argocd-dc1.localhost/*"
       }
     },
     {
-      "clientId": "argocd-us",
-      "name": "Argo CD (us)",
+      "clientId": "argocd-us-east4",
+      "name": "Argo CD (us-east4)",
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
-        "https://argocd-us.localhost/pkce/verify",
-        "https://argocd-us.localhost/auth/callback",
+        "https://argocd-us-east4.localhost/pkce/verify",
+        "https://argocd-us-east4.localhost/auth/callback",
         "http://localhost:8085/auth/callback"
       ],
       "webOrigins": [
-        "https://argocd-us.localhost"
+        "https://argocd-us-east4.localhost"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://argocd-us.localhost/*"
+        "post.logout.redirect.uris": "https://argocd-us-east4.localhost/*"
       }
     }
   ],

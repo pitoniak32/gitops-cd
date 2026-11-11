@@ -25,6 +25,7 @@ manifests: {for key, d in deploys if d.kind == "k8s" {
 			"example.com/stage":            d.stage
 			"example.com/target":           d.target
 			"example.com/environment":      d.tgt.environment
+			"example.com/environment-type": d.tgt.environmentType
 			"example.com/billing":          d.tgt.billing
 		}
 		let meta = {name: appName, namespace: d.tgt.namespace, labels: podLabels}
