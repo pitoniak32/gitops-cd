@@ -14,7 +14,7 @@ diff -ru testdata/golden "$tmp"; echo "golden ok"
 echo "regions ok"
 # kind: one AppProject per capability; no secret store -> no ExternalSecrets / secret env refs
 yq -e 'select(.kind == "AppProject" and .metadata.name == "payments")' "$tmp/argocd/projects/us-east4/payments.yaml" >/dev/null || { echo "missing AppProject payments" >&2; exit 1; }
-if grep -rqE 'ExternalSecret|secretKeyRef' "$tmp/apps/"; then echo "secret refs rendered for a cluster without a secret store" >&2; exit 1; fi
+if grep -rqE 'ExternalSecret|secretKeyRef' "$tmp/apps/" --exclude=service.yaml; then echo "secret refs rendered for a cluster without a secret store" >&2; exit 1; fi
 grep -rq "APP_SECRET" testdata/root/capabilities/payments/apps/my-app/app.yml || { echo "fixture lost its secret: env value" >&2; exit 1; }
 # Argo CD dry-runs all resources first: the project namespace must be rendered (labeled for Kargo
 # to adopt), not left for Kargo to create from the Project
@@ -73,7 +73,7 @@ for n in my-app-dev my-app-dev-done my-app-prod my-app-staging; do
   [[ "$(yq "select(.kind==\"Stage\" and .metadata.name==\"$n\") | .metadata.labels.\"example.com/kind\" + \" \" + (.spec | has(\"promotionTemplate\") | tostring) + \" \" + (.spec.shard // \"-\")" "$k")" == "control-flow false -" ]] || { echo "$n must be control-flow: no steps, no shard" >&2; exit 1; }
 done
 [[ "$(yq 'select(.kind=="Stage" and .metadata.name=="my-app-dev-done") | .metadata.labels."example.com/stage"' "$k") $(yq 'select(.kind=="Stage" and .metadata.name=="my-app-staging") | .metadata.labels."example.com/stage"' "$k")" == "dev staging" ]] || { echo "control-flow stage labels" >&2; exit 1; }
-[[ "$(yq 'select(.kind=="ProjectConfig") | .spec.promotionPolicies[] | .stageSelector.name' "$k" | sort | paste -sd' ' -)" == "infra-us-east4-dev-tf my-app-dc1-dev-k8s my-app-dev my-app-dev-done my-app-prod my-app-staging my-app-us-east4-dev-k8s payments-us-east4-dev-k8s worker-us-east4-dev-k8s" ]] || { echo "auto-promotion: every control-flow Stage + targets of autoPromote stages only" >&2; exit 1; }
+[[ "$(yq 'select(.kind=="ProjectConfig") | .spec.promotionPolicies[] | .stageSelector.name' "$k" | sort | paste -sd' ' -)" == "infra-us-east4-dev-tf my-app-dc1-dev-k8s my-app-dev my-app-dev-done my-app-prod my-app-staging my-app-us-east4-dev-k8s payments-us-east4-dev-k8s web-us-east4-dev-k8s worker-us-east4-dev-k8s" ]] || { echo "auto-promotion: every control-flow Stage + targets of autoPromote stages only" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker-dev") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-east4-dev-k8s" ]] || { echo "promote-worker-dev resourceNames" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker-staging") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-east4-npr-k8s" ]] || { echo "promote-worker-staging resourceNames" >&2; exit 1; }
 [[ "$(yq 'select(.kind == "Role" and .metadata.name == "promote-worker-prod") | .rules[0].resourceNames | join(",")' "$k")" == "worker-us-east4-prd-k8s" ]] || { echo "promote-worker-prod resourceNames" >&2; exit 1; }
@@ -91,7 +91,7 @@ d="$tmp/argocd/deploys/dc1/payments/my-app-dc1-prd-k8s.json"
 [[ "$(yq 'select(.kind == "Stage") | .metadata.name + "=" + (.spec.shard // "-")' "$k" | grep '^my-app-' | sort | paste -sd' ' -)" == "my-app-dc1-dev-k8s=dc1 my-app-dc1-npr-k8s=dc1 my-app-dc1-prd-k8s=dc1 my-app-dev-done=- my-app-dev=- my-app-prod=- my-app-staging=- my-app-us-east4-dev-k8s=us-east4 my-app-us-east4-npr-k8s-perf=us-east4 my-app-us-east4-npr-k8s=us-east4 my-app-us-east4-prd-k8s=us-east4" ]] || { echo "shard must be set on target Stages only, from the target's cluster region" >&2; exit 1; }
 if yq -e 'select(.kind == "Warehouse") | .spec.shard' "$k" >/dev/null 2>&1; then echo "Warehouses must not be sharded" >&2; exit 1; fi
 # Argo CD output is per region; destination is the regional Argo CD's own cluster
-[[ "$(cd "$tmp/argocd" && find . -type f ! -name .keep | sort | paste -sd' ' -)" == "./deploys/dc1/payments/my-app-dc1-dev-k8s.json ./deploys/dc1/payments/my-app-dc1-prd-k8s.json ./deploys/us-east4/payments/my-app-us-east4-dev-k8s.json ./deploys/us-east4/payments/my-app-us-east4-npr-k8s-perf.json ./deploys/us-east4/payments/my-app-us-east4-npr-k8s.json ./deploys/us-east4/payments/my-app-us-east4-prd-k8s.json ./deploys/us-east4/payments/payments-us-east4-dev-k8s.json ./deploys/us-east4/payments/payments-us-east4-npr-k8s.json ./deploys/us-east4/payments/payments-us-east4-prd-k8s.json ./deploys/us-east4/payments/worker-us-east4-npr-k8s.json ./deploys/us-east4/payments/worker-us-east4-prd-k8s.json ./deploys/us-east4/search/api-us-east4-dev-k8s.json ./projects/dc1/payments.yaml ./projects/us-east4/payments.yaml ./projects/us-east4/search.yaml" ]] || { echo "argocd output must be per region: deploys/<r>/<cap>/ + projects/<r>/<cap>.yaml" >&2; exit 1; }
+[[ "$(cd "$tmp/argocd" && find . -type f ! -name .keep | sort | paste -sd' ' -)" == "./deploys/dc1/payments/my-app-dc1-dev-k8s.json ./deploys/dc1/payments/my-app-dc1-prd-k8s.json ./deploys/us-east4/payments/my-app-us-east4-dev-k8s.json ./deploys/us-east4/payments/my-app-us-east4-npr-k8s-perf.json ./deploys/us-east4/payments/my-app-us-east4-npr-k8s.json ./deploys/us-east4/payments/my-app-us-east4-prd-k8s.json ./deploys/us-east4/payments/payments-us-east4-dev-k8s.json ./deploys/us-east4/payments/payments-us-east4-npr-k8s.json ./deploys/us-east4/payments/payments-us-east4-prd-k8s.json ./deploys/us-east4/payments/web-us-east4-dev-k8s.json ./deploys/us-east4/payments/worker-us-east4-npr-k8s.json ./deploys/us-east4/payments/worker-us-east4-prd-k8s.json ./deploys/us-east4/search/api-us-east4-dev-k8s.json ./projects/dc1/payments.yaml ./projects/us-east4/payments.yaml ./projects/us-east4/search.yaml" ]] || { echo "argocd output must be per region: deploys/<r>/<cap>/ + projects/<r>/<cap>.yaml" >&2; exit 1; }
 if grep -rq 'kind: Application$' "$tmp/argocd"; then echo "renderer must not emit Applications (workloads AppSet does)" >&2; exit 1; fi
 [[ "$(yq 'select(.kind == "AppProject") | .spec.destinations[] | .name + "/" + .namespace' "$tmp/argocd/projects/dc1/payments.yaml" | paste -sd' ' -)" == "in-cluster/payments-onprem-dev in-cluster/payments-onprem-prod" ]] || { echo "onprem AppProject must list only onprem destinations" >&2; exit 1; }
 if grep -l dc1 "$tmp"/argocd/deploys/us-east4/*/*.json >/dev/null 2>&1; then echo "us-east4 deploys contain dc1 targets" >&2; exit 1; fi
@@ -146,12 +146,39 @@ if st infra-us-east4-dev-tf "$d1 | .config.body" | grep -qF "'image':"; then ech
 st infra-us-east4-dev-tf '.spec.promotionTemplate.spec.steps[] | select(.uses == "git-commit") | .config.message' | grep -qF ', module ${{ imageFrom(vars.image).Tag }}' || { echo "commit message names module tag (kargo-restore parses it)" >&2; exit 1; }
 [[ "$(st infra-us-east4-dev-tf "$w1 | .retry.timeout") $(st worker-us-east4-dev-k8s "$w1 | .retry.timeout")" == "60m 30m" ]] || { echo "wait timeout terraform 60m, k8s 30m" >&2; exit 1; }
 echo "terraform kargo ok"
+# Cloud Run image apps (ADR 0024): service.yaml, gha Stage on the hub, no Argo CD for the CLOUD_RUN target
+cr="$tmp/apps/payments/web/staging/us-east4-npr-cr"
+[[ "$(ls "$cr")" == "service.yaml" ]] || { echo "CLOUD_RUN target renders only service.yaml: $(ls "$cr")" >&2; exit 1; }
+[[ "$(yq '.kind + " " + .apiVersion + " " + .metadata.namespace + " " + .metadata.labels."cloud.googleapis.com/location"' "$cr/service.yaml")" == "Service serving.knative.dev/v1 acme-payments-npr us-east4" ]] || { echo "service.yaml header + location label" >&2; exit 1; }
+[[ "$(yq '.metadata.annotations // "none"' "$cr/service.yaml")" == "none" ]] || { echo "service.yaml: no run.googleapis.com/location annotation" >&2; exit 1; }
+[[ "$(yq -o=json -I=0 '.spec.template.metadata.labels' "$cr/service.yaml")" == '{"app":"web","managed-by":"cue-platform","capability":"payments","stage":"staging","target":"us-east4-npr-cr","environment":"staging","environment-type":"npr","billing":"payments"}' ]] || { echo "service.yaml template labels (GCP-safe keys)" >&2; exit 1; }
+[[ "$(yq '[.metadata.labels, .spec.template.metadata.labels] | .[] | keys | .[] | select(test("^[a-z0-9_.-]+$") | not) | . ' "$cr/service.yaml" | grep -v '^cloud.googleapis.com/location$' || true)" == "" ]] || { echo "service.yaml label keys must be GCP-safe" >&2; exit 1; }
+[[ "$(yq '.spec.template.metadata.annotations."autoscaling.knative.dev/minScale" + " " + (.spec.template.spec.containers[0].ports[0].containerPort|tostring) + " " + .spec.template.spec.containers[0].image' "$cr/service.yaml")" == "0 8080 ghcr.io/example/web" ]] || { echo "service.yaml minScale 0 / port 8080 / image repo" >&2; exit 1; }
+[[ "$(yq -o=json -I=0 '.spec.template.spec.containers[0].resources' "$cr/service.yaml")" == '{"limits":{"cpu":"1","memory":"512Mi"}}' ]] || { echo "CLOUD_RUN default cpu 1 / memory 512Mi" >&2; exit 1; }
+[[ "$(yq '.spec.template.spec.containerConcurrency // "absent"' "$cr/service.yaml")" == "absent" ]] || { echo "no containerConcurrency at 1 vCPU" >&2; exit 1; }
+[[ "$(yq '.spec.template.metadata.annotations."run.googleapis.com/secrets"' "$cr/service.yaml")" == "acme-secrets-web-api-key:projects/acme-secrets/secrets/web-api-key" ]] || { echo "service.yaml secrets alias annotation (cross-project only)" >&2; exit 1; }
+[[ "$(yq -o=json -I=0 '.spec.template.spec.containers[0].env' "$cr/service.yaml")" == '[{"name":"API_KEY","valueFrom":{"secretKeyRef":{"name":"acme-secrets-web-api-key","key":"latest"}}},{"name":"DB_PASS","valueFrom":{"secretKeyRef":{"name":"db_pass","key":"3"}}},{"name":"GREETING","value":"hello"}]' ]] || { echo "service.yaml env (cross-project alias, same-project direct name + version, sorted)" >&2; exit 1; }
+# below 1 vCPU Cloud Run needs containerConcurrency 1
+c="$(mktemp -d)"; cp -R testdata/root/. "$c/"
+yq -i '.stages.staging.targets.us-east4-npr-cr.resources.cpu = "500m"' "$c/capabilities/payments/apps/web/app.yml"
+o="$(mktemp -d)"; scripts/render.sh "$c" payments "$o" >/dev/null
+[[ "$(yq '.spec.template.spec.containerConcurrency + " " + .spec.template.spec.containers[0].resources.limits.cpu' "$o/apps/payments/web/staging/us-east4-npr-cr/service.yaml")" == "1 500m" ]] || { echo "cpu 500m must set containerConcurrency 1" >&2; exit 1; }
+rm -rf "$c" "$o"
+[[ "$(st web-us-east4-npr-cr '(.spec.shard // "-") + " " + .metadata.labels."example.com/platform" + " " + .metadata.labels."example.com/deploy-with"')" == "- cloudrun gha" ]] || { echo "web-us-east4-npr-cr: no shard, cloudrun, gha" >&2; exit 1; }
+[[ "$(st web-us-east4-npr-cr '.spec.promotionTemplate.spec.steps[] | select(.uses == "yaml-update") | .config.path + " " + .config.updates[0].key')" == "./out/service.yaml spec.template.spec.containers.0.image" ]] || { echo "cloud run yaml-update" >&2; exit 1; }
+[[ "$(st web-us-east4-npr-cr '.spec.promotionTemplate.spec.vars[] | select(.name == "workflowFile") | .value')" == "cloud-run.yaml" ]] || { echo "cloud run workflow default" >&2; exit 1; }
+[[ "$(st web-us-east4-npr-cr "$w1 | .retry.timeout")" == "30m" ]] || { echo "cloud run wait timeout 30m" >&2; exit 1; }
+[[ "$(st web-us-east4-dev-k8s '.metadata.labels."example.com/platform" + " " + .metadata.labels."example.com/deploy-with" + " " + ([.spec.promotionTemplate.spec.steps[].uses] | .[-1])')" == "k8s argocd argocd-update" ]] || { echo "web K8S stage stays argocd" >&2; exit 1; }
+[[ -f "$tmp/argocd/deploys/us-east4/payments/web-us-east4-dev-k8s.json" ]] || { echo "web K8S target needs Argo CD params" >&2; exit 1; }
+if ls "$tmp"/argocd/deploys/*/payments/web-us-east4-npr-cr.json >/dev/null 2>&1; then echo "CLOUD_RUN targets must not get Argo CD params" >&2; exit 1; fi
+[[ "$(yq 'select(.kind=="Warehouse") | .metadata.name' "$k" | grep -cx web)" == 1 ]] || { echo "mixed app needs exactly one Warehouse" >&2; exit 1; }
+echo "cloud run render ok"
 # ADR 0022: Warehouses watch the rendered branch, not main
 [[ "$(yq 'select(.kind=="Warehouse") | .spec.subscriptions[0].git.branch' "$k" "$s" | grep -v '^---$' | sort -u)" == "rendered" ]] || { echo "Warehouse git branch must be rendered" >&2; exit 1; }
 echo "rendered branch ok"
 # editor schema (generic export) accepts both platforms: nothing platform-specific is required
 [[ "$(jq -c '.properties.config.required' schemas/target.json)" == '["auth","billing","environment","environmentType"]' ]] || { echo "target.json config.required: $(jq -c '.properties.config.required' schemas/target.json)" >&2; exit 1; }
-[[ "$(jq -c '.properties.config.properties.terraform.properties | keys' schemas/target.json)" == '["backend","gcpProject"]' ]] || { echo "target.json must describe terraform" >&2; exit 1; }
+[[ "$(jq -c '.properties.config.properties | [has("gcpProject"), has("backend"), has("terraform")]' schemas/target.json)" == '[true,true,false]' ]] || { echo "target.json must describe flat gcpProject/backend" >&2; exit 1; }
 echo "target schema ok"
 # deployWith/workflow resolve per field, target > stage > app > default
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
@@ -187,6 +214,24 @@ while IFS=$'\t' read -r file expr want; do
   grep -qE "$want" <<<"$got" || { printf 'lint case FAILED: %s %s\nwant: %s\ngot:\n%s\n' "$file" "$expr" "$want" "$got" >&2; exit 1; }
   echo "lint case ok: $expr"
 done < testdata/lint-cases.tsv
+
+# A forbidden field is reported by its "not allowed" line only: first line, no spurious pattern lines
+# (<file> <expr> <first-line ERE> <ERE that must NOT appear>)
+nospur() {
+  c="$(mktemp -d)"; cp -R testdata/root/. "$c/"
+  yq -i "$2" "$c/$1"
+  got="$(scripts/lint.sh "$c" payments || true)"; rm -rf "$c"
+  [[ "$(head -n1 <<<"$got")" =~ $3 ]] || { printf 'first lint line wrong: %s\nwant: %s\ngot:\n%s\n' "$2" "$3" "$got" >&2; exit 1; }
+  ! grep -qE 'expected a GCP project id|unknown region|unknown cluster' <<<"$got" || { printf 'spurious pattern line: %s\ngot:\n%s\n' "$2" "$got" >&2; exit 1; }
+  echo "no spurious lines: $2"
+}
+tg=capabilities/payments/targets
+nospur $tg/us-east4-dev-k8s/target.yml '.config.gcpProject = "acme-payments-dev"' 'gcpProject not allowed on a K8S target'
+nospur $tg/us-east4-dev-k8s/target.yml '.config.region = "us-east4"' 'region not allowed on a K8S target'
+nospur $tg/us-east4-npr-cr/target.yml '.config.cluster = "us-east4"' 'cluster not allowed on a CLOUD_RUN target'
+nospur $tg/us-east4-npr-cr/target.yml '.config.namespace = "payments"' 'namespace not allowed on a CLOUD_RUN target'
+nospur $tg/us-east4-dev-tf/target.yml '.config.cluster = "us-east4"' 'cluster not allowed on a TERRAFORM target'
+nospur $tg/us-east4-dev-tf/target.yml '.config.namespace = "payments"' 'namespace not allowed on a TERRAFORM target'
 
 # Every app overrides promoters: the capability-level promoter gets no promote role but still
 # views; stages/targets approvers (CODEOWNERS) are the apps' owners.
@@ -343,7 +388,7 @@ name_case() { # <from> <to> <want: ok | grep -E pattern>
   if [[ $3 == ok ]]; then
     [[ -z "$got" ]] || { printf 'name %s should pass:\n%s\n' "$2" "$got" >&2; exit 1; }
   else
-    ! grep -qE 'expected K8S or TERRAFORM|empty disjunction|invalid interpolation' <<<"$got" || { printf 'name %s: noisy output:\n%s\n' "$2" "$got" >&2; exit 1; }
+    ! grep -qE 'expected K8S, TERRAFORM or CLOUD_RUN|expected K8S or TERRAFORM|empty disjunction|invalid interpolation' <<<"$got" || { printf 'name %s: noisy output:\n%s\n' "$2" "$got" >&2; exit 1; }
     grep -qE "$3" <<<"$got" || { printf 'name %s not rejected as expected:\n%s\n' "$2" "$got" >&2; exit 1; }
   fi
   echo "target name ok: $2"
@@ -352,3 +397,6 @@ name_case us-east4-npr-k8s dc1-npr-k8s-x '^capabilities/payments/targets/dc1-npr
 name_case us-east4-npr-k8s us-east4-npr-k8sperf '^capabilities/payments/targets/us-east4-npr-k8sperf/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-k8s\[-<qualifier>\]'
 name_case us-east4-npr-k8s us-east4-npr-k8s- '^capabilities/payments/targets/us-east4-npr-k8s-/target\.yml:[0-9]+:[0-9]+: '
 name_case us-east4-npr-k8s us-east4-npr-k8s-blue ok
+name_case us-east4-npr-cr us-east4-npr-k8s-x '^capabilities/payments/targets/us-east4-npr-k8s-x/target\.yml:[0-9]+:[0-9]+: .*name must be <region>-<env>-<platform>\[-<qualifier>\]: expected us-east4-npr-cr\[-<qualifier>\]'
+name_case us-east4-npr-cr dc1-npr-cr '^capabilities/payments/targets/dc1-npr-cr/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-cr\[-<qualifier>\]'
+name_case us-east4-npr-cr us-east4-npr-cr-blue ok

@@ -230,6 +230,54 @@
       ]
     ]
   },
+  "web": {
+    "capability": "payments",
+    "app": "web",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "us-east4-dev-k8s": {
+            "cluster": "us-east4",
+            "namespace": "payments-us-dev",
+            "platform": "K8S",
+            "environment": "dev",
+            "environmentType": "dev",
+            "path": "apps/payments/web/dev/us-east4-dev-k8s",
+            "deployWith": "argocd"
+          }
+        }
+      },
+      "staging": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 1,
+        "targets": {
+          "us-east4-npr-cr": {
+            "gcpProject": "acme-payments-npr",
+            "region": "us-east4",
+            "platform": "CLOUD_RUN",
+            "environment": "staging",
+            "environmentType": "npr",
+            "path": "apps/payments/web/staging/us-east4-npr-cr",
+            "deployWith": "gha"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ],
+      [
+        "staging"
+      ]
+    ]
+  },
   "worker": {
     "capability": "payments",
     "app": "worker",

@@ -1,0 +1,11 @@
+{
+  "appName": "payments-web-us-east4-dev-k8s",
+  "capability": "payments",
+  "app": "web",
+  "stage": "dev",
+  "target": "us-east4-dev-k8s",
+  "namespace": "payments-us-dev",
+  "branch": "env/payments/web/us-east4-dev-k8s",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-payments:web-us-east4-dev-k8s"
+}

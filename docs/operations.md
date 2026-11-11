@@ -33,7 +33,7 @@ Kargo keeps "which Freight is current in each Stage" only in the hub's etcd, so 
 mise run kargo-restore            # all capabilities; or: mise run kargo-restore payments
 ```
 
-For each target Stage with no current Freight it reads the branch head (Kargo's commit message names the source commit; `deployment.yaml`, or `terraform.yaml` `module` for terraform apps, pins `<repo>:<tag>@<digest>`), recreates that Freight (same artifacts give the same Freight ID; the alias is new), approves it for the Stage and promotes it. The promotion re-copies identical manifests: no new commit, no rollout. Re-running is a no-op. Terraform targets (ADR 0021) are the exception: the promotion re-dispatches their workflow, which re-runs plan + apply.
+For each target Stage with no current Freight it reads the branch head (Kargo's commit message names the source commit; `deployment.yaml`, `service.yaml` for Cloud Run apps, or `terraform.yaml` `module` for terraform apps, pins `<repo>:<tag>@<digest>`), recreates that Freight (same artifacts give the same Freight ID; the alias is new), approves it for the Stage and promotes it. The promotion re-copies identical manifests: no new commit, no rollout. Re-running is a no-op. Terraform targets (ADR 0021) and Cloud Run targets (ADR 0024) are the exception: the promotion re-dispatches their workflow (`terraform.yaml` re-runs plan + apply; `cloud-run.yaml` re-runs the deploy), like any gha target.
 
 - **Skipped, with a reason**: targets never promoted (no branch), branches from before ADR 0016 (no pinned image), heads that aren't Kargo promotion commits. Promote fresh Freight to those normally; the next rebuild can restore them.
 - **Control-flow Stages** (`<app>-<stage>`, `<app>-<stage>-done`) stay empty until new Freight flows through; they auto-promote.
@@ -68,3 +68,5 @@ Renaming a target or region (ADR 0025) makes all its Kargo Stages, Argo CD apps 
    gh api -X DELETE repos/<owner>/<repo>/git/refs/heads/env/<cap>/<app>/<old-target>   # per old branch
    ```
 3. Promote again from the Warehouse (assemble new Freight; dev auto-promotes).
+
+**Moving a target between platforms** (e.g. K8S to CLOUD_RUN, ADR 0024): the old Argo CD Application is deleted but its workload stays (`preserveResourcesOnDeletion`), so delete the workload by hand. The old `env/<cap>/<app>/<old-target>` branch is orphaned: delete it (as above). Downstream Stages need the new Stage promoted before existing Freight can move on.

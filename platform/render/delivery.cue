@@ -32,6 +32,10 @@ _kargoAPI: "kargo.akuity.io/v1alpha1"
 // how long a gha run may take (terraform applies are slower)
 _artifactKey: {k8s: "image", terraform: "module"}
 _waitTimeout: {k8s: "30m", terraform: "60m"}
+// yaml-update target per platform: the file in the target folder and the key holding the artifact
+_pinFile: {K8S: "./out/deployment.yaml", TERRAFORM: "./out/terraform.yaml", CLOUD_RUN: "./out/service.yaml"}
+_pinKey: {K8S: "spec.template.spec.containers.0.image", TERRAFORM: "module", CLOUD_RUN: "spec.template.spec.containers.0.image"}
+_platformLabel: {K8S: "k8s", TERRAFORM: "terraform", CLOUD_RUN: "cloudrun"}
 
 // Kargo Stage names per app (graph.cue): target Stages <app>-<target> + control-flow Stages
 _tgtName: {#app: string, #target: string, out: "\(#app)-\(#target)"}
@@ -124,12 +128,12 @@ _kargoCore: [
 		metadata: {
 			name: (_tgtName & {#app: an, #target: tn}).out
 			namespace: _kargoProject
-			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn, "example.com/deploy-with": d.deployWith, "example.com/platform": d.kind}
+			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn, "example.com/deploy-with": d.deployWith, "example.com/platform": _platformLabel[d.tgt.platform]}
 			annotations: _stageAnnotations & {#app: an, #stage: sn}
 		}
 		spec: {
 			// the region's Kargo controller promotes it (control-flow Stages and Warehouses stay on the hub controller);
-			// terraform targets touch no cluster: hub controller too
+			// terraform and Cloud Run targets touch no cluster: hub controller too
 			if targets[tn].config.platform == "K8S" {shard: clusters[targets[tn].config.cluster].region}
 			requestedFreight: [_freightRequest & {#app: an, #node: _graph[an][(_tgtName & {#app: an, #target: tn}).out]}]
 			promotionTemplate: spec: {
@@ -154,9 +158,9 @@ _kargoCore: [
 					{uses: "copy", config: {inPath: "${{ vars.src }}", outPath: "./out/"}},
 					// plain YAML on the branch (no kustomize); the tag is informational, the digest pins
 					{uses: "yaml-update", config: {
-						path: [if d.kind == "terraform" {"./out/terraform.yaml"}, "./out/deployment.yaml"][0]
+						path: _pinFile[d.tgt.platform]
 						updates: [{
-							key: [if d.kind == "terraform" {"module"}, "spec.template.spec.containers.0.image"][0]
+							key:   _pinKey[d.tgt.platform]
 							value: "${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}"
 						}]
 					}},

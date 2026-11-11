@@ -115,7 +115,9 @@ from `.github/CODEOWNERS.tmpl` + `owners.yml` by `mise run codeowners`; commit i
    the image digest in its `deployment.yaml`, and Argo CD syncs it from there (ADR 0012), or, for
    `deployWith: gha` targets, Kargo dispatches a GitHub Actions workflow and waits for it (ADR 0020). Terraform
    apps (`module:` instead of `image:`, TERRAFORM targets) render `terraform.yaml`, pin the module digest in it
-   and always dispatch `.github/workflows/terraform.yaml` (plan + apply; ADR 0021). Control-flow
+   and always dispatch `.github/workflows/terraform.yaml` (plan + apply; ADR 0021). Image apps may also
+   have CLOUD_RUN targets: they render a Knative `service.yaml`, pin the image digest in it and always dispatch
+   `.github/workflows/cloud-run.yaml`; no Argo CD, no shard (ADR 0024). Control-flow
    Stages (no steps, always auto) appear only where they help (ADR 0019): `<app>-<S>-done` where
    several targets fan out to several, `<app>-<D>` where several fan into a multi-target stage or a stage
    needs a one-click release. To release a whole stage, use **Promote to downstream** on its `<app>-<D>`

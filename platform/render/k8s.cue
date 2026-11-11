@@ -10,8 +10,8 @@ import (
 
 _secretRe: "^secret:([^/]+)/([^@]+)(?:@(.+))?$"
 
-// k8s objects per (app, target)
-manifests: {for key, d in deploys if d.kind == "k8s" {
+// k8s objects per (app, K8S target); CLOUD_RUN image apps render service.yaml (cloudrun.cue)
+manifests: {for key, d in deploys if d.kind == "k8s" if d.tgt.platform == "K8S" {
 	(key): {
 		app:    d.app
 		stage:  d.stage

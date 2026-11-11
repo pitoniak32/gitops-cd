@@ -1,0 +1,8 @@
+config:
+  platform: CLOUD_RUN
+  environment: staging
+  environmentType: npr
+  auth: {wifEmail: deployer@acme-payments-npr.iam.gserviceaccount.com}
+  billing: payments
+  gcpProject: acme-payments-npr
+  region: us-east4
