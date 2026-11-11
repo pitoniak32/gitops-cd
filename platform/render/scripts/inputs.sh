@@ -1,4 +1,4 @@
-# Sourced by render.sh / lint.sh. cue_args <root> <cap> fills CUE_ARGS with the
+# Sourced by lint.sh. cue_args <root> <cap> fills CUE_ARGS with the
 # capability's YAML (+ teams/) and the flags that route each file to
 # in."<path relative to root>" (input.cue sorts them into stages/targets/apps/...).
 cue_args() {

@@ -7,7 +7,7 @@ import (
 	"struct"
 )
 
-// Injected by scripts/render.sh.
+// Injected by `gcd render` (platform/cli/internal/cueload).
 capability: =~"^[a-z][a-z0-9-]{0,29}$" @tag(capability)
 // The gitops monorepo; generated output lives under renderedDir in it.
 repoURL:     *"https://github.com/pitoniak32/gitops-cd" | string @tag(repo)
@@ -22,7 +22,7 @@ generic: *false | bool @tag(generic,type=bool)
 _nameRe: "^[a-z][a-z0-9-]{0,39}$"
 #Name:   =~_nameRe
 
-// YAML is routed here by render.sh as in."<path relative to repo root>":
+// YAML is routed here by `gcd render` as in."<path relative to repo root>":
 //   capabilities/<cap>/stages/dev.yml, .../targets/<t>/target.yml,
 //   .../targets/<t>/environment-variables/<name>.yml, .../apps/<app>/app.yml,
 //   capabilities/<cap>/owners.yml, teams/<team>.yml

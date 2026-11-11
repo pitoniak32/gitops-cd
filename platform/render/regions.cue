@@ -9,7 +9,7 @@ import (
 // `cue export clusters.cue regions.cue`, the full package needs a capability).
 _regions: list.SortStrings([for r, _ in {for _, c in clusters {(c.region): _}} {r}])
 
-// rendered/ paths (scripts/regions.sh): region list for hub-side AppSets (git files generator) and an
+// rendered/ paths (gcd render): region list for hub-side AppSets (git files generator) and an
 // AppProjects dir per region so each region's argocd-projects app has a path even without targets
 regionFiles: {
 	for r in _regions {
