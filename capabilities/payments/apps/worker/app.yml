@@ -5,11 +5,11 @@ stages:
   dev:
     deployWith: gha  # dev deploys via GitHub Actions (.github/workflows/deploy.yaml); staging, prod via Argo CD
     targets:
-      us-dev: {}
+      us-east4-dev-k8s: {}
   staging:
     targets:
-      us-stg: {}
+      us-east4-npr-k8s: {}
   prod:
     replicas: 3
     targets:
-      us-prod: {}
+      us-east4-prd-k8s: {}

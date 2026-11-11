@@ -1,0 +1,9 @@
+config:
+  cluster: us-east4
+  namespace: payments-us-prod
+  environment: prod
+  environmentType: prd
+  auth:
+    wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
+  billing: prod
+  platform: K8S

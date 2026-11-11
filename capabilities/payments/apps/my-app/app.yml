@@ -14,20 +14,20 @@ stages:
       STAGE_ENV: 'false'
     replicas: 1
     targets:
-      us-dev: {}
-      onprem-dev:
+      us-east4-dev-k8s: {}
+      dc1-dev-k8s:
         env:
           APP_ENV: 'false'
         replicas: 3
   staging:
     targets:
-      us-stg: {}
-      onprem-stg:
+      us-east4-npr-k8s: {}
+      dc1-npr-k8s:
         env:
           APP_SECRET: 'secret:acme-proj2/my-app-secret@3'
   perf:
     targets:
-      us-perf:
+      us-east4-npr-k8s-perf:
         env:
           DIFFERENT_SECRET: '/test@3'
   prod:
@@ -35,5 +35,5 @@ stages:
       cpu: 500m
       memory: 512Mi
     targets:
-      us-prod: {}
-      onprem-prod: {}
+      us-east4-prd-k8s: {}
+      dc1-prd-k8s: {}

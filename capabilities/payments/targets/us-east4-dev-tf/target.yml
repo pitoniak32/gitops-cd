@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
+# terraform target (ADR 0021): a GCP project + GCS state, applied by .github/workflows/terraform.yaml
+config:
+  platform: TERRAFORM
+  region: us-east4
+  environment: dev
+  environmentType: dev
+  auth:
+    wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
+  billing: dev
+  terraform:
+    gcpProject: team1-dev
+    backend:
+      bucket: tfstate-team1-dev  # prefix defaults to payments/infra/us-east4-dev-tf

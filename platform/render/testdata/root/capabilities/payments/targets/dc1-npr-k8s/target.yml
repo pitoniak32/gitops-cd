@@ -1,0 +1,9 @@
+config:
+  cluster: dc1
+  namespace: payments-onprem-stg
+  environment: staging
+  environmentType: npr
+  auth:
+    wifEmail: team1-staging@team1-staging.iam.gserviceaccount.com
+  billing: nonprod
+  platform: K8S

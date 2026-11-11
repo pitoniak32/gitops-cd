@@ -1,0 +1,13 @@
+config:
+  platform: TERRAFORM
+  region: us-east4
+  environment: prod
+  environmentType: prd
+  auth:
+    wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
+  billing: prod
+  terraform:
+    gcpProject: team1-prod
+    backend:
+      bucket: tfstate-team1-prod
+      prefix: payments/custom

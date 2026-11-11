@@ -1,0 +1,14 @@
+capability: payments
+app: infra
+stage: prod
+target: us-east4-prd-tf
+environment: prod
+gcpProject: team1-prod
+region: us-east4
+wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
+backend:
+  bucket: tfstate-team1-prod
+  prefix: payments/custom
+module: ghcr.io/pitoniak32/tf-bucket
+env:
+  TF_VAR_region: us-east1

@@ -1,0 +1,9 @@
+config:
+  cluster: us-east4
+  namespace: payments-us-perf
+  environment: perf
+  environmentType: npr
+  auth:
+    wifEmail: team1-perf@team1-perf.iam.gserviceaccount.com
+  billing: nonprod
+  platform: K8S

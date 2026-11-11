@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
+config:
+  cluster: dc1
+  namespace: payments-onprem-prod
+  environment: prod
+  environmentType: prd
+  auth:
+    wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
+  billing: prod
+  platform: K8S

@@ -1,9 +1,0 @@
-# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
-config:
-  cluster: onprem
-  namespace: payments-onprem-dev
-  environment: dev
-  auth:
-    wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
-  billing: dev
-  platform: K8S
