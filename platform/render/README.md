@@ -18,8 +18,8 @@ Lives in the gitops monorepo; teams never edit it.
 
 ## Capability input (paths under the repo root)
 ```
-owners.yml                owners: [team, ..], promoters: [email, ..], viewers: [email, ..]
-                          (apps/<app>/owners.yml replaces each field it sets)
+owners.yml                codeOwners: [team, ..], promoters: {<stage>: [email, ..]}, viewers: [email, ..],
+                          breakGlass: [email, ..], apps: {<app>: {codeOwners?, promoters?, viewers?}}
 ../../teams/<team>.yml    githubTeam
 stages/<stage>.yml        dependsOn: [..], autoPromote: bool
 targets/<t>/target.yml    config: {platform (K8S|TERRAFORM), environment, auth.wifEmail, billing,

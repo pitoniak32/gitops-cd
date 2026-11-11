@@ -33,7 +33,7 @@ locate() {
       if ((${#segs[@]} > 2)); then LOC_FILE="$(yamlfile "$C/targets/${segs[1]}/environment-variables/${segs[2]}")"; n=3
       else LOC_FILE="$(cd "$ROOT" && ls "$C/targets/${segs[1]}"/environment-variables/*.y*ml | head -1)"; n=2; fi ;;
     capOwners) LOC_FILE="$(yamlfile "$C/owners")"; n=2 ;; # skip list index (0 or 1 file)
-    appOwners) LOC_FILE="$(yamlfile "$C/apps/${segs[1]}/owners")"; n=2 ;;
+    legacyAppOwners) LOC_FILE="$(yamlfile "$C/apps/${segs[1]}/owners")"; n=${#segs[@]} ;;
     teams) LOC_FILE="$(yamlfile "teams/${segs[1]}")"; n=2 ;;
     stageDepth) LOC_FILE="$(yamlfile "$C/stages/${segs[1]}")"; LOC_Q=".dependsOn"; LOC_LABEL="dependsOn"; n=${#segs[@]} ;;
     deploys) # "app/target": point at the target entry under its stage

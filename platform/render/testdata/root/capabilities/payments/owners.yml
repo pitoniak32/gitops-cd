@@ -1,5 +1,15 @@
 # yaml-language-server: $schema=../../render/schemas/owners.json
-owners: [team1]
-promoters: [doug@example.com]
+codeOwners: [team1]
+promoters:
+  dev: [doug@example.com]
+  staging: [doug@example.com]
+  perf: [doug@example.com]
+  prod: [doug@example.com]
 viewers: [bob@example.com]
 breakGlass: [carol@example.com]
+apps:
+  worker:
+    codeOwners: [team1, team2]
+    promoters:
+      dev: [alice@example.com, doug@example.com]
+      prod: [alice@example.com]

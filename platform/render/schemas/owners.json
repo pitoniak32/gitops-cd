@@ -1,6 +1,46 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
+    "AppOwners": {
+      "type": "object",
+      "description": "per-app overrides: each field set replaces the capability's (promoters: per stage)",
+      "properties": {
+        "codeOwners": {
+          "allOf": [
+            {
+              "prefixItems": [
+                true
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/TeamRef"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          ]
+        },
+        "promoters": {
+          "$ref": "#/$defs/Promoters"
+        },
+        "viewers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Email"
+          }
+        }
+      },
+      "propertyNames": {
+        "enum": [
+          "codeOwners",
+          "promoters",
+          "viewers"
+        ],
+        "errorMessage": "Unknown key. Allowed: codeOwners, promoters, viewers"
+      }
+    },
     "Email": {
       "anyOf": [
         {
@@ -10,11 +50,59 @@
           "patternErrorMessage": "Lowercase email in the allowed domain: example.com"
         }
       ]
+    },
+    "Promoters": {
+      "type": "object",
+      "description": "stage -> emails that may promote into it. Unknown stage names get a custom error.",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]{0,39}$": {
+          "description": "editor schema: minItems/uniqueItems",
+          "allOf": [
+            {
+              "type": "array",
+              "description": "editor schema: minItems/uniqueItems",
+              "prefixItems": [
+                true
+              ],
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Email"
+              }
+            }
+          ]
+        }
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{0,39}$",
+        "errorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$",
+        "patternErrorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$"
+      }
+    },
+    "TeamRef": {
+      "type": "string"
     }
   },
   "type": "object",
-  "description": "capabilities/<cap>/owners.yml (required: owners + promoters) and apps/<app>/owners.yml\n(optional; each field it sets replaces the capability's).",
+  "description": "capabilities/<cap>/owners.yml (required: codeOwners + promoters). One file per capability; apps\noverride codeOwners / promoters stages / viewers under `apps:` (ADR 0023).",
   "properties": {
+    "apps": {
+      "type": "object",
+      "description": "per-app overrides of codeOwners / promoters",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]{0,39}$": {
+          "$ref": "#/$defs/AppOwners"
+        }
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{0,39}$",
+        "errorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$",
+        "patternErrorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$"
+      }
+    },
     "breakGlass": {
       "description": "emails: break-glass. Can approve Freight that skipped upstream verification (Kargo's \"Manual\napproval required\" popup), then promote it. Reserved for critical promotions (ADR 0013).",
       "allOf": [
@@ -31,7 +119,7 @@
         }
       ]
     },
-    "owners": {
+    "codeOwners": {
       "description": "GitHub teams (teams/): approve the app's code changes (CODEOWNERS)\n\neditor schema: minItems/uniqueItems",
       "allOf": [
         {
@@ -47,32 +135,14 @@
           "type": "array",
           "description": "GitHub teams (teams/): approve the app's code changes (CODEOWNERS)",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/TeamRef"
           }
         }
       ]
     },
     "promoters": {
-      "description": "emails: promote the app to any stage (and approve Freight); can also view",
-      "allOf": [
-        {
-          "type": "array"
-        },
-        {
-          "prefixItems": [
-            true
-          ]
-        },
-        {
-          "type": "array",
-          "description": "emails: promote the app to any stage (and approve Freight); can also view",
-          "items": {
-            "$ref": "#/$defs/Email"
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        }
-      ]
+      "description": "stage -> emails: promote the app into that stage (and approve its Freight); can also view",
+      "$ref": "#/$defs/Promoters"
     },
     "viewers": {
       "description": "emails: read-only view of the capability in Kargo and Argo CD",
@@ -93,11 +163,12 @@
   },
   "propertyNames": {
     "enum": [
+      "apps",
       "breakGlass",
-      "owners",
+      "codeOwners",
       "promoters",
       "viewers"
     ],
-    "errorMessage": "Unknown key. Allowed: breakGlass, owners, promoters, viewers"
+    "errorMessage": "Unknown key. Allowed: apps, breakGlass, codeOwners, promoters, viewers"
   }
 }

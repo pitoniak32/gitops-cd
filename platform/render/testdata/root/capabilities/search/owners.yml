@@ -1,2 +1,2 @@
-owners: [team2]
-promoters: [alice@example.com]
+codeOwners: [team2]
+promoters: {dev: [alice@example.com]}

@@ -38,6 +38,6 @@ _ghTeams: {
 _codeowners: list.Concat([
 	["/capabilities/\(_cap)/ \((_ghTeams & {#in: _allOwners}).out)"],
 	[for an in list.SortStrings([for an, _ in apps {an}]) {
-		"/capabilities/\(_cap)/apps/\(an)/ \((_ghTeams & {#in: owners[an]}).out)"
+		"/capabilities/\(_cap)/apps/\(an)/ \((_ghTeams & {#in: codeOwners[an]}).out)"
 	}],
 ])
