@@ -23,37 +23,52 @@ for i, n in list.SortStrings(_stageNames) {
 }
 
 // platform suffix in target names (ADR 0025)
-_platformSuffix: {K8S: "k8s", TERRAFORM: "tf"}
+_platformSuffix: {K8S: "k8s", TERRAFORM: "tf", CLOUD_RUN: "cr"}
+
+// Field constraints, applied only where the platform allows the field (forbidden fields carry just their
+// "not allowed" error, so it's the only line printed); the generic editor schema applies all of them.
+
+_clusterC:    or(_clusterNames) | error("unknown cluster; allowed: \(strings.Join(_clusterNames, ", "))")
+_namespaceC:  =~"^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+_regionC:     or(_gcpRegions) | error("unknown region; allowed: \(strings.Join(_gcpRegions, ", "))")
+_gcpProjectC: =~"^[a-z][a-z0-9-]{4,28}[a-z0-9]$" | error("expected a GCP project id")
+_backendC: {
+	bucket!: =~"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$" | error("expected a GCS bucket name")
+	prefix?: =~"^[A-Za-z0-9._/-]+$" | error("expected a GCS object prefix")
+}
 
 // targets/<name>/target.yml — where a stage deploys. Reusable across apps.
 // Sibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.
 // platform K8S (default): a namespace in a platform cluster, deployed by Argo CD or a gha workflow.
 // platform TERRAFORM: a GCP project + GCS state backend, applied by a gha workflow (terraform apps only).
+// platform CLOUD_RUN: a GCP project + region, a Cloud Run service deployed by a gha workflow (image apps only).
 #Target: {
 	config: {
-		platform: *"K8S" | "TERRAFORM" | error("expected K8S or TERRAFORM")
+		platform: *"K8S" | "TERRAFORM" | "CLOUD_RUN" | error("expected K8S, TERRAFORM or CLOUD_RUN")
 		// free name (namespaces, labels); the type drives policy
 		environment:      #Name
 		environmentType!: #EnvironmentType | error("expected dev, npr or prd")
 		auth: wifEmail: =~"^[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com$"
 		billing: =~"^[a-z0-9-]+$"
-		// Constraints for both platforms here (the editor schema is exported generic, so it allows either);
-		// which fields are required or forbidden is per platform below.
-		cluster?:   or(_clusterNames) | error("unknown cluster; allowed: \(strings.Join(_clusterNames, ", "))")
-		namespace?: =~"^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
-		// TERRAFORM only: the GCP region (a K8S target's is its cluster's)
-		region?: or(_gcpRegions) | error("unknown region; allowed: \(strings.Join(_gcpRegions, ", "))")
-		// TERRAFORM only
-		gcpProject?: =~"^[a-z][a-z0-9-]{4,28}[a-z0-9]$" | error("expected a GCP project id")
-		// GCS state; prefix default <capability>/<app>/<target>
-		backend?: {
-			bucket!: =~"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$" | error("expected a GCS bucket name")
-			prefix?: =~"^[A-Za-z0-9._/-]+$" | error("expected a GCS object prefix")
+		// Which fields are required or forbidden is per platform. cluster, namespace: K8S only. region
+		// (the GCP region; a K8S target's is its cluster's), gcpProject: TERRAFORM and CLOUD_RUN.
+		// backend (GCS state; prefix default <capability>/<app>/<target>): TERRAFORM only.
+		cluster?:    _
+		namespace?:  _
+		region?:     _
+		gcpProject?: _
+		backend?:    _
+		if generic {
+			cluster?:    _clusterC
+			namespace?:  _namespaceC
+			region?:     _regionC
+			gcpProject?: _gcpProjectC
+			backend?:    _backendC
 		}
 		if !generic {
 			if platform == "K8S" {
-				cluster:   _
-				namespace: _
+				cluster:   _clusterC
+				namespace: _namespaceC
 				if clusters[cluster] != _|_ {
 					// the cluster must accept this environment type
 					environmentType: or(clusters[cluster].environmentTypes) | error("cluster \(cluster) accepts environment types: \(strings.Join(clusters[cluster].environmentTypes, ", "))")
@@ -63,11 +78,18 @@ _platformSuffix: {K8S: "k8s", TERRAFORM: "tf"}
 				backend?:    error("backend not allowed on a K8S target")
 			}
 			if platform == "TERRAFORM" {
-				gcpProject: _
-				backend:    _
-				region:     _
+				gcpProject: _gcpProjectC
+				backend:    _backendC
+				region:     _regionC
 				cluster?:   error("cluster not allowed on a TERRAFORM target")
 				namespace?: error("namespace not allowed on a TERRAFORM target")
+			}
+			if platform == "CLOUD_RUN" {
+				gcpProject: _gcpProjectC
+				region:     _regionC
+				cluster?:   error("cluster not allowed on a CLOUD_RUN target")
+				namespace?: error("namespace not allowed on a CLOUD_RUN target")
+				backend?:   error("backend not allowed on a CLOUD_RUN target")
 			}
 		}
 	}

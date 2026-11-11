@@ -188,6 +188,24 @@ while IFS=$'\t' read -r file expr want; do
   echo "lint case ok: $expr"
 done < testdata/lint-cases.tsv
 
+# A forbidden field is reported by its "not allowed" line only: first line, no spurious pattern lines
+# (<file> <expr> <first-line ERE> <ERE that must NOT appear>)
+nospur() {
+  c="$(mktemp -d)"; cp -R testdata/root/. "$c/"
+  yq -i "$2" "$c/$1"
+  got="$(scripts/lint.sh "$c" payments || true)"; rm -rf "$c"
+  [[ "$(head -n1 <<<"$got")" =~ $3 ]] || { printf 'first lint line wrong: %s\nwant: %s\ngot:\n%s\n' "$2" "$3" "$got" >&2; exit 1; }
+  ! grep -qE 'expected a GCP project id|unknown region|unknown cluster' <<<"$got" || { printf 'spurious pattern line: %s\ngot:\n%s\n' "$2" "$got" >&2; exit 1; }
+  echo "no spurious lines: $2"
+}
+tg=capabilities/payments/targets
+nospur $tg/us-east4-dev-k8s/target.yml '.config.gcpProject = "acme-payments-dev"' 'gcpProject not allowed on a K8S target'
+nospur $tg/us-east4-dev-k8s/target.yml '.config.region = "us-east4"' 'region not allowed on a K8S target'
+nospur $tg/us-east4-npr-cr/target.yml '.config.cluster = "us-east4"' 'cluster not allowed on a CLOUD_RUN target'
+nospur $tg/us-east4-npr-cr/target.yml '.config.namespace = "payments"' 'namespace not allowed on a CLOUD_RUN target'
+nospur $tg/us-east4-dev-tf/target.yml '.config.cluster = "us-east4"' 'cluster not allowed on a TERRAFORM target'
+nospur $tg/us-east4-dev-tf/target.yml '.config.namespace = "payments"' 'namespace not allowed on a TERRAFORM target'
+
 # Every app overrides promoters: the capability-level promoter gets no promote role but still
 # views; stages/targets approvers (CODEOWNERS) are the apps' owners.
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"
@@ -343,7 +361,7 @@ name_case() { # <from> <to> <want: ok | grep -E pattern>
   if [[ $3 == ok ]]; then
     [[ -z "$got" ]] || { printf 'name %s should pass:\n%s\n' "$2" "$got" >&2; exit 1; }
   else
-    ! grep -qE 'expected K8S or TERRAFORM|empty disjunction|invalid interpolation' <<<"$got" || { printf 'name %s: noisy output:\n%s\n' "$2" "$got" >&2; exit 1; }
+    ! grep -qE 'expected K8S, TERRAFORM or CLOUD_RUN|expected K8S or TERRAFORM|empty disjunction|invalid interpolation' <<<"$got" || { printf 'name %s: noisy output:\n%s\n' "$2" "$got" >&2; exit 1; }
     grep -qE "$3" <<<"$got" || { printf 'name %s not rejected as expected:\n%s\n' "$2" "$got" >&2; exit 1; }
   fi
   echo "target name ok: $2"
@@ -352,3 +370,6 @@ name_case us-east4-npr-k8s dc1-npr-k8s-x '^capabilities/payments/targets/dc1-npr
 name_case us-east4-npr-k8s us-east4-npr-k8sperf '^capabilities/payments/targets/us-east4-npr-k8sperf/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-k8s\[-<qualifier>\]'
 name_case us-east4-npr-k8s us-east4-npr-k8s- '^capabilities/payments/targets/us-east4-npr-k8s-/target\.yml:[0-9]+:[0-9]+: '
 name_case us-east4-npr-k8s us-east4-npr-k8s-blue ok
+name_case us-east4-npr-cr us-east4-npr-k8s-x '^capabilities/payments/targets/us-east4-npr-k8s-x/target\.yml:[0-9]+:[0-9]+: .*name must be <region>-<env>-<platform>\[-<qualifier>\]: expected us-east4-npr-cr\[-<qualifier>\]'
+name_case us-east4-npr-cr dc1-npr-cr '^capabilities/payments/targets/dc1-npr-cr/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-cr\[-<qualifier>\]'
+name_case us-east4-npr-cr us-east4-npr-cr-blue ok

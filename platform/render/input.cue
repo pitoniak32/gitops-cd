@@ -52,13 +52,13 @@ for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.target
 	targets: (tn): config: environmentType: error("expected dev, npr or prd")
 }
 
-// a TERRAFORM target needs a region (a K8S target's is its cluster's)
-for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform == "TERRAFORM" if v.config.region == _|_ {
-	targets: (tn): config: region: error("region required on a TERRAFORM target; allowed: \(strings.Join(_gcpRegions, ", "))")
+// a TERRAFORM or CLOUD_RUN target needs a region (a K8S target's is its cluster's)
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform != _|_ if list.Contains(["TERRAFORM", "CLOUD_RUN"], v.config.platform) if v.config.region == _|_ {
+	targets: (tn): config: region: error("region required on a \(v.config.platform) target; allowed: \(strings.Join(_gcpRegions, ", "))")
 }
 
-// a TERRAFORM target needs a GCP project and a state backend
-for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform == "TERRAFORM" if v.config.gcpProject == _|_ {
+// a TERRAFORM or CLOUD_RUN target needs a GCP project; TERRAFORM also a state backend
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform != _|_ if list.Contains(["TERRAFORM", "CLOUD_RUN"], v.config.platform) if v.config.gcpProject == _|_ {
 	targets: (tn): config: gcpProject: error("expected a GCP project id")
 }
 for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform == "TERRAFORM" if v.config.backend == _|_ {
@@ -74,7 +74,7 @@ for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.target
 // Skipped while the region can't be resolved (unknown cluster / missing region already error).
 for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.environmentType != _|_ if list.Contains(["dev", "npr", "prd"], v.config.environmentType) {
 	let _plat = [if v.config.platform != _|_ {v.config.platform}, "K8S"][0]
-	let _reg = [if _plat == "TERRAFORM" if v.config.region != _|_ if list.Contains(_gcpRegions, v.config.region) {v.config.region}, if _plat == "K8S" if v.config.cluster != _|_ if clusters[v.config.cluster] != _|_ {clusters[v.config.cluster].region}, _|_][0]
+	let _reg = [if list.Contains(["TERRAFORM", "CLOUD_RUN"], _plat) if v.config.region != _|_ if list.Contains(_gcpRegions, v.config.region) {v.config.region}, if _plat == "K8S" if v.config.cluster != _|_ if clusters[v.config.cluster] != _|_ {clusters[v.config.cluster].region}, _|_][0]
 	if _platformSuffix[_plat] != _|_ if _reg != _|_ {
 		let _p = "\(_reg)-\(v.config.environmentType)-\(_platformSuffix[_plat])"
 		if !regexp.Match("^\(_p)(-[a-z0-9]+)?$", tn) {
