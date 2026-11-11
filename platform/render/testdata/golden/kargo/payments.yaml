@@ -308,6 +308,7 @@ metadata:
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
+    example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
   requestedFreight:
     - origin:
@@ -348,6 +349,19 @@ spec:
         - name: workflowRef
           value: v1
       steps:
+        - as: pre-1
+          task:
+            kind: ClusterPromotionTask
+            name: gha-check
+          vars:
+            - name: workflowRepo
+              value: pitoniak32/gitops-cd
+            - name: workflowFile
+              value: precheck.yaml
+            - name: workflowRef
+              value: main
+            - name: checkTimeout
+              value: 30m
         - as: promote
           task:
             kind: ClusterPromotionTask
@@ -655,6 +669,7 @@ metadata:
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
+    example.com/pre-deploy: acme/my-app/precheck.yaml@main
 spec:
   shard: us-east4
   requestedFreight:
@@ -690,6 +705,19 @@ spec:
         - name: artifactKey
           value: image
       steps:
+        - as: pre-1
+          task:
+            kind: ClusterPromotionTask
+            name: gha-check
+          vars:
+            - name: workflowRepo
+              value: acme/my-app
+            - name: workflowFile
+              value: precheck.yaml
+            - name: workflowRef
+              value: main
+            - name: checkTimeout
+              value: 30m
         - as: promote
           task:
             kind: ClusterPromotionTask
@@ -711,6 +739,7 @@ metadata:
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
+    example.com/pre-deploy: acme/my-app/precheck.yaml@main
 spec:
   shard: dc1
   requestedFreight:
@@ -746,6 +775,19 @@ spec:
         - name: artifactKey
           value: image
       steps:
+        - as: pre-1
+          task:
+            kind: ClusterPromotionTask
+            name: gha-check
+          vars:
+            - name: workflowRepo
+              value: acme/my-app
+            - name: workflowFile
+              value: precheck.yaml
+            - name: workflowRef
+              value: main
+            - name: checkTimeout
+              value: 30m
         - as: promote
           task:
             kind: ClusterPromotionTask
@@ -878,6 +920,7 @@ metadata:
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
+    example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
   shard: us-east4
   requestedFreight:
@@ -913,6 +956,19 @@ spec:
         - name: artifactKey
           value: image
       steps:
+        - as: pre-1
+          task:
+            kind: ClusterPromotionTask
+            name: gha-check
+          vars:
+            - name: workflowRepo
+              value: pitoniak32/gitops-cd
+            - name: workflowFile
+              value: precheck.yaml
+            - name: workflowRef
+              value: main
+            - name: checkTimeout
+              value: 30m
         - as: promote
           task:
             kind: ClusterPromotionTask
@@ -1167,6 +1223,7 @@ metadata:
   annotations:
     example.com/break-glass: '["carol@example.com"]'
     kargo.akuity.io/color: violet
+    example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
   shard: us-east4
   requestedFreight:
@@ -1202,6 +1259,19 @@ spec:
         - name: artifactKey
           value: image
       steps:
+        - as: pre-1
+          task:
+            kind: ClusterPromotionTask
+            name: gha-check
+          vars:
+            - name: workflowRepo
+              value: pitoniak32/gitops-cd
+            - name: workflowFile
+              value: precheck.yaml
+            - name: workflowRef
+              value: main
+            - name: checkTimeout
+              value: 30m
         - as: promote
           task:
             kind: ClusterPromotionTask
