@@ -223,6 +223,20 @@ spec:
           value: env/payments/infra/us-east4-dev-tf
         - name: image
           value: ghcr.io/pitoniak32/tf-bucket
+        - name: capability
+          value: payments
+        - name: app
+          value: infra
+        - name: stage
+          value: dev
+        - name: target
+          value: us-east4-dev-tf
+        - name: pinFile
+          value: ./out/terraform.yaml
+        - name: pinKey
+          value: module
+        - name: artifactKey
+          value: module
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
@@ -230,76 +244,10 @@ spec:
         - name: workflowRef
           value: main
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/terraform.yaml
-            updates:
-              - key: module
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/infra to dev/us-east4-dev-tf from ${{ commitFrom(vars.repo).ID }}, module ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: http
-          as: dispatch
-          config:
-            method: POST
-            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
-            headers:
-              - name: Authorization
-                value: Bearer ${{ sharedSecret('github-actions').token }}
-              - name: Accept
-                value: application/vnd.github+json
-              - name: X-GitHub-Api-Version
-                value: "2022-11-28"
-              - name: Content-Type
-                value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''dev'', ''target'': ''us-east4-dev-tf'', ''commit'': outputs.commit.commit, ''module'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
-            successExpression: response.status == 200
-            failureExpression: response.status != 200
-            errorExpression: response.body.message
-            outputs:
-              - name: runID
-                fromExpression: response.body.workflow_run_id
-              - name: runURL
-                fromExpression: response.body.html_url
-        - uses: http
-          as: wait
-          retry:
-            timeout: 60m
-          config:
-            method: GET
-            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
-            headers:
-              - name: Authorization
-                value: Bearer ${{ sharedSecret('github-actions').token }}
-              - name: Accept
-                value: application/vnd.github+json
-              - name: X-GitHub-Api-Version
-                value: "2022-11-28"
-            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
-            failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')
-            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -336,6 +284,20 @@ spec:
           value: env/payments/infra/us-east4-npr-tf
         - name: image
           value: ghcr.io/pitoniak32/tf-bucket
+        - name: capability
+          value: payments
+        - name: app
+          value: infra
+        - name: stage
+          value: staging
+        - name: target
+          value: us-east4-npr-tf
+        - name: pinFile
+          value: ./out/terraform.yaml
+        - name: pinKey
+          value: module
+        - name: artifactKey
+          value: module
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
@@ -343,76 +305,10 @@ spec:
         - name: workflowRef
           value: main
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/terraform.yaml
-            updates:
-              - key: module
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/infra to staging/us-east4-npr-tf from ${{ commitFrom(vars.repo).ID }}, module ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: http
-          as: dispatch
-          config:
-            method: POST
-            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
-            headers:
-              - name: Authorization
-                value: Bearer ${{ sharedSecret('github-actions').token }}
-              - name: Accept
-                value: application/vnd.github+json
-              - name: X-GitHub-Api-Version
-                value: "2022-11-28"
-              - name: Content-Type
-                value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''staging'', ''target'': ''us-east4-npr-tf'', ''commit'': outputs.commit.commit, ''module'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
-            successExpression: response.status == 200
-            failureExpression: response.status != 200
-            errorExpression: response.body.message
-            outputs:
-              - name: runID
-                fromExpression: response.body.workflow_run_id
-              - name: runURL
-                fromExpression: response.body.html_url
-        - uses: http
-          as: wait
-          retry:
-            timeout: 60m
-          config:
-            method: GET
-            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
-            headers:
-              - name: Authorization
-                value: Bearer ${{ sharedSecret('github-actions').token }}
-              - name: Accept
-                value: application/vnd.github+json
-              - name: X-GitHub-Api-Version
-                value: "2022-11-28"
-            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
-            failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')
-            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -450,45 +346,25 @@ spec:
           value: env/payments/my-app/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: my-app
+        - name: stage
+          value: dev
+        - name: target
+          value: us-east4-dev-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/my-app to dev/us-east4-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: payments-my-app-us-east4-dev-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -526,45 +402,25 @@ spec:
           value: env/payments/my-app/dc1-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: my-app
+        - name: stage
+          value: dev
+        - name: target
+          value: dc1-dev-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/my-app to dev/dc1-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: payments-my-app-dc1-dev-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -602,45 +458,25 @@ spec:
           value: env/payments/my-app/us-east4-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: my-app
+        - name: stage
+          value: staging
+        - name: target
+          value: us-east4-npr-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/my-app to staging/us-east4-npr-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: payments-my-app-us-east4-npr-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -678,45 +514,25 @@ spec:
           value: env/payments/my-app/dc1-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: my-app
+        - name: stage
+          value: staging
+        - name: target
+          value: dc1-npr-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/my-app to staging/dc1-npr-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: payments-my-app-dc1-npr-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -754,45 +570,25 @@ spec:
           value: env/payments/my-app/us-east4-npr-k8s-perf
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: my-app
+        - name: stage
+          value: perf
+        - name: target
+          value: us-east4-npr-k8s-perf
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/my-app to perf/us-east4-npr-k8s-perf from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: payments-my-app-us-east4-npr-k8s-perf
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -810,6 +606,7 @@ metadata:
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: violet
+    example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
   shard: us-east4
   requestedFreight:
@@ -830,45 +627,38 @@ spec:
           value: env/payments/my-app/us-east4-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: my-app
+        - name: stage
+          value: prod
+        - name: target
+          value: us-east4-prd-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/my-app to prod/us-east4-prd-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: payments-my-app-us-east4-prd-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: pre-1
+          task:
+            kind: ClusterPromotionTask
+            name: gha-check
+          vars:
+            - name: workflowRepo
+              value: pitoniak32/gitops-cd
+            - name: workflowFile
+              value: precheck.yaml
+            - name: workflowRef
+              value: main
+            - name: checkTimeout
+              value: 30m
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -886,6 +676,7 @@ metadata:
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: violet
+    example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
   shard: dc1
   requestedFreight:
@@ -906,45 +697,38 @@ spec:
           value: env/payments/my-app/dc1-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: my-app
+        - name: stage
+          value: prod
+        - name: target
+          value: dc1-prd-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/my-app to prod/dc1-prd-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: payments-my-app-dc1-prd-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: pre-1
+          task:
+            kind: ClusterPromotionTask
+            name: gha-check
+          vars:
+            - name: workflowRepo
+              value: pitoniak32/gitops-cd
+            - name: workflowFile
+              value: precheck.yaml
+            - name: workflowRef
+              value: main
+            - name: checkTimeout
+              value: 30m
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -981,6 +765,20 @@ spec:
           value: env/payments/worker/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: worker
+        - name: stage
+          value: dev
+        - name: target
+          value: us-east4-dev-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
@@ -988,76 +786,10 @@ spec:
         - name: workflowRef
           value: main
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/worker to dev/us-east4-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: http
-          as: dispatch
-          config:
-            method: POST
-            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
-            headers:
-              - name: Authorization
-                value: Bearer ${{ sharedSecret('github-actions').token }}
-              - name: Accept
-                value: application/vnd.github+json
-              - name: X-GitHub-Api-Version
-                value: "2022-11-28"
-              - name: Content-Type
-                value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''worker'', ''stage'': ''dev'', ''target'': ''us-east4-dev-k8s'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
-            successExpression: response.status == 200
-            failureExpression: response.status != 200
-            errorExpression: response.body.message
-            outputs:
-              - name: runID
-                fromExpression: response.body.workflow_run_id
-              - name: runURL
-                fromExpression: response.body.html_url
-        - uses: http
-          as: wait
-          retry:
-            timeout: 30m
-          config:
-            method: GET
-            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
-            headers:
-              - name: Authorization
-                value: Bearer ${{ sharedSecret('github-actions').token }}
-              - name: Accept
-                value: application/vnd.github+json
-              - name: X-GitHub-Api-Version
-                value: "2022-11-28"
-            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
-            failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')
-            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -1094,6 +826,20 @@ spec:
           value: env/payments/worker/us-east4-npr-cr
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: worker
+        - name: stage
+          value: staging
+        - name: target
+          value: us-east4-npr-cr
+        - name: pinFile
+          value: ./out/service.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
@@ -1101,76 +847,10 @@ spec:
         - name: workflowRef
           value: main
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/service.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/worker to staging/us-east4-npr-cr from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: http
-          as: dispatch
-          config:
-            method: POST
-            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
-            headers:
-              - name: Authorization
-                value: Bearer ${{ sharedSecret('github-actions').token }}
-              - name: Accept
-                value: application/vnd.github+json
-              - name: X-GitHub-Api-Version
-                value: "2022-11-28"
-              - name: Content-Type
-                value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''worker'', ''stage'': ''staging'', ''target'': ''us-east4-npr-cr'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
-            successExpression: response.status == 200
-            failureExpression: response.status != 200
-            errorExpression: response.body.message
-            outputs:
-              - name: runID
-                fromExpression: response.body.workflow_run_id
-              - name: runURL
-                fromExpression: response.body.html_url
-        - uses: http
-          as: wait
-          retry:
-            timeout: 30m
-          config:
-            method: GET
-            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
-            headers:
-              - name: Authorization
-                value: Bearer ${{ sharedSecret('github-actions').token }}
-              - name: Accept
-                value: application/vnd.github+json
-              - name: X-GitHub-Api-Version
-                value: "2022-11-28"
-            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
-            failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')
-            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -1188,6 +868,7 @@ metadata:
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: violet
+    example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
   shard: us-east4
   requestedFreight:
@@ -1208,45 +889,38 @@ spec:
           value: env/payments/worker/us-east4-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: worker
+        - name: stage
+          value: prod
+        - name: target
+          value: us-east4-prd-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
       steps:
-        - uses: git-clone
-          config:
-            repoURL: ${{ vars.repo }}
-            checkout:
-              - commit: ${{ commitFrom(vars.repo).ID }}
-                path: ./src
-              - branch: ${{ vars.branch }}
-                create: true
-                path: ./out
-        - uses: git-clear
-          config:
-            path: ./out
-        - uses: copy
-          config:
-            inPath: ${{ vars.src }}
-            outPath: ./out/
-        - uses: yaml-update
-          config:
-            path: ./out/deployment.yaml
-            updates:
-              - key: spec.template.spec.containers.0.image
-                value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
-        - uses: git-commit
-          as: commit
-          config:
-            path: ./out
-            message: promote payments/worker to prod/us-east4-prd-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
-        - uses: git-push
-          config:
-            path: ./out
-        - uses: argocd-update
-          config:
-            apps:
-              - name: payments-worker-us-east4-prd-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+        - as: pre-1
+          task:
+            kind: ClusterPromotionTask
+            name: gha-check
+          vars:
+            - name: workflowRepo
+              value: pitoniak32/gitops-cd
+            - name: workflowFile
+              value: precheck.yaml
+            - name: workflowRef
+              value: main
+            - name: checkTimeout
+              value: 30m
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd
 ---
 apiVersion: v1
 kind: ServiceAccount
