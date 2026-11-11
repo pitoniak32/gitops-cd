@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=../../../../platform/render/schemas/app.json
 # no perf stage: prod depends on staging only
 image: ghcr.io/pitoniak32/nginx
+sourceRepo: pitoniak32/gitops-cd
 # NOTE: the image listens on 80, Cloud Run's default containerPort is 8080; set `port` before a real
 # Cloud Run deploy (not set now: it would add K8s Services to dev/prod)
 stages:

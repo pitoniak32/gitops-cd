@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=../../../../platform/render/schemas/app.json
 image: ghcr.io/pitoniak32/nginx
+sourceRepo: pitoniak32/gitops-cd
 imageConstraint: ^1
 port: 80
 replicas: 1

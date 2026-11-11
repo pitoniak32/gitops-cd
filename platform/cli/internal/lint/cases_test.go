@@ -124,14 +124,16 @@ var lintCases = []struct {
 	{`del(.config.gcpProject)`, tgCR, delAt("config", "gcpProject"), `^capabilities/payments/targets/us-east4-npr-cr/target\.yml:[0-9]+:[0-9]+: config\.gcpProject: `},
 	{`.config.platform = "LAMBDA"`, tgCR, setTo("LAMBDA", "config", "platform"), `^capabilities/payments/targets/us-east4-npr-cr/target\.yml:[0-9]+:[0-9]+: .*expected K8S, TERRAFORM or CLOUD_RUN`},
 	{`.stages.dev.targets = {"us-east4-npr-cr": {}}`, appI, setTo(m{"us-east4-npr-cr": m{}}, "stages", "dev", "targets"), `^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*target us-east4-npr-cr is CLOUD_RUN; terraform apps need TERRAFORM targets`},
+	{`del(.sourceRepo)`, appI, delAt("sourceRepo"), `^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*sourceRepo`},
+	{`.sourceRepo = "nope"`, appW, setTo("nope", "sourceRepo"), `^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: sourceRepo: expected <owner>/<name>$`},
 	{`.stages.staging.targets = {"us-east4-dev-tf": {}}`, "capabilities/payments/apps/web/app.yml", setTo(m{"us-east4-dev-tf": m{}}, "stages", "staging", "targets"), `^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*target us-east4-dev-tf is TERRAFORM; K8s apps need K8S or CLOUD_RUN targets`},
 }
 
 // test.sh: "lint case ok: <expr>" loop over lint-cases.tsv
 func TestLintCases(t *testing.T) {
 	t.Parallel()
-	if len(lintCases) != 64 {
-		t.Fatalf("lint-cases.tsv had 64 rows, table has %d", len(lintCases))
+	if len(lintCases) != 66 {
+		t.Fatalf("lint-cases.tsv had 64 rows (+2 sourceRepo), table has %d", len(lintCases))
 	}
 	for i, c := range lintCases {
 		t.Run(strings.ReplaceAll(c.name, " ", "_"), func(t *testing.T) {

@@ -1,4 +1,5 @@
 image: ghcr.io/pitoniak32/nginx
+sourceRepo: pitoniak32/gitops-cd
 port: 80
 stages:
   dev:
