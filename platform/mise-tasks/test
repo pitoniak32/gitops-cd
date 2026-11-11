@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-#MISE description="Tests: CUE renderer (golden, CODEOWNERS, lint cases; UPDATE=1 accepts golden) + ApplicationSet static checks"
+#MISE description="Tests: gofmt + go vet + go test (renderer golden/CODEOWNERS/lint cases/cue fmt, CLI; UPDATE=1 accepts golden) + ApplicationSet static checks + tf-module-push"
 #MISE depends=["cli"]
 set -euo pipefail
-"$MISE_PROJECT_ROOT/platform/render/scripts/test.sh"
+(cd "$MISE_PROJECT_ROOT/platform/cli" && { test -z "$(gofmt -l .)" || { echo "gofmt needed:" >&2; gofmt -l . >&2; exit 1; }; } && go vet ./... && go test ./...)
 "$MISE_PROJECT_ROOT/platform/appsets/check.sh"
 "$MISE_PROJECT_ROOT/platform/tests/tf-module-push.sh"
-(cd "$MISE_PROJECT_ROOT/platform/cli" && { test -z "$(gofmt -l .)" || { echo "gofmt needed:" >&2; gofmt -l . >&2; exit 1; }; } && go vet ./... && go test ./...)
