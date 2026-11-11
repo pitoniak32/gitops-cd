@@ -13,7 +13,7 @@ metadata:
   name: my-app
   namespace: payments-us-stg
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: my-app
