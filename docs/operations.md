@@ -38,6 +38,16 @@ For each target Stage with no current Freight it reads the branch head (Kargo's 
 - **Skipped, with a reason**: targets never promoted (no branch), branches from before ADR 0016 (no pinned image), heads that aren't Kargo promotion commits. Promote fresh Freight to those normally; the next rebuild can restore them.
 - **Control-flow Stages** (`<app>-<stage>`, `<app>-<stage>-done`) stay empty until new Freight flows through; they auto-promote.
 - **Auto-promoting targets** (dev) may show two Promotions for the same Freight: Kargo's own auto-promotion fires once the Freight is approved. Both succeed; harmless.
+- **Auto-promoting targets restored to older Freight** can end up "Auto-promotion paused": restore's Promotion is a manual one, and Kargo holds auto-promotion when that isn't the newest Freight (`docs/gotchas.md`). Resume it in the UI once the next Freight should flow.
+
+- **Prod targets** run their pre-deploy checks again (ADR 0028): a failing check stops the restore of that Stage.
+
+## Pre-deploy checks (ADR 0028)
+
+Configured in `platform/render/prechecks.cue` (platform only); each prd target Stage runs `pre-<n>` steps (ClusterPromotionTask `gha-check`) that dispatch the check to the app's `sourceRepo` and wait. The demo check is `.github/workflows/precheck.yaml` in this repo.
+
+- **Make the demo check fail**: `gh variable set PRECHECK_FAIL --body true` (back: `--body false`). The next prod Promotion fails at `pre-1::wait`, and the target branch head doesn't move (`git ls-remote origin env/<cap>/<app>/<target>`).
+- **Verify the per-check timeout** after a Kargo upgrade: set a check's `timeout: "1m"` and make the workflow sleep 2 minutes. The Promotion must fail at ~1m with "exceeded 1m". `cannot fetch <x> from <nil>` means an http step expression refers to something other than `response` outside `${{ }}`. An unknown-function error naming `now`, `date` or `duration` means Kargo dropped those functions: switch to one `gha-check-<t>` task per fixed timeout.
 
 ## Resetting a capability's promotion state
 

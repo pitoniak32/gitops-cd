@@ -1,5 +1,6 @@
 # no perf stage: prod depends on staging only
 image: ghcr.io/pitoniak32/nginx
+sourceRepo: pitoniak32/gitops-cd
 stages:
   dev:
     targets:

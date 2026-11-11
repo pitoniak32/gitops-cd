@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=../../../../platform/render/schemas/app.json
 # terraform app (ADR 0021): module pushed by `mise run tf-module-push`; env is exported by the workflow
 module: ghcr.io/pitoniak32/tf-bucket
+sourceRepo: pitoniak32/gitops-cd
 stages:
   dev:
     targets:

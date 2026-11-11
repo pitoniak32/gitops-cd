@@ -1,6 +1,6 @@
 # Shared promotion steps as ClusterPromotionTasks
 
-Status: accepted. Changes how ADR 0012, 0020, 0021 and 0024 target Stages spell their steps; what they do is unchanged.
+Status: accepted; amended by ADR 0028 (ClusterPromotionTask `gha-check`, `pre-<n>` steps before `promote`). Changes how ADR 0012, 0020, 0021 and 0024 target Stages spell their steps; what they do is unchanged.
 
 Every target Stage carried its own copy of the promotion steps: clone, clear, copy, yaml-update, commit, push, then `argocd-update` or the gha dispatch and wait. Only a few values differed per Stage: repo/src/branch/image, the pin file and key (per platform), the commit message and Argo CD app name, and the workflow. The copies made `rendered/kargo/<cap>.yaml` long and hard to diff, and hid what actually differs between Stages.
 

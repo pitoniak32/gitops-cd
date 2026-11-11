@@ -368,6 +368,15 @@
       },
       "type": "object"
     },
+    "sourceRepo": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+          "type": "string"
+        }
+      ],
+      "description": "GitHub repo of the app's code; platform pre-deploy checks are dispatched there (ADR 0028)"
+    },
     "stages": {
       "description": "Subset of the capability's stages. Skipped stages are bypassed in the pipeline\n(prod depends on [staging, perf]; without perf, prod depends on staging).",
       "patternProperties": {
@@ -436,10 +445,14 @@
       "port",
       "replicas",
       "resources",
+      "sourceRepo",
       "stages",
       "workflow"
     ],
-    "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, image, imageConstraint, module, moduleConstraint, port, replicas, resources, stages, workflow"
+    "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, image, imageConstraint, module, moduleConstraint, port, replicas, resources, sourceRepo, stages, workflow"
   },
+  "required": [
+    "sourceRepo"
+  ],
   "type": "object"
 }
