@@ -7,7 +7,7 @@ After every merge, CI pushed a separate `render: <sha>` commit to `main`. Every 
 Now `main` gets no bot commits:
 
 - **Branch `rendered`**: an orphan branch holding only `rendered/` (same paths as before), plus a README copied from `platform/render/rendered-README.md`. CI pushes to it on every push to `main`, as the `gitops-cd-demo` GitHub App. Pushes are serialized by the workflow's concurrency group, and CI commits only when the render changed: `render: <sha7>`, with the source commit URL in the body. The first run creates the branch. Branch protection: no human pushes.
-- **Readers**: the AppSets `kargo.yaml`, `projects.yaml`, `workloads.yaml`, `addons/kargo-shard-hub.yaml` and `addons/argocd-region-hub.yaml` read `rendered/` at revision `rendered`, and `check.sh` enforces it. The Kargo Warehouse git subscription uses `branch: rendered` (`renderedBranch` in `input.cue`). Promotion is unchanged: `git-clone` checks out the Freight commit, which now lives on `rendered`.
+- **Readers**: the AppSets `kargo.yaml`, `projects.yaml`, `workloads.yaml`, `addons/kargo-shard-hub.yaml` and `addons/argocd-region-hub.yaml` read `rendered/` at revision `rendered`, and the `internal/appsets` Go test enforces it. The Kargo Warehouse git subscription uses `branch: rendered` (`renderedBranch` in `input.cue`). Promotion is unchanged: `git-clone` checks out the Freight commit, which now lives on `rendered`.
 - **`main`**: `rendered/` is gitignored. `mise run render` writes it locally for inspection. A PR that adds `rendered/` fails CI.
 - **PRs**: CI renders and comments the diff against the `rendered` branch.
 - **CODEOWNERS** stays on `main`, because GitHub reads it only from the default branch. Authors run `mise run codeowners` and commit it; CI fails if it's stale.

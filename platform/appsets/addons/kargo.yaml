@@ -1,4 +1,4 @@
-# hub add-on kargo (control plane). Chart pin shared with kargo-shard + kargo-shard-hub (appsets/check.sh)
+# hub add-on kargo (control plane). Chart pin shared with kargo-shard + kargo-shard-hub (platform/cli/internal/appsets test)
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
