@@ -188,14 +188,14 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-east4-npr-k8s": {
-            "cluster": "us-east4",
-            "namespace": "payments-us-stg",
-            "platform": "K8S",
+          "us-east4-npr-cr": {
+            "gcpProject": "team1-stg",
+            "region": "us-east4",
+            "platform": "CLOUD_RUN",
             "environment": "staging",
             "environmentType": "npr",
-            "path": "apps/payments/worker/staging/us-east4-npr-k8s",
-            "deployWith": "argocd"
+            "path": "apps/payments/worker/staging/us-east4-npr-cr",
+            "deployWith": "gha"
           }
         }
       },

@@ -1062,21 +1062,20 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: worker-us-east4-npr-k8s
+  name: worker-us-east4-npr-cr
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: worker
     example.com/kind: target
     example.com/stage: staging
-    example.com/target: us-east4-npr-k8s
-    example.com/deploy-with: argocd
-    example.com/platform: k8s
+    example.com/target: us-east4-npr-cr
+    example.com/deploy-with: gha
+    example.com/platform: cloudrun
   annotations:
     example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: green
 spec:
-  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -1090,11 +1089,17 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/worker/staging/us-east4-npr-k8s/
+          value: ./src/rendered/apps/payments/worker/staging/us-east4-npr-cr/
         - name: branch
-          value: env/payments/worker/us-east4-npr-k8s
+          value: env/payments/worker/us-east4-npr-cr
         - name: image
           value: ghcr.io/pitoniak32/nginx
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: cloud-run.yaml
+        - name: workflowRef
+          value: main
       steps:
         - uses: git-clone
           config:
@@ -1114,7 +1119,7 @@ spec:
             outPath: ./out/
         - uses: yaml-update
           config:
-            path: ./out/deployment.yaml
+            path: ./out/service.yaml
             updates:
               - key: spec.template.spec.containers.0.image
                 value: ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}
@@ -1122,18 +1127,50 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to staging/us-east4-npr-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/worker to staging/us-east4-npr-cr from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
-        - uses: argocd-update
+        - uses: http
+          as: dispatch
           config:
-            apps:
-              - name: payments-worker-us-east4-npr-k8s
-                namespace: argocd
-                sources:
-                  - repoURL: ${{ vars.repo }}
-                    desiredRevision: ${{ outputs.commit.commit }}
+            method: POST
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+              - name: Content-Type
+                value: application/json
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''worker'', ''stage'': ''staging'', ''target'': ''us-east4-npr-cr'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            successExpression: response.status == 200
+            failureExpression: response.status != 200
+            errorExpression: response.body.message
+            outputs:
+              - name: runID
+                fromExpression: response.body.workflow_run_id
+              - name: runURL
+                fromExpression: response.body.html_url
+        - uses: http
+          as: wait
+          retry:
+            timeout: 30m
+          config:
+            method: GET
+            url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ outputs.dispatch.runID }}
+            headers:
+              - name: Authorization
+                value: Bearer ${{ sharedSecret('github-actions').token }}
+              - name: Accept
+                value: application/vnd.github+json
+              - name: X-GitHub-Api-Version
+                value: "2022-11-28"
+            successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
+            failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')
+            errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -1159,7 +1196,7 @@ spec:
         name: worker
       sources:
         stages:
-          - worker-us-east4-npr-k8s
+          - worker-us-east4-npr-cr
   promotionTemplate:
     spec:
       vars:
@@ -1749,7 +1786,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - worker-us-east4-npr-k8s
+      - worker-us-east4-npr-cr
     verbs:
       - promote
   - apiGroups:

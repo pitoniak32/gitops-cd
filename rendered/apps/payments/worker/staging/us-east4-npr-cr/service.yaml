@@ -1,0 +1,39 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: worker
+  namespace: team1-stg
+  labels:
+    app: worker
+    cloud.googleapis.com/location: us-east4
+    managed-by: cue-platform
+    capability: payments
+    stage: staging
+    target: us-east4-npr-cr
+    environment: staging
+    environment-type: npr
+    billing: stg
+spec:
+  template:
+    metadata:
+      labels:
+        app: worker
+        managed-by: cue-platform
+        capability: payments
+        stage: staging
+        target: us-east4-npr-cr
+        environment: staging
+        environment-type: npr
+        billing: stg
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/pitoniak32/nginx
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
