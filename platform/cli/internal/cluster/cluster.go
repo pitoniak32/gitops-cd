@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,10 +80,14 @@ func Up(ctx context.Context, root string, regions []string, log io.Writer) error
 	return useContext(m.dst, "kind-"+Hub)
 }
 
-// Down deletes the hub and region clusters, the docker network (ignored if missing) and $KUBECONFIG.
+// Down deletes the hub, configured region clusters and any stale region-* clusters, the docker network (ignored if missing) and $KUBECONFIG.
 func Down(ctx context.Context, _ string, regions []string, log io.Writer) error {
 	p := provider(log)
-	for _, name := range append([]string{Hub}, regionNames(regions)...) {
+	existing, err := p.List()
+	if err != nil {
+		return fmt.Errorf("list clusters: %w", err)
+	}
+	for _, name := range clustersToDelete(existing, regions) {
 		fmt.Fprintf(log, "Deleting cluster %q ...\n", name)
 		if err := p.Delete(name, os.Getenv("KUBECONFIG")); err != nil {
 			return fmt.Errorf("delete cluster %s: %w", name, err)
@@ -95,6 +100,28 @@ func Down(ctx context.Context, _ string, regions []string, log io.Writer) error 
 		}
 	}
 	return nil
+}
+
+// clustersToDelete: the hub, the configured regions and every existing region-* cluster
+// (stale after a region rename), deduplicated, hub first. Idempotent: missing ones are fine for kind.
+func clustersToDelete(existing, regions []string) []string {
+	out := []string{Hub}
+	seen := map[string]bool{Hub: true}
+	add := func(n string) {
+		if !seen[n] {
+			seen[n] = true
+			out = append(out, n)
+		}
+	}
+	for _, n := range regionNames(regions) {
+		add(n)
+	}
+	for _, n := range existing {
+		if strings.HasPrefix(n, "region-") {
+			add(n)
+		}
+	}
+	return out
 }
 
 func regionNames(regions []string) []string {

@@ -84,3 +84,14 @@ func TestMergeKubeconfig(t *testing.T) {
 		t.Fatalf("current-context = %s", got.CurrentContext)
 	}
 }
+
+func TestClustersToDelete(t *testing.T) {
+	got := clustersToDelete([]string{"region-us", "region-onprem", "other", "region-us-east4", Hub}, []string{"us-east4", "dc1"})
+	want := []string{Hub, "region-us-east4", "region-dc1", "region-us", "region-onprem"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("got %v want %v", got, want)
+	}
+	if got := clustersToDelete(nil, nil); len(got) != 1 || got[0] != Hub {
+		t.Fatalf("empty: %v", got)
+	}
+}

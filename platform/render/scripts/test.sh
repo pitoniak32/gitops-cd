@@ -343,6 +343,7 @@ name_case() { # <from> <to> <want: ok | grep -E pattern>
   if [[ $3 == ok ]]; then
     [[ -z "$got" ]] || { printf 'name %s should pass:\n%s\n' "$2" "$got" >&2; exit 1; }
   else
+    ! grep -qE 'expected K8S or TERRAFORM|empty disjunction|invalid interpolation' <<<"$got" || { printf 'name %s: noisy output:\n%s\n' "$2" "$got" >&2; exit 1; }
     grep -qE "$3" <<<"$got" || { printf 'name %s not rejected as expected:\n%s\n' "$2" "$got" >&2; exit 1; }
   fi
   echo "target name ok: $2"

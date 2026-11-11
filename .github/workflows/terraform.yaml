@@ -66,6 +66,8 @@ jobs:
           for k in $(yq '.env // {} | keys | .[]' terraform.yaml); do
             { echo "$k<<$d"; K="$k" yq '.env[strenv(K)]' terraform.yaml; echo "$d"; } >> "$GITHUB_ENV"
           done
+          # the target region (ADR 0025) is the terraform region; apps no longer set TF_VAR_region
+          echo "TF_VAR_region=$(yq '.region' terraform.yaml)" >> "$GITHUB_ENV"
       # real:
       # - uses: google-github-actions/auth@v2
       #   with:

@@ -61,7 +61,7 @@ Afterwards the targets show sync `Unknown` until they're promoted again (`docs/g
 ## Rename targets / regions
 
 Renaming a target or region (ADR 0025) makes all its Kargo Stages, Argo CD apps and `env/*` branches new; `kargo-restore` can't map old Freight to new names.
-1. `mise run down && mise run up`, after the rename is merged and CI has rendered.
+1. `mise run down && mise run up`, after the rename is merged and CI has rendered. `down` also deletes stale `region-*` kind clusters (any name) so the docker network is freed.
 2. Delete the old targets' `env/*` branches:
    ```sh
    gh api repos/<owner>/<repo>/git/matching-refs/heads/env/    # list
