@@ -22,9 +22,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@v2   # pinned tools from .mise.toml (cue, jq, yq)
+      - uses: jdx/mise-action@v2   # pinned tools from .mise.toml (go; gcd embeds the CUE library)
         with:
-          install_args: cue jq yq go
+          install_args: go
       - uses: actions/cache@v4
         with: {path: ~/.cache/cue, key: "cue-${{ hashFiles('platform/cue.mod/module.cue') }}"}
       - name: go cache dirs

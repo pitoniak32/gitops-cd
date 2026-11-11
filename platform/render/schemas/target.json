@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "EnvironmentType": {
       "description": "Platform-owned. Team targets may only point at clusters listed here,\nand only with an environment type the cluster accepts.",
@@ -10,8 +9,8 @@
       ]
     },
     "Name": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "type": "string"
     },
     "_clusterC": {
       "anyOf": [
@@ -30,14 +29,14 @@
     "_gcpProjectC": {
       "anyOf": [
         {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+          "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+          "type": "string"
         }
       ]
     },
     "_namespaceC": {
-      "type": "string",
-      "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+      "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$",
+      "type": "string"
     },
     "_regionC": {
       "anyOf": [
@@ -57,72 +56,71 @@
       ]
     }
   },
-  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "targets/<name>/target.yml — where a stage deploys. Reusable across apps.\nSibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.\nplatform K8S (default): a namespace in a platform cluster, deployed by Argo CD or a gha workflow.\nplatform TERRAFORM: a GCP project + GCS state backend, applied by a gha workflow (terraform apps only).\nplatform CLOUD_RUN: a GCP project + region, a Cloud Run service deployed by a gha workflow (image apps only).",
   "properties": {
     "config": {
-      "type": "object",
       "properties": {
         "auth": {
-          "type": "object",
           "properties": {
             "wifEmail": {
-              "type": "string",
-              "pattern": "^[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com$"
+              "pattern": "^[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com$",
+              "type": "string"
             }
           },
-          "required": [
-            "wifEmail"
-          ],
           "propertyNames": {
             "enum": [
               "wifEmail"
             ],
             "errorMessage": "Unknown key. Allowed: wifEmail"
-          }
+          },
+          "required": [
+            "wifEmail"
+          ],
+          "type": "object"
         },
         "backend": {
-          "type": "object",
           "properties": {
             "bucket": {
               "anyOf": [
                 {
-                  "type": "string",
-                  "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$"
+                  "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$",
+                  "type": "string"
                 }
               ]
             },
             "prefix": {
               "anyOf": [
                 {
-                  "type": "string",
-                  "pattern": "^[A-Za-z0-9._/-]+$"
+                  "pattern": "^[A-Za-z0-9._/-]+$",
+                  "type": "string"
                 }
               ]
             }
           },
-          "required": [
-            "bucket"
-          ],
           "propertyNames": {
             "enum": [
               "bucket",
               "prefix"
             ],
             "errorMessage": "Unknown key. Allowed: bucket, prefix"
-          }
+          },
+          "required": [
+            "bucket"
+          ],
+          "type": "object"
         },
         "billing": {
-          "type": "string",
-          "pattern": "^[a-z0-9-]+$"
+          "pattern": "^[a-z0-9-]+$",
+          "type": "string"
         },
         "cluster": {
-          "description": "Which fields are required or forbidden is per platform. cluster, namespace: K8S only. region\n(the GCP region; a K8S target's is its cluster's), gcpProject: TERRAFORM and CLOUD_RUN.\nbackend (GCS state; prefix default <capability>/<app>/<target>): TERRAFORM only.",
-          "$ref": "#/$defs/_clusterC"
+          "$ref": "#/$defs/_clusterC",
+          "description": "Which fields are required or forbidden is per platform. cluster, namespace: K8S only. region\n(the GCP region; a K8S target's is its cluster's), gcpProject: TERRAFORM and CLOUD_RUN.\nbackend (GCS state; prefix default <capability>/<app>/<target>): TERRAFORM only."
         },
         "environment": {
-          "description": "free name (namespaces, labels); the type drives policy",
-          "$ref": "#/$defs/Name"
+          "$ref": "#/$defs/Name",
+          "description": "free name (namespaces, labels); the type drives policy"
         },
         "environmentType": {
           "anyOf": [
@@ -154,12 +152,6 @@
           "$ref": "#/$defs/_regionC"
         }
       },
-      "required": [
-        "auth",
-        "billing",
-        "environment",
-        "environmentType"
-      ],
       "propertyNames": {
         "enum": [
           "auth",
@@ -174,16 +166,24 @@
           "region"
         ],
         "errorMessage": "Unknown key. Allowed: auth, backend, billing, cluster, environment, environmentType, gcpProject, namespace, platform, region"
-      }
+      },
+      "required": [
+        "auth",
+        "billing",
+        "environment",
+        "environmentType"
+      ],
+      "type": "object"
     }
   },
-  "required": [
-    "config"
-  ],
   "propertyNames": {
     "enum": [
       "config"
     ],
     "errorMessage": "Unknown key. Allowed: config"
-  }
+  },
+  "required": [
+    "config"
+  ],
+  "type": "object"
 }

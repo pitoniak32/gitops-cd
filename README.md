@@ -7,7 +7,7 @@ config, and a local kind cluster runs Argo CD + [Kargo](https://kargo.io) to pro
 ## Quickstart
 
 ```sh
-mise install   # pinned tools (kind, helm, kubectl, cue, jq, yq, fnox)
+mise install   # pinned tools (kind, helm, kubectl, go, fnox, mkcert, oras, terraform, cue, jq, yq; gcd itself needs only go)
 # first time:
 #   - push this repo to github.com/pitoniak32/gitops-cd and wait for CI's first render: it creates branch
 #     rendered (rendered/ syncs from there); `up` times out without it
@@ -77,7 +77,7 @@ platform/                     platform team only; app teams never edit
   appsets/                    ApplicationSets (cluster generator): addons/<addon>.yaml, rendered-kargo, projects, workloads
   infrastructure/<addon>/     add-on config read from git by its ApplicationSet (values.yaml, manifests/)
   cluster/kind.yaml           hub kind cluster (region.yaml + regions: regional clusters, no host ports)
-  cli/                        Go CLI `gcd` (ADR 0018): up, down, infra, regions, certs, creds, kargo-shards, kargo-restore, open
+  cli/                        Go CLI `gcd` (ADR 0018): up, down, infra, regions, certs, creds, kargo-shards, kargo-restore, open, render, lint, codeowners, schemas
   mise-tasks/                 one-line wrappers for gcd + render, lint, test, schemas
 ```
 

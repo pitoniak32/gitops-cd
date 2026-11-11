@@ -292,3 +292,30 @@ func TestWrap(t *testing.T) {
 		t.Fatalf("got %v", w)
 	}
 }
+
+func TestFragmentsAndSelectedReportEveryBrokenCapability(t *testing.T) {
+	root := t.TempDir()
+	copyTree(t, abs(t, "testdata/root"), root)
+	for _, c := range []string{"payments", "search"} {
+		if err := os.Remove(filepath.Join(root, "capabilities", c, "owners.yml")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	check := func(name string, err error) {
+		t.Helper()
+		if err == nil {
+			t.Fatalf("%s: expected error", name)
+		}
+		msg := err.Error()
+		for _, w := range []string{"payments:", "search:"} {
+			if !strings.Contains(msg, w) {
+				t.Errorf("%s: missing %q in:\n%s", name, w, msg)
+			}
+		}
+		if strings.Count(msg, "capability needs owners.yml") < 2 {
+			t.Errorf("%s: want both messages:\n%s", name, msg)
+		}
+	}
+	check("Fragments", Fragments(root, t.TempDir(), io.Discard))
+	check("Selected", Selected(root, []string{"payments", "search"}, t.TempDir(), io.Discard))
+}

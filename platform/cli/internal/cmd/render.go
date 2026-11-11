@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/render"
@@ -38,11 +37,8 @@ func init() {
 				return render.All(root, out, cmd.OutOrStdout())
 			}
 			// selected capabilities only: no wipe of others, no regions/CODEOWNERS
-			for _, name := range caps {
-				if _, err := render.Capability(root, name, out); err != nil {
-					return render.Wrap(err)
-				}
-				fmt.Fprintln(cmd.OutOrStdout(), "rendered", name)
+			if err := render.Selected(root, caps, out, cmd.OutOrStdout()); err != nil {
+				return err
 			}
 			if withRegions {
 				return render.Wrap(render.Regions(root, out))

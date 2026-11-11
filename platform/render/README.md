@@ -15,7 +15,7 @@ Lives in the gitops monorepo; teams never edit it.
 | `files.cue` | every output file, keyed by rendered-repo path |
 | `gcd render` / `gcd codeowners` (`platform/cli/internal/{cueload,render}`, ADR 0026) | `mise run render` / `codeowners`: validate + write `files`, region files, CODEOWNERS |
 | `gcd lint` (`platform/cli/internal/{lint,yamlpos}`) | `mise run lint`: full CUE validation as `file:line:col: message` (editors, CI annotations) |
-| `scripts/schemas.sh` | generic editor JSON Schemas → `schemas/` (committed, versioned with the platform) |
+| `gcd schemas` (`platform/cli/internal/schemas`) | generic editor JSON Schemas → `schemas/` (committed, versioned with the platform) |
 
 ## Capability input (paths under the repo root)
 ```
@@ -59,7 +59,7 @@ Promoting target T copies `rendered/apps/<cap>/<app>/<stage>/T/` from the Freigh
 and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availabilityStrategy: All`: ADR 0012.
 
 ## Editor feedback (two layers)
-- **Editor** — `schemas/*.json` from `cue def -t generic=true`: structure, types, formats, cluster/env enums.
+- **Editor** — `schemas/*.json` from the CUE defs (`gcd schemas`, generic=true): structure, types, formats, cluster/env enums.
   Stage/target names are only pattern-checked, so they don't depend on team files. Team YAML references
   `platform/render/schemas/*.json` by relative path, so any editor works with no local tooling.
 - **CI** — `mise run lint` (`gcd lint [cap…]`, `--root` for another tree): the CUE Go library validates each capability's files (+ `teams/`) like `cue vet -c -E`, as `file:line:col: message`

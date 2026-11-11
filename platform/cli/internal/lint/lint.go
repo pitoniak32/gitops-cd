@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"cuelang.org/go/cue"
@@ -39,6 +40,8 @@ type raw struct {
 	yfile      string // absolute file of the first .yml/.yaml position ("" = none)
 	yline, ycl int
 }
+
+var yamlErrRe = regexp.MustCompile(`^(\S+\.ya?ml):(\d+)(?::(\d+))?: (.+)$`)
 
 var yamlExt = regexp.MustCompile(`\.ya?ml$`)
 
@@ -79,9 +82,10 @@ func Capability(root, capName string) ([]Diag, error) {
 		return nil, fmt.Errorf("no capability dir %s", filepath.Join(root, "capabilities", capName))
 	}
 	v, err := cueload.Capability(root, capName)
-	if err == nil {
-		err = v.Validate(cue.Concrete(true))
+	if err != nil {
+		return loadDiags(root, err)
 	}
+	err = v.Validate(cue.Concrete(true))
 	if err == nil {
 		return nil, nil
 	}
@@ -142,6 +146,57 @@ func Capability(root, capName string) ([]Diag, error) {
 	return sortDedupe(diags), nil
 }
 
+// loadDiags turns a load/YAML-syntax error into diagnostics at the error's own position (path
+// relative to root). Errors without any position pass through as plain errors.
+func loadDiags(root string, err error) ([]Diag, error) {
+	var ce cueerrors.Error
+	if !errors.As(err, &ce) {
+		// YAML syntax errors arrive as "<abs file>:<line>[:<col>]: <message>"
+		if m := yamlErrRe.FindStringSubmatch(err.Error()); m != nil {
+			line, _ := strconv.Atoi(m[2])
+			col := 1
+			if m[3] != "" {
+				col, _ = strconv.Atoi(m[3])
+			}
+			f := m[1]
+			if rel, rerr := filepath.Rel(root, f); filepath.IsAbs(f) && rerr == nil {
+				f = rel
+			}
+			return []Diag{{File: filepath.ToSlash(f), Line: line, Col: col, Msg: m[4]}}, nil
+		}
+		return nil, err
+	}
+	var diags []Diag
+	for _, e := range cueerrors.Errors(err) {
+		var pos *struct {
+			file      string
+			line, col int
+		}
+		for _, p := range cueerrors.Positions(e) {
+			pp := p.Position()
+			if pp.Line > 0 && pp.Filename != "" {
+				pos = &struct {
+					file      string
+					line, col int
+				}{pp.Filename, pp.Line, pp.Column}
+				break
+			}
+		}
+		if pos == nil {
+			return nil, err
+		}
+		f := pos.file
+		if filepath.IsAbs(f) {
+			if rel, rerr := filepath.Rel(root, f); rerr == nil {
+				f = rel
+			}
+		}
+		format, args := e.Msg()
+		diags = append(diags, Diag{File: filepath.ToSlash(f), Line: pos.line, Col: pos.col, Msg: fmt.Sprintf(format, args...)})
+	}
+	return sortDedupe(diags), nil
+}
+
 func hasOther(all []raw, needle string) bool {
 	for _, o := range all {
 		if !strings.Contains(o.header, "conflicting values") && strings.Contains(o.header, needle) {
@@ -188,12 +243,13 @@ func All(root string, caps []string) ([]Diag, error) {
 		}
 	}
 	var all []Diag
+	var errs []error
 	for _, c := range caps {
 		d, err := Capability(root, c)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", c, err)
+			errs = append(errs, fmt.Errorf("%s: %w", c, err))
 		}
 		all = append(all, d...)
 	}
-	return sortDedupe(all), nil
+	return sortDedupe(all), errors.Join(errs...)
 }

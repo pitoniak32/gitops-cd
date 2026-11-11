@@ -110,3 +110,38 @@ func TestAllSortsAndDedupes(t *testing.T) {
 		t.Fatal("want a teams/team1.yml diagnostic")
 	}
 }
+
+func TestLintYamlSyntaxErrorIsDiagAndOthersStillPrint(t *testing.T) {
+	r := fixture(t)
+	if err := os.WriteFile(filepath.Join(r, "capabilities/payments/stages/dev.yml"), []byte("a: b\n  c: [\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	st := filepath.Join(r, "capabilities/search/stages")
+	ents, _ := os.ReadDir(st)
+	if len(ents) == 0 {
+		t.Fatal("no search stages")
+	}
+	if err := os.WriteFile(filepath.Join(st, ents[0].Name()), []byte("color: puce\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	d, err := All(r, nil)
+	if err != nil {
+		t.Fatalf("syntax error must be a Diag, got err %v", err)
+	}
+	var syn, lintErr bool
+	for _, x := range d {
+		t.Log(x)
+		if x.File == "capabilities/payments/stages/dev.yml" && x.Line > 0 {
+			syn = true
+		}
+		if strings.HasPrefix(x.File, "capabilities/search/stages/") {
+			lintErr = true
+		}
+		if filepath.IsAbs(x.File) {
+			t.Errorf("absolute path %s", x)
+		}
+	}
+	if !syn || !lintErr {
+		t.Fatalf("want both syntax and search diags, got %v", d)
+	}
+}

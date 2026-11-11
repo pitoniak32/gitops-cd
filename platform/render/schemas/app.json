@@ -1,26 +1,24 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "EnvValue": {
-      "type": "string",
-      "description": "Plain value, or a Secret Manager ref: secret:<gcp-project>/<secret>[@<version>]",
       "anyOf": [
         {
-          "type": "string",
           "pattern": "^(?![\\s\\S]*?(?:^secret:))",
-          "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]"
+          "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]",
+          "type": "string"
         },
         {
-          "type": "string",
           "pattern": "^secret:[a-z][a-z0-9-]{4,28}[a-z0-9]/[A-Za-z0-9_-]+(@([0-9]+|latest))?$",
-          "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]"
+          "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]",
+          "type": "string"
         }
       ],
+      "description": "Plain value, or a Secret Manager ref: secret:<gcp-project>/<secret>[@<version>]",
       "errorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]",
-      "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]"
+      "patternErrorMessage": "Plain string, or secret:<gcp-project>/<secret>[@<version>]",
+      "type": "string"
     },
     "EnvironmentVariables": {
-      "type": "object",
       "description": "targets/<t>/environment-variables/<name>.yml: flat KEY: value map",
       "patternProperties": {
         "^[A-Za-z_][A-Za-z0-9_]*$": {
@@ -28,17 +26,16 @@
         }
       },
       "propertyNames": {
-        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
         "errorMessage": "Invalid name, must match ^[A-Za-z_][A-Za-z0-9_]*$",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
         "patternErrorMessage": "Invalid name, must match ^[A-Za-z_][A-Za-z0-9_]*$"
-      }
+      },
+      "type": "object"
     },
     "Layer": {
-      "type": "object",
       "description": "Settings that can be set at app, stage, or target level. Most specific wins;\nenv is merged per key.",
       "properties": {
         "deployWith": {
-          "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020).",
           "anyOf": [
             {
               "const": "argocd"
@@ -46,17 +43,18 @@
             {
               "const": "gha"
             }
-          ]
+          ],
+          "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020)."
         },
         "env": {
           "$ref": "#/$defs/EnvironmentVariables"
         },
         "envFrom": {
-          "type": "array",
           "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. A KEY from a more specific layer's\nenvFrom wins; any env wins over all of them.",
           "items": {
             "$ref": "#/$defs/Name"
-          }
+          },
+          "type": "array"
         },
         "replicas": {
           "allOf": [
@@ -64,22 +62,21 @@
               "type": "number"
             },
             {
-              "type": "integer",
               "maximum": 100,
-              "minimum": 0
+              "minimum": 0,
+              "type": "integer"
             }
           ]
         },
         "resources": {
-          "type": "object",
           "properties": {
             "cpu": {
-              "type": "string",
-              "pattern": "^[0-9]+m?$"
+              "pattern": "^[0-9]+m?$",
+              "type": "string"
             },
             "memory": {
-              "type": "string",
-              "pattern": "^[0-9]+(Mi|Gi)$"
+              "pattern": "^[0-9]+(Mi|Gi)$",
+              "type": "string"
             }
           },
           "propertyNames": {
@@ -88,36 +85,36 @@
               "memory"
             ],
             "errorMessage": "Unknown key. Allowed: cpu, memory"
-          }
+          },
+          "type": "object"
         },
         "workflow": {
-          "type": "object",
           "description": "GitHub Actions workflow for gha targets (ignored where deployWith is argocd); each field\ndefaults separately: repo this repo, file deploy.yaml, ref main.",
           "properties": {
             "file": {
-              "description": "file name under <repo>/.github/workflows/",
               "anyOf": [
                 {
-                  "type": "string",
-                  "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$"
+                  "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$",
+                  "type": "string"
                 }
-              ]
+              ],
+              "description": "file name under <repo>/.github/workflows/"
             },
             "ref": {
               "anyOf": [
                 {
-                  "type": "string",
                   "not": {
                     "const": ""
-                  }
+                  },
+                  "type": "string"
                 }
               ]
             },
             "repo": {
               "anyOf": [
                 {
-                  "type": "string",
-                  "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+                  "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+                  "type": "string"
                 }
               ]
             }
@@ -129,7 +126,8 @@
               "repo"
             ],
             "errorMessage": "Unknown key. Allowed: file, ref, repo"
-          }
+          },
+          "type": "object"
         }
       },
       "propertyNames": {
@@ -142,17 +140,16 @@
           "workflow"
         ],
         "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, replicas, resources, workflow"
-      }
+      },
+      "type": "object"
     },
     "Name": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "type": "string"
     },
     "StageLayer": {
-      "type": "object",
       "properties": {
         "deployWith": {
-          "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020).",
           "anyOf": [
             {
               "const": "argocd"
@@ -160,17 +157,18 @@
             {
               "const": "gha"
             }
-          ]
+          ],
+          "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020)."
         },
         "env": {
           "$ref": "#/$defs/EnvironmentVariables"
         },
         "envFrom": {
-          "type": "array",
           "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. A KEY from a more specific layer's\nenvFrom wins; any env wins over all of them.",
           "items": {
             "$ref": "#/$defs/Name"
-          }
+          },
+          "type": "array"
         },
         "replicas": {
           "allOf": [
@@ -178,22 +176,21 @@
               "type": "number"
             },
             {
-              "type": "integer",
               "maximum": 100,
-              "minimum": 0
+              "minimum": 0,
+              "type": "integer"
             }
           ]
         },
         "resources": {
-          "type": "object",
           "properties": {
             "cpu": {
-              "type": "string",
-              "pattern": "^[0-9]+m?$"
+              "pattern": "^[0-9]+m?$",
+              "type": "string"
             },
             "memory": {
-              "type": "string",
-              "pattern": "^[0-9]+(Mi|Gi)$"
+              "pattern": "^[0-9]+(Mi|Gi)$",
+              "type": "string"
             }
           },
           "propertyNames": {
@@ -202,36 +199,49 @@
               "memory"
             ],
             "errorMessage": "Unknown key. Allowed: cpu, memory"
-          }
+          },
+          "type": "object"
+        },
+        "targets": {
+          "patternProperties": {
+            "^[a-z][a-z0-9-]{0,39}$": {
+              "$ref": "#/$defs/Layer"
+            }
+          },
+          "propertyNames": {
+            "errorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$",
+            "pattern": "^[a-z][a-z0-9-]{0,39}$",
+            "patternErrorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$"
+          },
+          "type": "object"
         },
         "workflow": {
-          "type": "object",
           "description": "GitHub Actions workflow for gha targets (ignored where deployWith is argocd); each field\ndefaults separately: repo this repo, file deploy.yaml, ref main.",
           "properties": {
             "file": {
-              "description": "file name under <repo>/.github/workflows/",
               "anyOf": [
                 {
-                  "type": "string",
-                  "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$"
+                  "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$",
+                  "type": "string"
                 }
-              ]
+              ],
+              "description": "file name under <repo>/.github/workflows/"
             },
             "ref": {
               "anyOf": [
                 {
-                  "type": "string",
                   "not": {
                     "const": ""
-                  }
+                  },
+                  "type": "string"
                 }
               ]
             },
             "repo": {
               "anyOf": [
                 {
-                  "type": "string",
-                  "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+                  "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+                  "type": "string"
                 }
               ]
             }
@@ -243,20 +253,8 @@
               "repo"
             ],
             "errorMessage": "Unknown key. Allowed: file, ref, repo"
-          }
-        },
-        "targets": {
-          "type": "object",
-          "patternProperties": {
-            "^[a-z][a-z0-9-]{0,39}$": {
-              "$ref": "#/$defs/Layer"
-            }
           },
-          "propertyNames": {
-            "pattern": "^[a-z][a-z0-9-]{0,39}$",
-            "errorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$",
-            "patternErrorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$"
-          }
+          "type": "object"
         }
       },
       "propertyNames": {
@@ -270,20 +268,20 @@
           "workflow"
         ],
         "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, replicas, resources, targets, workflow"
-      }
+      },
+      "type": "object"
     },
     "_ociRepo": {
-      "type": "string",
-      "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$",
       "errorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)",
-      "patternErrorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)"
+      "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$",
+      "patternErrorMessage": "Image repository only, no tag or digest (Kargo discovers SemVer tags)",
+      "type": "string"
     }
   },
-  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "apps/<name>/app.yml",
   "properties": {
     "deployWith": {
-      "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020).",
       "anyOf": [
         {
           "const": "argocd"
@@ -291,17 +289,52 @@
         {
           "const": "gha"
         }
-      ]
+      ],
+      "description": "How promotion deploys a target: argocd (default) syncs its Argo CD app; gha dispatches\n`workflow` with the promoted commit and image and waits for the run (ADR 0020)."
     },
     "env": {
       "$ref": "#/$defs/EnvironmentVariables"
     },
     "envFrom": {
-      "type": "array",
       "description": "targets/<t>/environment-variables/<name>.yml of each deployed target; every listed\nname must exist for every target it reaches. A KEY from a more specific layer's\nenvFrom wins; any env wins over all of them.",
       "items": {
         "$ref": "#/$defs/Name"
-      }
+      },
+      "type": "array"
+    },
+    "image": {
+      "$ref": "#/$defs/_ociRepo",
+      "description": "Exactly one of image (K8s app) or module (terraform app, ADR 0021).\nImage repository, no tag or digest: the app's Warehouse discovers SemVer tags, Freight pins one\n(by digest) next to the config commit, and promotion writes it into the target (ADR 0016)."
+    },
+    "imageConstraint": {
+      "description": "SemVer range for discovered tags (e.g. ^1, ~1.2); unset: any SemVer tag.",
+      "not": {
+        "const": ""
+      },
+      "type": "string"
+    },
+    "module": {
+      "$ref": "#/$defs/_ociRepo",
+      "description": "Terraform module as an OCI artifact repository (oras push, single manifest), no tag or digest;\ndiscovered and pinned like image. Its targets must be TERRAFORM targets."
+    },
+    "moduleConstraint": {
+      "description": "SemVer range for discovered module tags; unset: any SemVer tag.",
+      "not": {
+        "const": ""
+      },
+      "type": "string"
+    },
+    "port": {
+      "allOf": [
+        {
+          "type": "number"
+        },
+        {
+          "exclusiveMaximum": 65536,
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        }
+      ]
     },
     "replicas": {
       "allOf": [
@@ -309,22 +342,21 @@
           "type": "number"
         },
         {
-          "type": "integer",
           "maximum": 100,
-          "minimum": 0
+          "minimum": 0,
+          "type": "integer"
         }
       ]
     },
     "resources": {
-      "type": "object",
       "properties": {
         "cpu": {
-          "type": "string",
-          "pattern": "^[0-9]+m?$"
+          "pattern": "^[0-9]+m?$",
+          "type": "string"
         },
         "memory": {
-          "type": "string",
-          "pattern": "^[0-9]+(Mi|Gi)$"
+          "pattern": "^[0-9]+(Mi|Gi)$",
+          "type": "string"
         }
       },
       "propertyNames": {
@@ -333,36 +365,50 @@
           "memory"
         ],
         "errorMessage": "Unknown key. Allowed: cpu, memory"
-      }
+      },
+      "type": "object"
+    },
+    "stages": {
+      "description": "Subset of the capability's stages. Skipped stages are bypassed in the pipeline\n(prod depends on [staging, perf]; without perf, prod depends on staging).",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]{0,39}$": {
+          "$ref": "#/$defs/StageLayer"
+        }
+      },
+      "propertyNames": {
+        "errorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$",
+        "pattern": "^[a-z][a-z0-9-]{0,39}$",
+        "patternErrorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$"
+      },
+      "type": "object"
     },
     "workflow": {
-      "type": "object",
       "description": "GitHub Actions workflow for gha targets (ignored where deployWith is argocd); each field\ndefaults separately: repo this repo, file deploy.yaml, ref main.",
       "properties": {
         "file": {
-          "description": "file name under <repo>/.github/workflows/",
           "anyOf": [
             {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$"
+              "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$",
+              "type": "string"
             }
-          ]
+          ],
+          "description": "file name under <repo>/.github/workflows/"
         },
         "ref": {
           "anyOf": [
             {
-              "type": "string",
               "not": {
                 "const": ""
-              }
+              },
+              "type": "string"
             }
           ]
         },
         "repo": {
           "anyOf": [
             {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+              "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+              "type": "string"
             }
           ]
         }
@@ -374,55 +420,8 @@
           "repo"
         ],
         "errorMessage": "Unknown key. Allowed: file, ref, repo"
-      }
-    },
-    "image": {
-      "description": "Exactly one of image (K8s app) or module (terraform app, ADR 0021).\nImage repository, no tag or digest: the app's Warehouse discovers SemVer tags, Freight pins one\n(by digest) next to the config commit, and promotion writes it into the target (ADR 0016).",
-      "$ref": "#/$defs/_ociRepo"
-    },
-    "imageConstraint": {
-      "type": "string",
-      "description": "SemVer range for discovered tags (e.g. ^1, ~1.2); unset: any SemVer tag.",
-      "not": {
-        "const": ""
-      }
-    },
-    "module": {
-      "description": "Terraform module as an OCI artifact repository (oras push, single manifest), no tag or digest;\ndiscovered and pinned like image. Its targets must be TERRAFORM targets.",
-      "$ref": "#/$defs/_ociRepo"
-    },
-    "moduleConstraint": {
-      "type": "string",
-      "description": "SemVer range for discovered module tags; unset: any SemVer tag.",
-      "not": {
-        "const": ""
-      }
-    },
-    "port": {
-      "allOf": [
-        {
-          "type": "number"
-        },
-        {
-          "type": "integer",
-          "exclusiveMaximum": 65536,
-          "exclusiveMinimum": 0
-        }
-      ]
-    },
-    "stages": {
-      "type": "object",
-      "description": "Subset of the capability's stages. Skipped stages are bypassed in the pipeline\n(prod depends on [staging, perf]; without perf, prod depends on staging).",
-      "patternProperties": {
-        "^[a-z][a-z0-9-]{0,39}$": {
-          "$ref": "#/$defs/StageLayer"
-        }
       },
-      "propertyNames": {
-        "pattern": "^[a-z][a-z0-9-]{0,39}$",
-        "errorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$",
-        "patternErrorMessage": "Invalid name, must match ^[a-z][a-z0-9-]{0,39}$"
-      }
+      "type": "object"
     }
   },
   "propertyNames": {
@@ -441,5 +440,6 @@
       "workflow"
     ],
     "errorMessage": "Unknown key. Allowed: deployWith, env, envFrom, image, imageConstraint, module, moduleConstraint, port, replicas, resources, stages, workflow"
-  }
+  },
+  "type": "object"
 }
