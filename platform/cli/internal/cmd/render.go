@@ -11,7 +11,7 @@ import (
 func init() {
 	var rootDir string
 	var caps []string
-	var withRegions bool
+	var withPlatform bool
 	c := &cobra.Command{
 		Use:   "render [out]",
 		Short: "Render every capability into rendered/ (or out) and regenerate .github/CODEOWNERS",
@@ -33,21 +33,21 @@ func init() {
 			if out, err = filepath.Abs(out); err != nil {
 				return err
 			}
-			if len(caps) == 0 && !withRegions {
+			if len(caps) == 0 && !withPlatform {
 				return render.All(root, out, cmd.OutOrStdout())
 			}
-			// selected capabilities only: no wipe of others, no regions/CODEOWNERS
+			// selected capabilities only: no wipe of others, no platform files/CODEOWNERS
 			if err := render.Selected(root, caps, out, cmd.OutOrStdout()); err != nil {
 				return err
 			}
-			if withRegions {
-				return render.Wrap(render.Regions(root, out))
+			if withPlatform {
+				return render.Wrap(render.Platform(root, out))
 			}
 			return nil
 		},
 	}
-	c.Flags().BoolVar(&withRegions, "regions", false, "also write the platform-level regions files (alone: only those)")
+	c.Flags().BoolVar(&withPlatform, "platform", false, "also write the platform-level files: regions, promotion tasks (alone: only those)")
 	c.Flags().StringVar(&rootDir, "root", "", "repo root (default: this repo)")
-	c.Flags().StringArrayVar(&caps, "capability", nil, "render only this capability (repeatable; skips regions/CODEOWNERS)")
+	c.Flags().StringArrayVar(&caps, "capability", nil, "render only this capability (repeatable; skips platform files/CODEOWNERS)")
 	register(c)
 }

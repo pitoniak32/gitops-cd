@@ -80,21 +80,11 @@ func TestCloudRunRender(t *testing.T) {
 	if shard+" "+st(t, k, w, `metadata.labels."example.com/platform"`)+" "+st(t, k, w, `metadata.labels."example.com/deploy-with"`) != "- cloudrun gha" {
 		t.Error("web-us-east4-npr-cr: no shard, cloudrun, gha")
 	}
-	yu := stepUsing(k, w, "yaml-update")
-	if str(get(yu, "config.path"))+" "+str(get(yu, "config.updates.0.key")) != "./out/service.yaml spec.template.spec.containers.0.image" {
+	if varValue(k, w, "pinFile")+" "+varValue(k, w, "pinKey")+" "+varValue(k, w, "artifactKey") != "./out/service.yaml spec.template.spec.containers.0.image image" {
 		t.Error("cloud run yaml-update")
 	}
-	wf := ""
-	for _, v := range list(stage(k, w), "spec.promotionTemplate.spec.vars") {
-		if str(get(v, "name")) == "workflowFile" {
-			wf = str(get(v, "value"))
-		}
-	}
-	if wf != "cloud-run.yaml" {
+	if varValue(k, w, "workflowFile") != "cloud-run.yaml" {
 		t.Error("cloud run workflow default")
-	}
-	if str(get(stepAs(k, w, "wait"), "retry.timeout")) != "30m" {
-		t.Error("cloud run wait timeout 30m")
 	}
 	us := stepUses(t, k, "web-us-east4-dev-k8s")
 	if st(t, k, "web-us-east4-dev-k8s", `metadata.labels."example.com/platform"`)+" "+st(t, k, "web-us-east4-dev-k8s", `metadata.labels."example.com/deploy-with"`)+" "+us[len(us)-1] != "k8s argocd argocd-update" {

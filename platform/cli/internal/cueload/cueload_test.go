@@ -34,7 +34,7 @@ func TestPlatformClusters(t *testing.T) {
 	t.Parallel()
 	root, _ := filepath.Abs(testRoot)
 	root = filepath.Join(root, "..", "..", "..", "..")
-	v, err := Platform(root, "clusters.cue", "regions.cue")
+	v, err := Platform(root, "clusters.cue", "regions.cue", "promotiontasks.cue")
 	if err != nil {
 		t.Fatal(err)
 	}

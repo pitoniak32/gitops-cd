@@ -30,7 +30,7 @@ func renderFixture(t *testing.T, root string) string {
 	t.Helper()
 	out := t.TempDir()
 	renderTestRoot(t, root, out, "payments", "search")
-	if err := Regions(repoRoot(t), out); err != nil {
+	if err := Platform(repoRoot(t), out); err != nil {
 		t.Fatal(err)
 	}
 	return out
@@ -76,7 +76,7 @@ func renderShared(t *testing.T, dir string) error {
 	if err := Selected(abs(t, "testdata/root"), []string{"payments", "search"}, dir, io.Discard); err != nil {
 		return err
 	}
-	return Regions(repoRoot(t), dir)
+	return Platform(repoRoot(t), dir)
 }
 
 func TestMain(m *testing.M) {

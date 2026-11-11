@@ -62,27 +62,21 @@ func TestTerraformKargo(t *testing.T) {
 	if strings.Join(stepUses(t, k, inf), ",") != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" {
 		t.Error("infra-us-east4-dev-tf steps")
 	}
-	yu := stepUsing(k, inf, "yaml-update")
-	if str(get(yu, "config.path"))+" "+str(get(yu, "config.updates.0.key"))+" "+str(get(yu, "config.updates.0.value")) != `./out/terraform.yaml module ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}` {
+	if varValue(k, inf, "pinFile")+" "+varValue(k, inf, "pinKey")+" "+varValue(k, inf, "artifactKey") != "./out/terraform.yaml module module" {
 		t.Error("pin module in terraform.yaml")
 	}
-	if varNames(k, inf) != "repo,src,branch,image,workflowRepo,workflowFile,workflowRef" {
+	yu := stepUsing(t, k, inf, "yaml-update")
+	if str(get(yu, "config.path"))+" "+str(get(yu, "config.updates.0.key"))+" "+str(get(yu, "config.updates.0.value")) != `${{ vars.pinFile }} ${{ vars.pinKey }} ${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}` {
+		t.Error("yaml-update pins vars.image at vars.pinFile/pinKey")
+	}
+	if varNames(k, inf) != ghaVars {
 		t.Error("terraform vars (kargo-restore reads image by name)")
 	}
-	if varValuesFrom4(k, inf) != "pitoniak32/gitops-cd terraform.yaml v1" {
+	if varValue(k, inf, "workflowRepo")+" "+varValue(k, inf, "workflowFile")+" "+varValue(k, inf, "workflowRef") != "pitoniak32/gitops-cd terraform.yaml v1" {
 		t.Error("terraform workflow defaults/override")
 	}
-	body := str(get(stepAs(k, inf, "dispatch"), "config.body"))
-	if !strings.Contains(body, "'module': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest") {
-		t.Error("dispatch must send module")
-	}
-	if strings.Contains(body, "'image':") {
-		t.Error("terraform dispatch must not send image")
-	}
-	if !strings.Contains(str(get(stepUsing(k, inf, "git-commit"), "config.message")), ", module ${{ imageFrom(vars.image).Tag }}") {
-		t.Error("commit message names module tag (kargo-restore parses it)")
-	}
-	if str(get(stepAs(k, inf, "wait"), "retry.timeout"))+" "+str(get(stepAs(k, "worker-us-east4-dev-k8s", "wait"), "retry.timeout")) != "60m 30m" {
-		t.Error("wait timeout terraform 60m, k8s 30m")
+	// dispatch input key and commit message word come from artifactKey (module here)
+	if !strings.Contains(str(get(stepUsing(t, k, inf, "git-commit"), "config.message")), ", ${{ vars.artifactKey }} ${{ imageFrom(vars.image).Tag }}") {
+		t.Error("commit message names artifact tag (kargo-restore parses it)")
 	}
 }

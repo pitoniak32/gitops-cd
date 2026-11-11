@@ -95,7 +95,7 @@ func TestGolden(t *testing.T) {
 	root := abs(t, "testdata/root")
 	out := t.TempDir()
 	renderTestRoot(t, root, out, "payments", "search")
-	if err := Regions(repoRoot(t), out); err != nil {
+	if err := Platform(repoRoot(t), out); err != nil {
 		t.Fatal(err)
 	}
 	golden := abs(t, "testdata/golden")
