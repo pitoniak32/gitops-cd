@@ -68,12 +68,23 @@ func (f fakeBranches) Head(_, branch string) (string, string, bool, error) {
 	return v[0], v[1], ok, nil
 }
 
+// projectNS is an app's Kargo project namespace as rendered (ADR 0029): kargo-restore finds it by label.
+func projectNS(cap, app string) *corev1.Namespace {
+	return &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kargo-" + cap + "-" + app, Labels: map[string]string{
+		"kargo.akuity.io/project": "true", "example.com/capability": cap, "example.com/app": app,
+	}}}
+}
+
 func stage(name, branch string, hasFreight bool) *unstructured.Unstructured {
+	return stageIn("my-app", name, branch, hasFreight)
+}
+
+func stageIn(app, name, branch string, hasFreight bool) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "kargo.akuity.io/v1alpha1", "kind": "Stage",
-		"metadata": map[string]any{"name": name, "namespace": "kargo-payments"},
+		"metadata": map[string]any{"name": name, "namespace": "kargo-payments-" + app},
 		"spec": map[string]any{
-			"requestedFreight": []any{map[string]any{"origin": map[string]any{"kind": "Warehouse", "name": "my-app"}}},
+			"requestedFreight": []any{map[string]any{"origin": map[string]any{"kind": "Warehouse", "name": app}}},
 			"promotionTemplate": map[string]any{"spec": map[string]any{"vars": []any{
 				map[string]any{"name": "repo", "value": repoURL},
 				map[string]any{"name": "branch", "value": branch},
@@ -100,6 +111,7 @@ func TestRestore(t *testing.T) {
 		stage("never", "env/payments/my-app/never", false),
 		stage("pre", "env/payments/my-app/pre", false),
 		stage("dev", "env/payments/my-app/dev", false),
+		stageIn("worker", "dev", "env/payments/worker/dev", true), // same Stage name, other app's project
 	)
 	dyn.PrependReactor("create", "freights", func(a ktesting.Action) (bool, runtime.Object, error) {
 		o := a.(ktesting.CreateAction).GetObject().(*unstructured.Unstructured)
@@ -112,7 +124,8 @@ func TestRestore(t *testing.T) {
 		_ = unstructured.SetNestedField(o.Object, "Succeeded", "status", "phase")
 		return false, nil, nil
 	})
-	core := k8sfake.NewSimpleClientset(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kargo-payments"}})
+	// an unlabeled namespace with the old per-capability name is not a project
+	core := k8sfake.NewSimpleClientset(projectNS("payments", "my-app"), projectNS("payments", "worker"), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kargo-other"}})
 	hub := &kube.Clients{Ctx: "hub", Core: core, Dyn: dyn}
 
 	br := fakeBranches{
@@ -126,11 +139,12 @@ func TestRestore(t *testing.T) {
 	}
 	got := out.String()
 	for _, w := range []string{
-		"other: no Kargo project kargo-other (not rendered/synced yet?), skipped",
-		"payments/have: already has Freight, skipped",
-		"payments/never: env/payments/my-app/never doesn't exist (never promoted), skipped",
-		"payments/pre: no pinned artifact (<repo>:<tag>@<digest>) in deployment.yaml, service.yaml or terraform.yaml (promoted before ADR 0016?), skipped",
-		"payments/dev: promoting 1.1.0 from a35be03 (Freight freight-abc)",
+		"other: no Kargo project labeled example.com/capability=other (not rendered/synced yet?), skipped",
+		"payments/my-app/have: already has Freight, skipped",
+		"payments/my-app/never: env/payments/my-app/never doesn't exist (never promoted), skipped",
+		"payments/worker/dev: already has Freight, skipped",
+		"payments/my-app/pre: no pinned artifact (<repo>:<tag>@<digest>) in deployment.yaml, service.yaml or terraform.yaml (promoted before ADR 0016?), skipped",
+		"payments/my-app/dev: promoting 1.1.0 from a35be03 (Freight freight-abc)",
 		"dev-restore-xyz: Succeeded",
 	} {
 		if !strings.Contains(got, w+"\n") {
@@ -138,7 +152,7 @@ func TestRestore(t *testing.T) {
 		}
 	}
 
-	fr, err := dyn.Resource(freightGVR).Namespace("kargo-payments").Get(context.Background(), "freight-abc", metav1.GetOptions{})
+	fr, err := dyn.Resource(freightGVR).Namespace("kargo-payments-my-app").Get(context.Background(), "freight-abc", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +166,7 @@ func TestRestore(t *testing.T) {
 	if !patched {
 		t.Error("freight not approved for stage dev via status patch")
 	}
-	ps, _ := dyn.Resource(promotionGVR).Namespace("kargo-payments").List(context.Background(), metav1.ListOptions{})
+	ps, _ := dyn.Resource(promotionGVR).Namespace("kargo-payments-my-app").List(context.Background(), metav1.ListOptions{})
 	if len(ps.Items) != 1 {
 		t.Fatalf("promotions = %d", len(ps.Items))
 	}
@@ -180,7 +194,7 @@ func TestRestoreFailedPromotionFails(t *testing.T) {
 		_ = unstructured.SetNestedField(o.Object, "Failed", "status", "phase")
 		return false, nil, nil
 	})
-	hub := &kube.Clients{Ctx: "hub", Dyn: dyn, Core: k8sfake.NewSimpleClientset(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kargo-payments"}})}
+	hub := &kube.Clients{Ctx: "hub", Dyn: dyn, Core: k8sfake.NewSimpleClientset(projectNS("payments", "my-app"))}
 	err := Restore(context.Background(), t.TempDir(), hub, []string{"payments"}, fakeBranches{"b": {goodMsg, goodImg}}, &bytes.Buffer{})
 	if err == nil {
 		t.Fatal("want error")
@@ -219,7 +233,7 @@ func TestRestoreMalformedStages(t *testing.T) {
 	bad := func(name string, spec map[string]any, status map[string]any) *unstructured.Unstructured {
 		return &unstructured.Unstructured{Object: map[string]any{
 			"apiVersion": "kargo.akuity.io/v1alpha1", "kind": "Stage",
-			"metadata": map[string]any{"name": name, "namespace": "kargo-payments"},
+			"metadata": map[string]any{"name": name, "namespace": "kargo-payments-my-app"},
 			"spec":     spec, "status": status,
 		}}
 	}
