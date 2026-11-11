@@ -83,13 +83,13 @@ for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.target
 	}
 }
 
-// pre-dir layout targets/<t>.yml: inputs.sh still passes them so they fail loudly
+// pre-dir layout targets/<t>.yml: the input globs (cueload.Inputs) still pass them so they fail loudly
 _legacyTargetRe: "^\(C)targets/([^/]+)\\.ya?ml$"
 for k, _ in in if k =~ _legacyTargetRe let tn = regexp.FindSubmatch(_legacyTargetRe, k)[1] {
 	legacyTargets: (tn): error("move to targets/\(tn)/target.yml")
 }
 
-// pre-ADR 0023 apps/<app>/owners.yml: inputs.sh still passes them so they fail loudly
+// pre-ADR 0023 apps/<app>/owners.yml: the input globs (cueload.Inputs) still pass them so they fail loudly
 _legacyAppOwnersRe: "^\(C)apps/([^/]+)/owners\\.ya?ml$"
 for k, _ in in if k =~ _legacyAppOwnersRe let an = regexp.FindSubmatch(_legacyAppOwnersRe, k)[1] {
 	legacyAppOwners: (an): error("move into capabilities/\(capability)/owners.yml apps.\(an)")

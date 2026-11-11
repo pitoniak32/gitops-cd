@@ -14,8 +14,8 @@ Lives in the gitops monorepo; teams never edit it.
 | `delivery.cue` | Kargo Project/ProjectConfig/Warehouse/Stages + Argo CD Applications |
 | `files.cue` | every output file, keyed by rendered-repo path |
 | `gcd render` / `gcd codeowners` (`platform/cli/internal/{cueload,render}`, ADR 0026) | `mise run render` / `codeowners`: validate + write `files`, region files, CODEOWNERS |
+| `gcd lint` (`platform/cli/internal/{lint,yamlpos}`) | `mise run lint`: full CUE validation as `file:line:col: message` (editors, CI annotations) |
 | `scripts/schemas.sh` | generic editor JSON Schemas → `schemas/` (committed, versioned with the platform) |
-| `scripts/lint.sh` (`mise run lint`) | full CUE validation as `file:line:col: message` (editors, CI annotations) |
 
 ## Capability input (paths under the repo root)
 ```
@@ -62,8 +62,8 @@ and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availab
 - **Editor** — `schemas/*.json` from `cue def -t generic=true`: structure, types, formats, cluster/env enums.
   Stage/target names are only pattern-checked, so they don't depend on team files. Team YAML references
   `platform/render/schemas/*.json` by relative path, so any editor works with no local tooling.
-- **CI** — `mise run lint` (platform/render/scripts/lint.sh <root> <cap>): `cue vet -c -E` over the capability's files (+ `teams/`), as `file:line:col: message`
-  (PR annotations). CUE paths without a YAML position are mapped back with yq. Linux CI only. Custom messages come from `error("...")` in the CUE (unknown stage/target/cluster,
+- **CI** — `mise run lint` (`gcd lint [cap…]`, `--root` for another tree): the CUE Go library validates each capability's files (+ `teams/`) like `cue vet -c -E`, as `file:line:col: message`
+  (PR annotations). CUE paths without a YAML position are mapped back to the YAML key (`internal/yamlpos`). Custom messages come from `error("...")` in the CUE (unknown stage/target/cluster,
   environment type/cluster mismatch, prod replicas). An app's computed checks (e.g. prod replicas) appear once its structural errors are fixed.
 
 ## Dev loop

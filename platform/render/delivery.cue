@@ -43,7 +43,7 @@ _kargoStages: {for an, _ in pipelines {(an): list.SortStrings([for n, _ in _grap
 // Stage names must fit a label value: Kargo 1.12 labels each PromotionRequest with the unshortened
 // Stage name (pkg/api/promotion_request.go), so a longer name creates the Stage but fails every promotion.
 _maxStageName: 63
-// Reported via stageNameErrors (not apps: the graph is computed from apps); lint.sh locates
+// Reported via stageNameErrors (not apps: the graph is computed from apps); gcd lint locates
 // stageNameErrors.<app>.<stage>[.<target>] in the app's app.yml.
 stageNameErrors: {for an, g in _graph for n, x in g if len(n) > _maxStageName {
 	let _msg = "Kargo Stage name \(n) is \(len(n)) characters (max \(_maxStageName)): shorten the app or"
