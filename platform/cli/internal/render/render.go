@@ -109,22 +109,8 @@ func All(root, out string, w io.Writer) error {
 			return err
 		}
 	}
-	caps, _ := filepath.Glob(filepath.Join(root, "capabilities", "*"))
-	sort.Strings(caps)
-	var errs []error
-	for _, c := range caps {
-		if st, err := os.Stat(c); err != nil || !st.IsDir() {
-			continue
-		}
-		name := filepath.Base(c)
-		if _, err := Capability(root, name, out); err != nil {
-			errs = append(errs, fmt.Errorf("%s:\n%s", name, Wrap(err)))
-			continue
-		}
-		fmt.Fprintln(w, "rendered", name)
-	}
-	if len(errs) > 0 {
-		return errors.Join(errs...)
+	if err := Fragments(root, out, w); err != nil {
+		return err
 	}
 	if err := Regions(root, out); err != nil {
 		return Wrap(err)
@@ -147,16 +133,27 @@ func All(root, out string, w io.Writer) error {
 func Fragments(root, out string, w io.Writer) error {
 	caps, _ := filepath.Glob(filepath.Join(root, "capabilities", "*"))
 	sort.Strings(caps)
+	var names []string
 	for _, c := range caps {
-		if st, err := os.Stat(c); err != nil || !st.IsDir() {
+		if st, err := os.Stat(c); err == nil && st.IsDir() {
+			names = append(names, filepath.Base(c))
+		}
+	}
+	return Selected(root, names, out, w)
+}
+
+// Selected renders the named capabilities into out, continuing past failures and returning
+// every error joined, each prefixed "<cap>:".
+func Selected(root string, names []string, out string, w io.Writer) error {
+	var errs []error
+	for _, n := range names {
+		if _, err := Capability(root, n, out); err != nil {
+			errs = append(errs, fmt.Errorf("%s:\n%s", n, Wrap(err)))
 			continue
 		}
-		if _, err := Capability(root, filepath.Base(c), out); err != nil {
-			return fmt.Errorf("%s:\n%s", filepath.Base(c), Wrap(err))
-		}
-		fmt.Fprintln(w, "rendered", filepath.Base(c))
+		fmt.Fprintln(w, "rendered", n)
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // Wrap expands CUE errors into "path: message" lines with positions; other errors pass through.
