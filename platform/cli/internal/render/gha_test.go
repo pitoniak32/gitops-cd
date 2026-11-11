@@ -75,6 +75,7 @@ func stepUsing(ds []map[string]any, name, uses string) map[string]any {
 
 // test.sh: "gha targets ok"
 func TestGhaTargets(t *testing.T) {
+	t.Parallel()
 	k := kargoPayments(t)
 	const w = "worker-us-east4-dev-k8s"
 	if got := strings.Join(stepUses(t, k, w), ","); got != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" {

@@ -9,6 +9,7 @@ import (
 
 // test.sh: "terraform render ok" (ADR 0021)
 func TestTerraformRender(t *testing.T) {
+	t.Parallel()
 	out := sharedOut(t)
 	tf := filepath.Join(out, "apps/payments/infra")
 	ents, err := os.ReadDir(filepath.Join(tf, "dev/us-east4-dev-tf"))
@@ -39,6 +40,7 @@ func TestTerraformRender(t *testing.T) {
 // Warehouse watches the module as an image (no platform), Stage runs on the hub controller
 // (no shard), pins module in terraform.yaml, dispatches with `module`, waits 60m
 func TestTerraformKargo(t *testing.T) {
+	t.Parallel()
 	k := kargoPayments(t)
 	const inf = "infra-us-east4-dev-tf"
 	wh := find(k, "Warehouse", "infra")

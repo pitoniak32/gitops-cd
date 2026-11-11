@@ -16,6 +16,7 @@ func write(t *testing.T, s string) string {
 }
 
 func TestFind(t *testing.T) {
+	t.Parallel()
 	f := write(t, "# yaml-language-server: $schema=../x.json\n\nimage: foo\nstages:\n  \"dev\":\n    targets:\n      a-b: {}\nenvFrom:\n  - one\n  - two\n")
 	for _, c := range []struct {
 		path      []string

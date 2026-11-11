@@ -28,6 +28,7 @@ func read(t *testing.T, p string) string {
 }
 
 func TestSetKeepsCommentsAndIndent(t *testing.T) {
+	t.Parallel()
 	f := write(t, src)
 	if err := Set(f, []string{"promoters", "dev"}, []string{"b@example.com"}); err != nil {
 		t.Fatal(err)
@@ -41,6 +42,7 @@ func TestSetKeepsCommentsAndIndent(t *testing.T) {
 }
 
 func TestSetCreatesMissing(t *testing.T) {
+	t.Parallel()
 	f := write(t, src)
 	if err := Set(f, []string{"apps", "worker", "viewers"}, []string{"c@example.com"}); err != nil {
 		t.Fatal(err)
@@ -61,6 +63,7 @@ func TestSetCreatesMissing(t *testing.T) {
 }
 
 func TestSetEmptyFile(t *testing.T) {
+	t.Parallel()
 	f := write(t, "")
 	if err := Set(f, []string{"a", "b"}, 1); err != nil {
 		t.Fatal(err)
@@ -71,6 +74,7 @@ func TestSetEmptyFile(t *testing.T) {
 }
 
 func TestDel(t *testing.T) {
+	t.Parallel()
 	f := write(t, src)
 	if err := Del(f, []string{"promoters", "dev"}); err != nil {
 		t.Fatal(err)
@@ -88,6 +92,7 @@ func TestDel(t *testing.T) {
 }
 
 func TestRename(t *testing.T) {
+	t.Parallel()
 	f := write(t, src)
 	if err := Rename(f, []string{"codeOwners"}, "owners"); err != nil {
 		t.Fatal(err)

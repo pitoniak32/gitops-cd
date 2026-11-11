@@ -20,6 +20,7 @@ func resourceNames(ds []map[string]any, role string) string {
 
 // test.sh: "kind cluster ok" (Kargo RBAC half)
 func TestKindClusterRBAC(t *testing.T) {
+	t.Parallel()
 	k := docs(t, filepath.Join(sharedOut(t), "kargo/payments.yaml"))
 
 	// Kargo visibility (email claim)
@@ -131,6 +132,7 @@ func TestKindClusterRBAC(t *testing.T) {
 // Every app overrides promoters: the capability-level promoter gets no promote role but still
 // views; stages/targets approvers (CODEOWNERS) are the apps' owners.
 func TestOverrideAllOwners(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	writeFile(t, filepath.Join(r, "capabilities/search/owners.yml"), "codeOwners: [team1]\npromoters: {dev: [carol@example.com]}\napps: {api: {codeOwners: [team2], promoters: {dev: [dave@example.com]}}}\n")
 	o := renderCap(t, r, "search")
@@ -156,6 +158,7 @@ func TestOverrideAllOwners(t *testing.T) {
 // test.sh: "app viewers ok"
 // App viewers (apps.<a>.viewers) are included in the viewers SA claims
 func TestAppViewers(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	must(t, yamledit.Set(filepath.Join(r, "capabilities/payments/owners.yml"), []string{"apps", "worker", "viewers"}, []string{"erin@example.com"}))
 	o := renderCap(t, r, "payments")

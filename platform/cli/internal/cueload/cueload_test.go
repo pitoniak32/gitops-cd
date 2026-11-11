@@ -8,6 +8,7 @@ import (
 const testRoot = "../../../render/testdata/root"
 
 func TestInputsOrder(t *testing.T) {
+	t.Parallel()
 	root, _ := filepath.Abs(testRoot)
 	got := Inputs(root, "payments")
 	if len(got) == 0 || got[0][:6] != "teams/" {
@@ -19,6 +20,7 @@ func TestInputsOrder(t *testing.T) {
 }
 
 func TestInputsMissingCap(t *testing.T) {
+	t.Parallel()
 	root, _ := filepath.Abs(testRoot)
 	got := Inputs(root, "nope")
 	for _, p := range got {
@@ -29,6 +31,7 @@ func TestInputsMissingCap(t *testing.T) {
 }
 
 func TestPlatformClusters(t *testing.T) {
+	t.Parallel()
 	root, _ := filepath.Abs(testRoot)
 	root = filepath.Join(root, "..", "..", "..", "..")
 	v, err := Platform(root, "clusters.cue", "regions.cue")

@@ -35,6 +35,7 @@ func fixture(t *testing.T) string {
 }
 
 func TestLintClean(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	d, err := All(r, nil)
 	if err != nil {
@@ -46,6 +47,7 @@ func TestLintClean(t *testing.T) {
 }
 
 func TestLintYamlExtension(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	st := filepath.Join(r, "capabilities/payments/stages")
 	if err := os.Rename(filepath.Join(st, "dev.yml"), filepath.Join(st, "dev.yaml")); err != nil {
@@ -73,6 +75,7 @@ func TestLintYamlExtension(t *testing.T) {
 }
 
 func TestDiagString(t *testing.T) {
+	t.Parallel()
 	for _, c := range []struct {
 		d    Diag
 		want string
@@ -87,6 +90,7 @@ func TestDiagString(t *testing.T) {
 }
 
 func TestAllSortsAndDedupes(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	// a teams/ error is reported once per capability; All dedupes it
 	if err := os.WriteFile(filepath.Join(r, "teams/team1.yml"), []byte("githubTeam: Bad_Name\n"), 0o644); err != nil {
@@ -112,6 +116,7 @@ func TestAllSortsAndDedupes(t *testing.T) {
 }
 
 func TestLintYamlSyntaxErrorIsDiagAndOthersStillPrint(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	if err := os.WriteFile(filepath.Join(r, "capabilities/payments/stages/dev.yml"), []byte("a: b\n  c: [\n"), 0o644); err != nil {
 		t.Fatal(err)

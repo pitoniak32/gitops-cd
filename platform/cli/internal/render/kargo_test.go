@@ -99,6 +99,7 @@ func oneclick(t *testing.T, ds []map[string]any) {
 
 // test.sh: "kind cluster ok" (Kargo graph half)
 func TestKindClusterKargo(t *testing.T) {
+	t.Parallel()
 	out := sharedOut(t)
 	kf := filepath.Join(out, "kargo/payments.yaml")
 	k := docs(t, kf)
@@ -191,6 +192,7 @@ func TestKindClusterKargo(t *testing.T) {
 
 // test.sh: "rendered branch ok" (ADR 0022: Warehouses watch the rendered branch, not main)
 func TestRenderedBranch(t *testing.T) {
+	t.Parallel()
 	out := sharedOut(t)
 	seen := map[string]bool{}
 	for _, f := range []string{"payments", "search"} {
@@ -205,6 +207,7 @@ func TestRenderedBranch(t *testing.T) {
 
 // test.sh: "}}" check, run on the fresh render and the golden Kargo files
 func TestKargoExpressionsNotCutShort(t *testing.T) {
+	t.Parallel()
 	re := regexp.MustCompile(`[^ ]\}\}`)
 	files := append(globOne(t, filepath.Join(sharedOut(t), "kargo/payments.yaml")), globOne(t, abs(t, "testdata/golden/kargo/*.yaml"))...)
 	for _, f := range files {
@@ -239,6 +242,7 @@ func addQA(t *testing.T, caps string) {
 
 // test.sh: "control-flow graph ok" (ADR 0019, synthetic variants a-f)
 func TestControlFlowGraph(t *testing.T) {
+	t.Parallel()
 	// a) app skips perf: dev fans into staging alone (fan-in node named for staging), staging fans into prod
 	k := synth(t, "payments", func(t *testing.T, c string) { del(t, filepath.Join(c, "payments/apps/my-app/app.yml"), "stages.perf") })
 	if stage(k, "my-app-dev-done") != nil {

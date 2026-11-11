@@ -12,6 +12,7 @@ import (
 
 // test.sh: "regions ok"
 func TestRegions(t *testing.T) {
+	t.Parallel()
 	out := sharedOut(t)
 	if got := strings.TrimRight(mustRead(t, filepath.Join(out, "infrastructure/regions/us-east4.json")), "\n"); got != `{"region":"us-east4"}` {
 		t.Error("infrastructure/regions/us-east4.json wrong")
@@ -34,6 +35,7 @@ func TestRegions(t *testing.T) {
 
 // test.sh: "kind cluster ok" (Argo CD half: AppProjects, deploy params, per-region output)
 func TestKindClusterArgoCD(t *testing.T) {
+	t.Parallel()
 	out := sharedOut(t)
 	ap := docs(t, filepath.Join(out, "argocd/projects/us-east4/payments.yaml"))
 	if find(ap, "AppProject", "payments") == nil {
@@ -140,6 +142,7 @@ func TestKindClusterArgoCD(t *testing.T) {
 
 // test.sh: "empty resourceNames in golden"
 func TestNoEmptyResourceNames(t *testing.T) {
+	t.Parallel()
 	fs := globOne(t, abs(t, "testdata/golden/kargo/*.yaml"))
 	if len(fs) == 0 {
 		t.Fatal("no golden kargo yaml")
@@ -158,6 +161,7 @@ func TestNoEmptyResourceNames(t *testing.T) {
 // test.sh: "target schema ok"
 // editor schema (generic export) accepts both platforms: nothing platform-specific is required
 func TestTargetSchema(t *testing.T) {
+	t.Parallel()
 	var sch map[string]any
 	if err := json.Unmarshal([]byte(mustRead(t, abs(t, "schemas/target.json"))), &sch); err != nil {
 		t.Fatal(err)
@@ -176,6 +180,7 @@ func TestTargetSchema(t *testing.T) {
 // test.sh: "envFrom precedence ok"
 // target env > stage env > app env > environment-variables bundle
 func TestEnvFromPrecedence(t *testing.T) {
+	t.Parallel()
 	for _, c := range []struct{ target, want string }{{"us-east4-dev-k8s", "true"}, {"dc1-dev-k8s", "false"}} {
 		var vals []string
 		for _, f := range globOne(t, abs(t, "testdata/golden/apps/payments/my-app/dev/"+c.target+"/*.yaml")) {
@@ -196,6 +201,7 @@ func TestEnvFromPrecedence(t *testing.T) {
 // test.sh: "prefix caps ok"
 // capability names that prefix each other (pay vs payments): re-rendering one must not wipe the other's deploys
 func TestPrefixCaps(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	copyTree(t, filepath.Join(r, "capabilities/payments"), filepath.Join(r, "capabilities/pay"))
 	o := t.TempDir()

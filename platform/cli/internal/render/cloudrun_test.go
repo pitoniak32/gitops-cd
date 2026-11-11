@@ -12,6 +12,7 @@ import (
 
 // test.sh: "cloud run render ok" (ADR 0024)
 func TestCloudRunRender(t *testing.T) {
+	t.Parallel()
 	out := sharedOut(t)
 	cr := filepath.Join(out, "apps/payments/web/staging/us-east4-npr-cr")
 	ents, err := os.ReadDir(cr)

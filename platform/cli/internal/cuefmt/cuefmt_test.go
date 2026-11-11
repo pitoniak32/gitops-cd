@@ -14,6 +14,7 @@ import (
 )
 
 func TestCueFormatted(t *testing.T) {
+	t.Parallel()
 	root, err := filepath.Abs("../../../render")
 	if err != nil {
 		t.Fatal(err)

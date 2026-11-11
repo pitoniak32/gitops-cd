@@ -91,6 +91,7 @@ func renderTestRoot(t *testing.T, root, out string, caps ...string) {
 }
 
 func TestGolden(t *testing.T) {
+	t.Parallel()
 	root := abs(t, "testdata/root")
 	out := t.TempDir()
 	renderTestRoot(t, root, out, "payments", "search")
@@ -123,6 +124,7 @@ func TestGolden(t *testing.T) {
 }
 
 func TestCodeOwnersGolden(t *testing.T) {
+	t.Parallel()
 	out := t.TempDir()
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
@@ -151,6 +153,7 @@ func TestCodeOwnersGolden(t *testing.T) {
 }
 
 func TestCodeOwnersNeedsOneMarker(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, ".github"), 0o755); err != nil {
 		t.Fatal(err)
@@ -164,6 +167,7 @@ func TestCodeOwnersNeedsOneMarker(t *testing.T) {
 }
 
 func TestUniqueApps(t *testing.T) {
+	t.Parallel()
 	out := t.TempDir()
 	renderTestRoot(t, abs(t, "testdata/root"), out, "payments")
 	if err := UniqueApps(out); err != nil {
@@ -188,6 +192,7 @@ func TestUniqueApps(t *testing.T) {
 }
 
 func TestCapabilityEmptyGlobs(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "capabilities", "empty"), 0o755); err != nil {
 		t.Fatal(err)
@@ -201,6 +206,7 @@ func TestCapabilityEmptyGlobs(t *testing.T) {
 }
 
 func TestRepoTag(t *testing.T) {
+	// not parallel: t.Setenv
 	t.Setenv("GITOPS_REPO", "https://example.com/x")
 	out := t.TempDir()
 	renderTestRoot(t, abs(t, "testdata/root"), out, "payments")
@@ -214,6 +220,7 @@ func TestRepoTag(t *testing.T) {
 }
 
 func TestRenderPrunes(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
 	out := t.TempDir()
@@ -240,6 +247,7 @@ func TestRenderPrunes(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
 	out := t.TempDir()
@@ -252,6 +260,7 @@ func TestAll(t *testing.T) {
 }
 
 func TestAllReportsEveryBrokenCapability(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
 	for _, c := range []string{"payments", "search"} {
@@ -275,6 +284,7 @@ func TestAllReportsEveryBrokenCapability(t *testing.T) {
 }
 
 func TestWrap(t *testing.T) {
+	t.Parallel()
 	if Wrap(nil) != nil {
 		t.Fatal("nil")
 	}
@@ -294,6 +304,7 @@ func TestWrap(t *testing.T) {
 }
 
 func TestFragmentsAndSelectedReportEveryBrokenCapability(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
 	for _, c := range []string{"payments", "search"} {

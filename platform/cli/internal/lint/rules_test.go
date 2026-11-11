@@ -47,6 +47,7 @@ const payments = "capabilities/payments"
 // test.sh: "lowercase env ok"
 // env keys: any C identifier (some apps need lowercase, terraform TF_VAR_<name>)
 func TestLowercaseEnv(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	must(t, yamledit.Set(filepath.Join(r, payments, "apps/my-app/app.yml"), []string{"env", "TF_VAR_lower_ok"}, "x"))
 	if got := lintOut(t, r); got != "" {
@@ -57,6 +58,7 @@ func TestLowercaseEnv(t *testing.T) {
 // test.sh: "no spurious lines: <expr>"
 // A forbidden field is reported by its "not allowed" line only: first line, no spurious pattern lines
 func TestForbiddenFieldNoSpuriousLines(t *testing.T) {
+	t.Parallel()
 	const tg = payments + "/targets/"
 	for _, c := range []struct {
 		name, file string
@@ -71,6 +73,7 @@ func TestForbiddenFieldNoSpuriousLines(t *testing.T) {
 		{`.config.namespace = "payments"`, tg + "us-east4-dev-tf/target.yml", setTo("payments", "config", "namespace"), `namespace not allowed on a TERRAFORM target`},
 	} {
 		t.Run(c.name+" "+c.file, func(t *testing.T) {
+			t.Parallel()
 			r := fixture(t)
 			c.edit(t, filepath.Join(r, c.file))
 			got := lintOut(t, r)
@@ -87,6 +90,7 @@ func TestForbiddenFieldNoSpuriousLines(t *testing.T) {
 // test.sh: "legacy app owners ok"
 // Leftover apps/<a>/owners.yml (pre-ADR 0023 layout) fails loudly
 func TestLegacyAppOwners(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	write(t, filepath.Join(r, payments, "apps/worker/owners.yml"), "owners: [team1]\n")
 	got := lintOut(t, r)
@@ -98,8 +102,10 @@ func TestLegacyAppOwners(t *testing.T) {
 // test.sh: "bad name ok: <d>"
 // Invalid app/stage/target directory names fail lint (they become k8s/Kargo names)
 func TestInvalidDirNames(t *testing.T) {
+	t.Parallel()
 	for _, d := range []string{"apps/worker", "stages/perf", "targets/dc1-dev-k8s"} {
 		t.Run(d, func(t *testing.T) {
+			t.Parallel()
 			r := fixture(t)
 			c := filepath.Join(r, payments)
 			dir := filepath.Dir(d)
@@ -116,6 +122,7 @@ func TestInvalidDirNames(t *testing.T) {
 
 // test.sh: "target/stage name collision ok", "target <stage>-done collision ok"
 func TestTargetStageNameCollision(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	cp(t, filepath.Join(r, payments, "targets/dc1-dev-k8s"), filepath.Join(r, payments, "targets/dev"))
 	got := lintOut(t, r)
@@ -126,6 +133,7 @@ func TestTargetStageNameCollision(t *testing.T) {
 
 // ...nor like <stage>-done (fan-out control-flow Stage <app>-<stage>-done, ADR 0019)
 func TestTargetDoneCollision(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	cp(t, filepath.Join(r, payments, "targets/dc1-dev-k8s"), filepath.Join(r, payments, "targets/dev-done"))
 	got := lintOut(t, r)
@@ -137,6 +145,7 @@ func TestTargetDoneCollision(t *testing.T) {
 // test.sh: "target layout ok"
 // Target layout: old targets/<t>.yml and bundles without target.yml fail lint
 func TestTargetLayout(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	tg := filepath.Join(r, payments, "targets")
 	b, err := os.ReadFile(filepath.Join(tg, "dc1-dev-k8s/target.yml"))
@@ -155,6 +164,7 @@ func TestTargetLayout(t *testing.T) {
 // test.sh: "envFrom clash ok"
 // envFrom KEY clash: most specific layer wins; same layer: equal ok, different = error
 func TestEnvFromClash(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	c := filepath.Join(r, payments)
 	write(t, filepath.Join(c, "targets/us-east4-dev-k8s/environment-variables/flags.yml"), "LD_RELAY_URL: https://other\nLD_SDK_KEY: secret:acme-dev-us/launchdarkly-sdk-key\n")
@@ -215,6 +225,7 @@ func readFile(t *testing.T, p string) string {
 // test.sh: "deployWith resolution ok"
 // deployWith/workflow resolve per field, target > stage > app > default
 func TestDeployWithResolution(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	c := filepath.Join(r, payments, "apps/my-app/app.yml")
 	must(t, yamledit.Set(c, []string{"workflow", "ref"}, "release"))
@@ -246,6 +257,7 @@ func TestDeployWithResolution(t *testing.T) {
 // A cluster that narrows its environmentTypes rejects other types, naming what it accepts
 // (copy of the renderer into the root: clusters.cue is platform-owned, so the case can't be a table edit)
 func TestClusterTypes(t *testing.T) {
+	t.Parallel()
 	r := fixture(t)
 	renderSrc := filepath.Join("..", "..", "..", "render")
 	cp(t, filepath.Join("..", "..", "..", "cue.mod"), filepath.Join(r, "platform/cue.mod"))
@@ -273,6 +285,7 @@ func TestClusterTypes(t *testing.T) {
 // Kargo Stage names must fit a label value (63): Kargo 1.12 labels every PromotionRequest with the
 // unshortened Stage name, so a longer name creates the Stage but fails every promotion into it.
 func TestKargoStageNameLength(t *testing.T) {
+	t.Parallel()
 	const longApp = "webwebwebwebwebwebwebwebwebweb"           // 30
 	const longTgt = "us-east4-dev-k8s-aaaaaaaaaaaaaaaaaaaaaaa" // 40
 	const longStage = "ssssssssssssssssssssssssssssssssss"     // 34
@@ -321,6 +334,7 @@ func replaceToken(s, from, to string) string {
 // test.sh: "target name ok: <to>"
 // Target name must be <region>-<env>-<platform>[-<qualifier>] (ADR 0025); dir renames, so not table edits
 func TestTargetNameConvention(t *testing.T) {
+	t.Parallel()
 	for _, c := range []struct{ from, to, want string }{
 		{"us-east4-npr-k8s", "dc1-npr-k8s-x", `^capabilities/payments/targets/dc1-npr-k8s-x/target\.yml:[0-9]+:[0-9]+: .*name must be <region>-<env>-<platform>\[-<qualifier>\]: expected us-east4-npr-k8s\[-<qualifier>\]`},
 		{"us-east4-npr-k8s", "us-east4-npr-k8sperf", `^capabilities/payments/targets/us-east4-npr-k8sperf/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-k8s\[-<qualifier>\]`},
@@ -331,6 +345,7 @@ func TestTargetNameConvention(t *testing.T) {
 		{"us-east4-npr-cr", "us-east4-npr-cr-blue", "ok"},
 	} {
 		t.Run(c.to, func(t *testing.T) {
+			t.Parallel()
 			r := fixture(t)
 			tg := filepath.Join(r, payments, "targets")
 			must(t, os.Rename(filepath.Join(tg, c.from), filepath.Join(tg, c.to)))
