@@ -1,6 +1,6 @@
 # Per-stage promoters, one owners.yml per capability
 
-Status: proposed. Amends ADR 0011 (owners.yml shape, `promote-<app>`) and ADR 0013 (break-glass in promote roles).
+Status: accepted. Amends ADR 0011 (owners.yml shape, `promote-<app>`) and ADR 0013 (break-glass in promote roles).
 
 Promoters could promote an app to every stage. We want finer control, e.g. anyone on the team promotes to dev but only leads promote to prod. Kargo can't select Stages by label (`promote` is a plain Kubernetes RBAC verb: `resourceNames` only, and an empty list means every Stage). The renderer already lists Stage names, so the grouping lives in YAML and CUE expands it.
 

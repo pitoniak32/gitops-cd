@@ -15,11 +15,11 @@ A GitHub team registered in `teams/<team>.yml`, used only for code review (CODEO
 _Avoid_: org, squad
 
 **Owner**:
-A team listed under `owners` for an app (`apps/<app>/owners.yml`, else the capability's `owners.yml`). Owners approve the app's code changes.
+A team listed under `codeOwners` for an app (`apps.<app>.codeOwners`, else the capability's `codeOwners` in `owners.yml`). Owners approve the app's code changes.
 _Avoid_: maintainer, admin
 
 **Promoter**:
-An email listed under `promoters` for an app (same fallback as owners). Promoters promote the app to any stage, approve its Freight, and view the capability.
+An email listed under `promoters.<stage>` in `owners.yml` (per-app stage override under `apps.<app>.promoters`). Promoters promote the app to that stage only, approve its Freight, and view the capability.
 _Avoid_: deployer, owner (owners review code; promoters ship)
 
 **Break-glass**:
