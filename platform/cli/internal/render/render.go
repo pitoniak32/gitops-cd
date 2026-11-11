@@ -82,24 +82,36 @@ func Capability(root, capName, out string) ([]string, error) {
 	return writeFiles(out, files)
 }
 
-// Regions writes the platform-level files (regions.cue regionFiles) under out.
-func Regions(root, out string) error {
-	v, err := cueload.Platform(root, "clusters.cue", "regions.cue")
+// PromotionTasksFile is the platform-level ClusterPromotionTasks file under rendered/ (ADR 0027).
+const PromotionTasksFile = "kargo/_promotion-tasks.yaml"
+
+// Platform writes the platform-level files (no capability input) under out: regions.cue regionFiles and
+// promotiontasks.cue promotionTaskFiles.
+func Platform(root, out string) error {
+	v, err := cueload.Platform(root, "clusters.cue", "regions.cue", "promotiontasks.cue")
 	if err != nil {
 		return err
 	}
-	var files map[string]string
-	if err := v.LookupPath(cueload.Lookup("regionFiles")).Decode(&files); err != nil {
-		return err
+	files := map[string]string{}
+	for _, f := range []string{"regionFiles", "promotionTaskFiles"} {
+		var m map[string]string
+		if err := v.LookupPath(cueload.Lookup(f)).Decode(&m); err != nil {
+			return err
+		}
+		for k, c := range m {
+			files[k] = c
+		}
 	}
-	if err := os.RemoveAll(filepath.Join(out, "infrastructure")); err != nil {
-		return err
+	for _, p := range []string{"infrastructure", PromotionTasksFile} {
+		if err := os.RemoveAll(filepath.Join(out, p)); err != nil {
+			return err
+		}
 	}
 	_, err = writeFiles(out, files)
 	return err
 }
 
-// All renders every capability, regions, checks app names, assembles CODEOWNERS, copies the README.
+// All renders every capability, platform files, checks app names, assembles CODEOWNERS, copies the README.
 func All(root, out string, w io.Writer) error {
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		return err
@@ -112,13 +124,13 @@ func All(root, out string, w io.Writer) error {
 	if err := Fragments(root, out, w); err != nil {
 		return err
 	}
-	if err := Regions(root, out); err != nil {
+	if err := Platform(root, out); err != nil {
 		return Wrap(err)
 	}
 	if err := UniqueApps(out); err != nil {
 		return err
 	}
-	fmt.Fprintln(w, "rendered regions")
+	fmt.Fprintln(w, "rendered platform (regions, promotion tasks)")
 	if err := CodeOwners(root, out); err != nil {
 		return err
 	}

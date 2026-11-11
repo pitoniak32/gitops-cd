@@ -30,6 +30,7 @@ func check(t *testing.T, f func(any) any, in, want string) {
 }
 
 func TestFileName(t *testing.T) {
+	t.Parallel()
 	if got := FileName("EnvironmentVariables"); got != "environment-variables.json" {
 		t.Fatal(got)
 	}
@@ -39,10 +40,12 @@ func TestFileName(t *testing.T) {
 }
 
 func TestDropFalseAnyOf(t *testing.T) {
+	t.Parallel()
 	check(t, dropFalseAnyOf, `{"a":{"anyOf":[false,{"type":"string"},false]}}`, `{"a":{"anyOf":[{"type":"string"}]}}`)
 }
 
 func TestInlineRefProps(t *testing.T) {
+	t.Parallel()
 	check(t, inlineRefProps,
 		`{"$defs":{"X":{"properties":{"a":1,"b":1}}},"properties":{"b":2,"c":2},"$ref":"#/$defs/X"}`,
 		`{"$defs":{"X":{"properties":{"a":1,"b":1}}},"properties":{"a":1,"b":2,"c":2}}`)
@@ -51,6 +54,7 @@ func TestInlineRefProps(t *testing.T) {
 }
 
 func TestPropertyNamesMessages(t *testing.T) {
+	t.Parallel()
 	check(t, propertyNamesMessages,
 		`{"additionalProperties":false,"properties":{"b":{},"a":{}}}`,
 		`{"properties":{"b":{},"a":{}},"propertyNames":{"enum":["a","b"],"errorMessage":"Unknown key. Allowed: a, b"}}`)
@@ -60,12 +64,14 @@ func TestPropertyNamesMessages(t *testing.T) {
 }
 
 func TestFoldNotPattern(t *testing.T) {
+	t.Parallel()
 	check(t, foldNotPattern, `{"not":{"pattern":"bad"}}`, `{"pattern":"^(?![\\s\\S]*?(?:bad))"}`)
 	check(t, foldNotPattern, `{"pattern":"ok","not":{"pattern":"bad"}}`, `{"pattern":"^(?![\\s\\S]*?(?:bad))[\\s\\S]*?(?:ok)"}`)
 	check(t, foldNotPattern, `{"not":{"pattern":"bad","x":1}}`, `{"not":{"pattern":"bad","x":1}}`)
 }
 
 func TestPatternMessages(t *testing.T) {
+	t.Parallel()
 	check(t, patternMessages, `{"pattern":"^a(/[a-z0-9._-]+)+$"}`,
 		`{"pattern":"^a(/[a-z0-9._-]+)+$","errorMessage":"Image repository only, no tag or digest (Kargo discovers SemVer tags)"}`)
 	check(t, patternMessages, `{"pattern":"^[a-z0-9._%+-]+@example\\.com$"}`,
@@ -76,6 +82,7 @@ func TestPatternMessages(t *testing.T) {
 }
 
 func TestPatternErrorMessage(t *testing.T) {
+	t.Parallel()
 	check(t, patternErrorMessage, `{"errorMessage":"m","pattern":"p"}`, `{"errorMessage":"m","pattern":"p","patternErrorMessage":"m"}`)
 	check(t, patternErrorMessage, `{"errorMessage":"m","anyOf":[{"type":"string"}]}`,
 		`{"errorMessage":"m","patternErrorMessage":"m","anyOf":[{"type":"string","patternErrorMessage":"m"}]}`)
@@ -83,11 +90,13 @@ func TestPatternErrorMessage(t *testing.T) {
 }
 
 func TestWalkIsBottomUp(t *testing.T) {
+	t.Parallel()
 	// inner anyOf cleaned before the outer sees it
 	check(t, dropFalseAnyOf, `{"anyOf":[{"anyOf":[false]}]}`, `{"anyOf":[{"anyOf":[]}]}`)
 }
 
 func TestGenerateMatchesCommitted(t *testing.T) {
+	t.Parallel()
 	root, err := repo.Root()
 	if err != nil {
 		t.Skip(err)

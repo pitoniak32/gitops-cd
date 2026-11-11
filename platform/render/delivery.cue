@@ -20,18 +20,8 @@ import (
 
 _kargoProject: "kargo-\(_cap)"
 
-// GitHub REST for gha targets; token: kargo-shared-resources/github-actions (`gcd creds`)
-_ghAPI: "https://api.github.com/repos/${{ vars.workflowRepo }}"
-_ghHeaders: [
-	{name: "Authorization", value: "Bearer ${{ sharedSecret('github-actions').token }}"},
-	{name: "Accept", value: "application/vnd.github+json"},
-	{name: "X-GitHub-Api-Version", value: "2022-11-28"},
-]
-_kargoAPI: "kargo.akuity.io/v1alpha1"
-// per deploy kind: what the Freight's image subscription pins (dispatch input, commit message), and
-// how long a gha run may take (terraform applies are slower)
+// per deploy kind: what the Freight's image subscription pins (dispatch input, commit message)
 _artifactKey: {k8s: "image", terraform: "module"}
-_waitTimeout: {k8s: "30m", terraform: "60m"}
 // yaml-update target per platform: the file in the target folder and the key holding the artifact
 _pinFile: {K8S: "./out/deployment.yaml", TERRAFORM: "./out/terraform.yaml", CLOUD_RUN: "./out/service.yaml"}
 _pinKey: {K8S: "spec.template.spec.containers.0.image", TERRAFORM: "module", CLOUD_RUN: "spec.template.spec.containers.0.image"}
@@ -146,71 +136,26 @@ _kargoCore: [
 			// terraform and Cloud Run targets touch no cluster: hub controller too
 			if targets[tn].config.platform == "K8S" {shard: clusters[targets[tn].config.cluster].region}
 			requestedFreight: [_freightRequest & {#app: an, #node: _graph[an][(_tgtName & {#app: an, #target: tn}).out]}]
+			// steps: the shared ClusterPromotionTask for this deployWith (promotiontasks.cue, ADR 0027); its vars
+			// come from here. kargo-restore reads repo/branch/image by name.
 			promotionTemplate: spec: {
 				vars: [
 					{name: "repo", value: _repoURL},
 					{name: "src", value: "./src/\(renderedDir)/apps/\(_cap)/\(an)/\(sn)/\(tn)/"},
 					{name: "branch", value: "env/\(_cap)/\(an)/\(tn)"},
 					{name: "image", value: [if apps[an].module != _|_ {apps[an].module}, apps[an].image][0]},
+					{name: "capability", value: _cap},
+					{name: "app", value: an},
+					{name: "stage", value: sn},
+					{name: "target", value: tn},
+					{name: "pinFile", value: _pinFile[d.tgt.platform]},
+					{name: "pinKey", value: _pinKey[d.tgt.platform]},
+					{name: "artifactKey", value: _artifactKey[d.kind]},
 					if d.deployWith == "gha" {{name: "workflowRepo", value: d.workflow.repo}},
 					if d.deployWith == "gha" {{name: "workflowFile", value: d.workflow.file}},
 					if d.deployWith == "gha" {{name: "workflowRef", value: d.workflow.ref}},
 				]
-				steps: [
-					{uses: "git-clone", config: {
-						repoURL: "${{ vars.repo }}"
-						checkout: [
-							{commit: "${{ commitFrom(vars.repo).ID }}", path: "./src"},
-							{branch: "${{ vars.branch }}", create: true, path: "./out"},
-						]
-					}},
-					{uses: "git-clear", config: path: "./out"},
-					{uses: "copy", config: {inPath: "${{ vars.src }}", outPath: "./out/"}},
-					// plain YAML on the branch (no kustomize); the tag is informational, the digest pins
-					{uses: "yaml-update", config: {
-						path: _pinFile[d.tgt.platform]
-						updates: [{
-							key:   _pinKey[d.tgt.platform]
-							value: "${{ vars.image }}:${{ imageFrom(vars.image).Tag }}@${{ imageFrom(vars.image).Digest }}"
-						}]
-					}},
-					{uses: "git-commit", as: "commit", config: {
-						path:    "./out"
-						message: "promote \(_cap)/\(an) to \(sn)/\(tn) from ${{ commitFrom(vars.repo).ID }}, \(_artifactKey[d.kind]) ${{ imageFrom(vars.image).Tag }}"
-					}},
-					{uses: "git-push", config: path: "./out"},
-					if d.deployWith == "argocd" {{uses: "argocd-update", config: apps: [{
-						name:      "\(_cap)-\(an)-\(tn)"
-						namespace: "argocd"
-						sources: [{repoURL: "${{ vars.repo }}", desiredRevision: "${{ outputs.commit.commit }}"}]
-					}]}},
-					// gha (ADR 0020): dispatch the workflow with the pushed commit, then poll its run until it
-					// completes; Running (neither expression true) is retried until retry.timeout
-					if d.deployWith == "gha" {{uses: "http", as: "dispatch", config: {
-						method: "POST"
-						url:    "\(_ghAPI)/actions/workflows/${{ vars.workflowFile }}/dispatches"
-						headers: list.Concat([_ghHeaders, [{name: "Content-Type", value: "application/json"}]])
-						// "} }": Kargo ends an expression at the first "}}"
-						body:              "${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': '\(_cap)', 'app': '\(an)', 'stage': '\(sn)', 'target': '\(tn)', 'commit': outputs.commit.commit, '\(_artifactKey[d.kind])': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest} }) }}"
-						successExpression: "response.status == 200"
-						failureExpression: "response.status != 200"
-						errorExpression:   "response.body.message"
-						outputs: [
-							{name: "runID", fromExpression: "response.body.workflow_run_id"},
-							{name: "runURL", fromExpression: "response.body.html_url"},
-						]
-					}}},
-					if d.deployWith == "gha" {{uses: "http", as: "wait", retry: timeout: _waitTimeout[d.kind], config: {
-						method:            "GET"
-						url:               "\(_ghAPI)/actions/runs/${{ outputs.dispatch.runID }}"
-						headers:           _ghHeaders
-						successExpression: "response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'"
-						// 404 = run not readable yet right after dispatch (GitHub returns its id first): neither expression
-						// is true, so the step stays Running and is retried
-						failureExpression: "(response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')"
-						errorExpression:   "response.status != 200 ? response.body.message : 'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url"
-					}}},
-				]
+				steps: [{as: "promote", task: {kind: "ClusterPromotionTask", name: "promote-\(d.deployWith)"}}]
 			}
 		}
 	},
