@@ -60,7 +60,7 @@ pin() { yq '.spec.template.spec.sources[] | select(has("chart")) | .targetRevisi
 [[ "$(yq '.spec.source.path' platform/bootstrap/root.yaml 2>/dev/null)" == platform/appsets ]] || fail "platform/bootstrap/root.yaml must sync platform/appsets"
 for f in kargo projects workloads; do [[ -f "platform/appsets/$f.yaml" ]] || fail "missing platform/appsets/$f.yaml"; done
 # workloads template reads only keys the renderer emits (golden deploy params; values.* is the cluster gen)
-keys=$(jq -r 'keys[]' platform/render/testdata/golden/argocd/deploys/dc1/payments/my-app-onprem-prod.json)
+keys=$(jq -r 'keys[]' platform/render/testdata/golden/argocd/deploys/dc1/payments/my-app-dc1-prd-k8s.json)
 for k in $(grep -o '{{\.[A-Za-z.]*}}' platform/appsets/workloads.yaml | sed 's/{{\.\(.*\)}}/\1/' | sort -u); do
   [[ $k == values.* ]] && continue
   grep -qx "$k" <<<"$keys" || fail "workloads.yaml uses {{.$k}}, not a deploy params key"

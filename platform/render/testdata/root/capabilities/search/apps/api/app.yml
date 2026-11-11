@@ -3,4 +3,4 @@ port: 80
 stages:
   dev:
     targets:
-      us-dev: {}
+      us-east4-dev-k8s: {}

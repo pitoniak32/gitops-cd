@@ -18,7 +18,7 @@ metadata:
 spec:
   promotionPolicies:
     - stageSelector:
-        name: api-us-dev
+        name: api-us-east4-dev-k8s
       autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -42,14 +42,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: api-us-dev
+  name: api-us-east4-dev-k8s
   namespace: kargo-search
   labels:
     example.com/capability: search
     example.com/app: api
     example.com/kind: target
     example.com/stage: dev
-    example.com/target: us-dev
+    example.com/target: us-east4-dev-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -69,9 +69,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/search/api/dev/us-dev/
+          value: ./src/rendered/apps/search/api/dev/us-east4-dev-k8s/
         - name: branch
-          value: env/search/api/us-dev
+          value: env/search/api/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -101,14 +101,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote search/api to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote search/api to dev/us-east4-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: search-api-us-dev
+              - name: search-api-us-east4-dev-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -140,7 +140,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - api-us-dev
+      - api-us-east4-dev-k8s
     verbs:
       - promote
   - apiGroups:

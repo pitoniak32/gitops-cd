@@ -18,7 +18,10 @@ metadata:
 spec:
   promotionPolicies:
     - stageSelector:
-        name: infra-tf-dev
+        name: infra-us-east4-dev-tf
+      autoPromotionEnabled: true
+    - stageSelector:
+        name: my-app-dc1-dev-k8s
       autoPromotionEnabled: true
     - stageSelector:
         name: my-app-dev
@@ -27,22 +30,19 @@ spec:
         name: my-app-dev-done
       autoPromotionEnabled: true
     - stageSelector:
-        name: my-app-onprem-dev
-      autoPromotionEnabled: true
-    - stageSelector:
         name: my-app-prod
       autoPromotionEnabled: true
     - stageSelector:
         name: my-app-staging
       autoPromotionEnabled: true
     - stageSelector:
-        name: my-app-us-dev
+        name: my-app-us-east4-dev-k8s
       autoPromotionEnabled: true
     - stageSelector:
-        name: payments-us-dev
+        name: payments-us-east4-dev-k8s
       autoPromotionEnabled: true
     - stageSelector:
-        name: worker-us-dev
+        name: worker-us-east4-dev-k8s
       autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -140,8 +140,8 @@ spec:
       sources:
         availabilityStrategy: All
         stages:
-          - my-app-onprem-dev
-          - my-app-us-dev
+          - my-app-dc1-dev-k8s
+          - my-app-us-east4-dev-k8s
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -164,9 +164,9 @@ spec:
       sources:
         availabilityStrategy: All
         stages:
-          - my-app-onprem-stg
-          - my-app-us-perf
-          - my-app-us-stg
+          - my-app-dc1-npr-k8s
+          - my-app-us-east4-npr-k8s
+          - my-app-us-east4-npr-k8s-perf
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -214,14 +214,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: infra-tf-dev
+  name: infra-us-east4-dev-tf
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: infra
     example.com/kind: target
     example.com/stage: dev
-    example.com/target: tf-dev
+    example.com/target: us-east4-dev-tf
     example.com/deploy-with: gha
     example.com/platform: terraform
   annotations:
@@ -240,9 +240,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/infra/dev/tf-dev/
+          value: ./src/rendered/apps/payments/infra/dev/us-east4-dev-tf/
         - name: branch
-          value: env/payments/infra/tf-dev
+          value: env/payments/infra/us-east4-dev-tf
         - name: image
           value: ghcr.io/pitoniak32/tf-bucket
         - name: workflowRepo
@@ -278,7 +278,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/infra to dev/tf-dev from ${{ commitFrom(vars.repo).ID }}, module ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/infra to dev/us-east4-dev-tf from ${{ commitFrom(vars.repo).ID }}, module ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -296,7 +296,7 @@ spec:
                 value: "2022-11-28"
               - name: Content-Type
                 value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''dev'', ''target'': ''tf-dev'', ''commit'': outputs.commit.commit, ''module'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''dev'', ''target'': ''us-east4-dev-tf'', ''commit'': outputs.commit.commit, ''module'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
             successExpression: response.status == 200
             failureExpression: response.status != 200
             errorExpression: response.body.message
@@ -326,14 +326,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: infra-tf-prod
+  name: infra-us-east4-prd-tf
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: infra
     example.com/kind: target
     example.com/stage: prod
-    example.com/target: tf-prod
+    example.com/target: us-east4-prd-tf
     example.com/deploy-with: gha
     example.com/platform: terraform
   annotations:
@@ -346,16 +346,16 @@ spec:
         name: infra
       sources:
         stages:
-          - infra-tf-dev
+          - infra-us-east4-dev-tf
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/infra/prod/tf-prod/
+          value: ./src/rendered/apps/payments/infra/prod/us-east4-prd-tf/
         - name: branch
-          value: env/payments/infra/tf-prod
+          value: env/payments/infra/us-east4-prd-tf
         - name: image
           value: ghcr.io/pitoniak32/tf-bucket
         - name: workflowRepo
@@ -391,7 +391,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/infra to prod/tf-prod from ${{ commitFrom(vars.repo).ID }}, module ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/infra to prod/us-east4-prd-tf from ${{ commitFrom(vars.repo).ID }}, module ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -409,7 +409,7 @@ spec:
                 value: "2022-11-28"
               - name: Content-Type
                 value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''prod'', ''target'': ''tf-prod'', ''commit'': outputs.commit.commit, ''module'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''infra'', ''stage'': ''prod'', ''target'': ''us-east4-prd-tf'', ''commit'': outputs.commit.commit, ''module'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
             successExpression: response.status == 200
             failureExpression: response.status != 200
             errorExpression: response.body.message
@@ -439,14 +439,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-us-dev
+  name: my-app-us-east4-dev-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: dev
-    example.com/target: us-dev
+    example.com/target: us-east4-dev-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -467,9 +467,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/dev/us-dev/
+          value: ./src/rendered/apps/payments/my-app/dev/us-east4-dev-k8s/
         - name: branch
-          value: env/payments/my-app/us-dev
+          value: env/payments/my-app/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -499,14 +499,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/my-app to dev/us-east4-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-my-app-us-dev
+              - name: payments-my-app-us-east4-dev-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -515,14 +515,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-onprem-dev
+  name: my-app-dc1-dev-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: dev
-    example.com/target: onprem-dev
+    example.com/target: dc1-dev-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -543,9 +543,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/dev/onprem-dev/
+          value: ./src/rendered/apps/payments/my-app/dev/dc1-dev-k8s/
         - name: branch
-          value: env/payments/my-app/onprem-dev
+          value: env/payments/my-app/dc1-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -575,14 +575,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to dev/onprem-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/my-app to dev/dc1-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-my-app-onprem-dev
+              - name: payments-my-app-dc1-dev-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -591,14 +591,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-us-stg
+  name: my-app-us-east4-npr-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: staging
-    example.com/target: us-stg
+    example.com/target: us-east4-npr-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -619,9 +619,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/staging/us-stg/
+          value: ./src/rendered/apps/payments/my-app/staging/us-east4-npr-k8s/
         - name: branch
-          value: env/payments/my-app/us-stg
+          value: env/payments/my-app/us-east4-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -651,14 +651,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to staging/us-stg from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/my-app to staging/us-east4-npr-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-my-app-us-stg
+              - name: payments-my-app-us-east4-npr-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -667,14 +667,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-onprem-stg
+  name: my-app-dc1-npr-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: staging
-    example.com/target: onprem-stg
+    example.com/target: dc1-npr-k8s
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
@@ -695,9 +695,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/staging/onprem-stg/
+          value: ./src/rendered/apps/payments/my-app/staging/dc1-npr-k8s/
         - name: branch
-          value: env/payments/my-app/onprem-stg
+          value: env/payments/my-app/dc1-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
         - name: workflowRepo
@@ -733,7 +733,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to staging/onprem-stg from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/my-app to staging/dc1-npr-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -751,7 +751,7 @@ spec:
                 value: "2022-11-28"
               - name: Content-Type
                 value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''my-app'', ''stage'': ''staging'', ''target'': ''onprem-stg'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''my-app'', ''stage'': ''staging'', ''target'': ''dc1-npr-k8s'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
             successExpression: response.status == 200
             failureExpression: response.status != 200
             errorExpression: response.body.message
@@ -781,14 +781,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-us-perf
+  name: my-app-us-east4-npr-k8s-perf
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: perf
-    example.com/target: us-perf
+    example.com/target: us-east4-npr-k8s-perf
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -809,9 +809,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/perf/us-perf/
+          value: ./src/rendered/apps/payments/my-app/perf/us-east4-npr-k8s-perf/
         - name: branch
-          value: env/payments/my-app/us-perf
+          value: env/payments/my-app/us-east4-npr-k8s-perf
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -841,14 +841,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to perf/us-perf from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/my-app to perf/us-east4-npr-k8s-perf from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-my-app-us-perf
+              - name: payments-my-app-us-east4-npr-k8s-perf
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -857,14 +857,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-us-prod
+  name: my-app-us-east4-prd-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: prod
-    example.com/target: us-prod
+    example.com/target: us-east4-prd-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -885,9 +885,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/prod/us-prod/
+          value: ./src/rendered/apps/payments/my-app/prod/us-east4-prd-k8s/
         - name: branch
-          value: env/payments/my-app/us-prod
+          value: env/payments/my-app/us-east4-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -917,14 +917,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to prod/us-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/my-app to prod/us-east4-prd-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-my-app-us-prod
+              - name: payments-my-app-us-east4-prd-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -933,14 +933,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: my-app-onprem-prod
+  name: my-app-dc1-prd-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: prod
-    example.com/target: onprem-prod
+    example.com/target: dc1-prd-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -961,9 +961,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/prod/onprem-prod/
+          value: ./src/rendered/apps/payments/my-app/prod/dc1-prd-k8s/
         - name: branch
-          value: env/payments/my-app/onprem-prod
+          value: env/payments/my-app/dc1-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -993,14 +993,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/my-app to prod/onprem-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/my-app to prod/dc1-prd-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-my-app-onprem-prod
+              - name: payments-my-app-dc1-prd-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -1009,14 +1009,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: payments-us-dev
+  name: payments-us-east4-dev-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: payments
     example.com/kind: target
     example.com/stage: dev
-    example.com/target: us-dev
+    example.com/target: us-east4-dev-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -1036,9 +1036,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/payments/dev/us-dev/
+          value: ./src/rendered/apps/payments/payments/dev/us-east4-dev-k8s/
         - name: branch
-          value: env/payments/payments/us-dev
+          value: env/payments/payments/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -1068,14 +1068,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/payments to dev/us-east4-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-payments-us-dev
+              - name: payments-payments-us-east4-dev-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -1084,14 +1084,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: payments-us-stg
+  name: payments-us-east4-npr-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: payments
     example.com/kind: target
     example.com/stage: staging
-    example.com/target: us-stg
+    example.com/target: us-east4-npr-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -1105,16 +1105,16 @@ spec:
         name: payments
       sources:
         stages:
-          - payments-us-dev
+          - payments-us-east4-dev-k8s
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/payments/staging/us-stg/
+          value: ./src/rendered/apps/payments/payments/staging/us-east4-npr-k8s/
         - name: branch
-          value: env/payments/payments/us-stg
+          value: env/payments/payments/us-east4-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -1144,14 +1144,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to staging/us-stg from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/payments to staging/us-east4-npr-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-payments-us-stg
+              - name: payments-payments-us-east4-npr-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -1160,14 +1160,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: payments-us-prod
+  name: payments-us-east4-prd-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: payments
     example.com/kind: target
     example.com/stage: prod
-    example.com/target: us-prod
+    example.com/target: us-east4-prd-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -1181,16 +1181,16 @@ spec:
         name: payments
       sources:
         stages:
-          - payments-us-stg
+          - payments-us-east4-npr-k8s
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/payments/prod/us-prod/
+          value: ./src/rendered/apps/payments/payments/prod/us-east4-prd-k8s/
         - name: branch
-          value: env/payments/payments/us-prod
+          value: env/payments/payments/us-east4-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -1220,14 +1220,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/payments to prod/us-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/payments to prod/us-east4-prd-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-payments-us-prod
+              - name: payments-payments-us-east4-prd-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -1236,14 +1236,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: worker-us-dev
+  name: worker-us-east4-dev-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: worker
     example.com/kind: target
     example.com/stage: dev
-    example.com/target: us-dev
+    example.com/target: us-east4-dev-k8s
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
@@ -1263,9 +1263,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/worker/dev/us-dev/
+          value: ./src/rendered/apps/payments/worker/dev/us-east4-dev-k8s/
         - name: branch
-          value: env/payments/worker/us-dev
+          value: env/payments/worker/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
         - name: workflowRepo
@@ -1301,7 +1301,7 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to dev/us-dev from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/worker to dev/us-east4-dev-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
@@ -1319,7 +1319,7 @@ spec:
                 value: "2022-11-28"
               - name: Content-Type
                 value: application/json
-            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''worker'', ''stage'': ''dev'', ''target'': ''us-dev'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+            body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': ''payments'', ''app'': ''worker'', ''stage'': ''dev'', ''target'': ''us-east4-dev-k8s'', ''commit'': outputs.commit.commit, ''image'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
             successExpression: response.status == 200
             failureExpression: response.status != 200
             errorExpression: response.body.message
@@ -1349,14 +1349,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: worker-us-stg
+  name: worker-us-east4-npr-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: worker
     example.com/kind: target
     example.com/stage: staging
-    example.com/target: us-stg
+    example.com/target: us-east4-npr-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -1370,16 +1370,16 @@ spec:
         name: worker
       sources:
         stages:
-          - worker-us-dev
+          - worker-us-east4-dev-k8s
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/worker/staging/us-stg/
+          value: ./src/rendered/apps/payments/worker/staging/us-east4-npr-k8s/
         - name: branch
-          value: env/payments/worker/us-stg
+          value: env/payments/worker/us-east4-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -1409,14 +1409,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to staging/us-stg from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/worker to staging/us-east4-npr-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-worker-us-stg
+              - name: payments-worker-us-east4-npr-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -1425,14 +1425,14 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: worker-us-prod
+  name: worker-us-east4-prd-k8s
   namespace: kargo-payments
   labels:
     example.com/capability: payments
     example.com/app: worker
     example.com/kind: target
     example.com/stage: prod
-    example.com/target: us-prod
+    example.com/target: us-east4-prd-k8s
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
@@ -1446,16 +1446,16 @@ spec:
         name: worker
       sources:
         stages:
-          - worker-us-stg
+          - worker-us-east4-npr-k8s
   promotionTemplate:
     spec:
       vars:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/worker/prod/us-prod/
+          value: ./src/rendered/apps/payments/worker/prod/us-east4-prd-k8s/
         - name: branch
-          value: env/payments/worker/us-prod
+          value: env/payments/worker/us-east4-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
       steps:
@@ -1485,14 +1485,14 @@ spec:
           as: commit
           config:
             path: ./out
-            message: promote payments/worker to prod/us-prod from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
+            message: promote payments/worker to prod/us-east4-prd-k8s from ${{ commitFrom(vars.repo).ID }}, image ${{ imageFrom(vars.image).Tag }}
         - uses: git-push
           config:
             path: ./out
         - uses: argocd-update
           config:
             apps:
-              - name: payments-worker-us-prod
+              - name: payments-worker-us-east4-prd-k8s
                 namespace: argocd
                 sources:
                   - repoURL: ${{ vars.repo }}
@@ -1524,7 +1524,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - infra-tf-dev
+      - infra-us-east4-dev-tf
     verbs:
       - promote
   - apiGroups:
@@ -1587,7 +1587,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - infra-tf-prod
+      - infra-us-east4-prd-tf
     verbs:
       - promote
   - apiGroups:
@@ -1650,9 +1650,9 @@ rules:
     resources:
       - stages
     resourceNames:
+      - my-app-dc1-dev-k8s
       - my-app-dev
-      - my-app-onprem-dev
-      - my-app-us-dev
+      - my-app-us-east4-dev-k8s
     verbs:
       - promote
   - apiGroups:
@@ -1716,7 +1716,7 @@ rules:
       - stages
     resourceNames:
       - my-app-dev-done
-      - my-app-us-perf
+      - my-app-us-east4-npr-k8s-perf
     verbs:
       - promote
   - apiGroups:
@@ -1779,9 +1779,9 @@ rules:
     resources:
       - stages
     resourceNames:
-      - my-app-onprem-prod
+      - my-app-dc1-prd-k8s
       - my-app-prod
-      - my-app-us-prod
+      - my-app-us-east4-prd-k8s
     verbs:
       - promote
   - apiGroups:
@@ -1844,10 +1844,10 @@ rules:
     resources:
       - stages
     resourceNames:
+      - my-app-dc1-npr-k8s
       - my-app-dev-done
-      - my-app-onprem-stg
       - my-app-staging
-      - my-app-us-stg
+      - my-app-us-east4-npr-k8s
     verbs:
       - promote
   - apiGroups:
@@ -1910,7 +1910,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - payments-us-dev
+      - payments-us-east4-dev-k8s
     verbs:
       - promote
   - apiGroups:
@@ -1973,7 +1973,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - payments-us-prod
+      - payments-us-east4-prd-k8s
     verbs:
       - promote
   - apiGroups:
@@ -2036,7 +2036,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - payments-us-stg
+      - payments-us-east4-npr-k8s
     verbs:
       - promote
   - apiGroups:
@@ -2099,7 +2099,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - worker-us-dev
+      - worker-us-east4-dev-k8s
     verbs:
       - promote
   - apiGroups:
@@ -2162,7 +2162,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - worker-us-prod
+      - worker-us-east4-prd-k8s
     verbs:
       - promote
   - apiGroups:
@@ -2225,7 +2225,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - worker-us-stg
+      - worker-us-east4-npr-k8s
     verbs:
       - promote
   - apiGroups:
