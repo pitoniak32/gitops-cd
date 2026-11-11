@@ -10,7 +10,7 @@ The platform team needs to gate prod deploys on checks it owns (change managemen
 - **App source repo.** `app.yml` gets a required `sourceRepo: <owner>/<name>` (top level, not layered). Every check is dispatched to it; there's no per-check repo.
 - **ClusterPromotionTask `gha-check`**: the same `dispatch` and `wait` http steps as `promote-gha` (shared CUE definitions; `promote-gha`'s rendered steps are unchanged), with inputs from the Freight (`commit` = `commitFrom(vars.repo).ID`, nothing is pushed yet). Inputs: `capability, app, stage, target, commit` and `image` or `module`.
 - **Stage steps**: `pre-1..N` (`gha-check`, with `workflowRepo/File/Ref` and `checkTimeout` set on the step itself) then `promote`. Step vars override Promotion vars only within that step, so a gha deploy's own workflow vars stay on `promote`. Gated Stages carry `example.com/pre-deploy: <sourceRepo>/<file>@<ref>[,…]`.
-- **Timeout**: Kargo takes `retry` from the task's own steps (the referencing step's `retry` is ignored), so `gha-check`'s wait has a fixed `2h` cap, and its `failureExpression` also fails once `now() - date(response.body.created_at) > duration(vars.checkTimeout)` while the run hasn't completed.
+- **Timeout**: Kargo takes `retry` from the task's own steps (the referencing step's `retry` is ignored), so `gha-check`'s wait has a fixed `2h` cap, and its `failureExpression` also fails once `now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}')` while the run hasn't completed. Kargo's http step evaluates these expressions with only `response` in scope, so the timeout is templated in with `${{ }}` (`TestHTTPExpressionsOnlyUseResponse`).
 
 ## Considered Options
 

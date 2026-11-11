@@ -2,6 +2,7 @@ package render
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -310,10 +311,10 @@ func TestGhaCheckTask(t *testing.T) {
 	if str(get(cw, "config.url")) != str(get(gw, "config.url")) || str(get(cw, "config.successExpression")) != str(get(gw, "config.successExpression")) {
 		t.Error("gha-check wait url/success differ from promote-gha")
 	}
-	if want := str(get(gw, "config.failureExpression")) + " || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration(vars.checkTimeout))"; str(get(cw, "config.failureExpression")) != want {
+	if want := str(get(gw, "config.failureExpression")) + " || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}'))"; str(get(cw, "config.failureExpression")) != want {
 		t.Errorf("gha-check wait failure:\n got %s\nwant %s", str(get(cw, "config.failureExpression")), want)
 	}
-	if !strings.Contains(str(get(cw, "config.errorExpression")), "' exceeded ' + vars.checkTimeout") {
+	if !strings.Contains(str(get(cw, "config.errorExpression")), "' exceeded ${{ vars.checkTimeout }}: '") {
 		t.Error("gha-check wait error must name the exceeded timeout")
 	}
 }
@@ -381,5 +382,26 @@ func TestPreDeployChecks(t *testing.T) {
 	}
 	if varValue(k, i, "artifactKey") != "module" {
 		t.Errorf("%s: artifactKey %q", i, varValue(k, i, "artifactKey"))
+	}
+}
+
+// Kargo's http step runs success/failure/errorExpression with only `response` in scope
+// (http_requester.go buildExprEnv); vars, task outputs etc. must be templated in with ${{ }} first.
+func TestHTTPExpressionsOnlyUseResponse(t *testing.T) {
+	t.Parallel()
+	tmpl := regexp.MustCompile(`\$\{\{.*?\}\}`)
+	bad := regexp.MustCompile(`\b(vars|task|outputs|ctx|secrets)\.`)
+	for _, task := range promotionTasks(t) {
+		for _, s := range list(task, "spec.steps") {
+			if str(get(s, "uses")) != "http" {
+				continue
+			}
+			for _, f := range []string{"successExpression", "failureExpression", "errorExpression"} {
+				e := tmpl.ReplaceAllString(str(get(s, "config."+f)), "")
+				if m := bad.FindString(e); m != "" {
+					t.Errorf("%s %s %s uses %s outside ${{ }}", str(get(task, "metadata.name")), str(get(s, "as")), f, m)
+				}
+			}
+		}
 	}
 }

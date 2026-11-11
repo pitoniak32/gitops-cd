@@ -64,7 +64,7 @@ sourceRepo: example-org/payments-api   # required
   - `commit`: the Freight's rendered-branch commit (`commitFrom(vars.repo).ID`); nothing is pushed yet
   - `image`: `<repo>:<tag>@<digest>` (terraform apps: key `module`, same as `promote-gha` via `artifactKey`)
 - Fails the Promotion on: a dispatch that isn't a 200, a non-200 poll other than 404, `completed` with a conclusion that isn't `success`, or the timeout.
-- Timeout: the wait step has a fixed `retry.timeout: 2h`, which is the hard cap. Its `failureExpression` also fails once `now() - date(response.body.created_at) > duration(vars.checkTimeout)`, giving each check its own timeout ≤ 2h with a single task.
+- Timeout: the wait step has a fixed `retry.timeout: 2h`, which is the hard cap. Its `failureExpression` also fails once `now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}')`, giving each check its own timeout ≤ 2h with a single task.
   - **Risk:** requires Kargo's expression env to expose expr-lang `now`/`date`/`duration`. Verified in the live test. If unavailable, fallback: timeout buckets (`15m|30m|60m|120m`), one `gha-check-<t>` task each, and `timeout` must be one of them.
 - Rollbacks, manual promotions and `mise run kargo-restore` re-run the checks. A failing check blocks a rollback; the way around it is fixing/overriding the check workflow, not Kargo.
 - Auth: the shared PAT `kargo-shared-resources/github-actions` (ADR 0020). Its fine-grained grant must include every check repo (`Actions: read and write`). Documented, not enforced.

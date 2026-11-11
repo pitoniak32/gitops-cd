@@ -209,5 +209,5 @@ spec:
           - name: X-GitHub-Api-Version
             value: "2022-11-28"
         successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
-        failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success') || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration(vars.checkTimeout))
-        errorExpression: 'response.status != 200 ? response.body.message : response.body.status != ''completed'' ? ''run '' + string(response.body.id) + '' exceeded '' + vars.checkTimeout + '': '' + response.body.html_url : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+        failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success') || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}'))
+        errorExpression: 'response.status != 200 ? response.body.message : response.body.status != ''completed'' ? ''run '' + string(response.body.id) + '' exceeded ${{ vars.checkTimeout }}: '' + response.body.html_url : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'

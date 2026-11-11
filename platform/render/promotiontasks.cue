@@ -82,7 +82,8 @@ _ghaDispatch: {
 }
 
 // poll the dispatched run until it completes; Running (neither expression true) is retried until #timeout.
-// #failure/#error: extra conditions (gha-check's own timeout), ORed in / checked first
+// #failure/#error: extra conditions (gha-check's own timeout), ORed in / checked first. These expressions
+// see only `response` (Kargo http step); anything else must be templated in with ${{ }}
 _ghaWait: {
 	#timeout: string
 	#failure: *"" | string
@@ -149,8 +150,8 @@ promotionTasks: [
 			_ghaDispatch & {#inputs: "'commit': commitFrom(vars.repo).ID"},
 			_ghaWait & {
 				#timeout: _ghaCheckCap
-				#failure: " || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration(vars.checkTimeout))"
-				#error:   "response.body.status != 'completed' ? 'run ' + string(response.body.id) + ' exceeded ' + vars.checkTimeout + ': ' + response.body.html_url : "
+				#failure: " || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}'))"
+				#error:   "response.body.status != 'completed' ? 'run ' + string(response.body.id) + ' exceeded ${{ vars.checkTimeout }}: ' + response.body.html_url : "
 			},
 		]
 	},

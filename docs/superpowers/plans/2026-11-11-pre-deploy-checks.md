@@ -16,7 +16,7 @@
 - `sourceRepo`: required, top-level `#App` only (not `#Layer`), `=~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" | error("expected <owner>/<name>")`.
 - Check: `{file!, ref: *"main", timeout: *"30m"}`. `file` =~ `^[A-Za-z0-9_.-]+\.ya?ml$`. Timeout is whole minutes, 1..120. There is no `repo` field: checks always go to the app's `sourceRepo`.
 - `preDeploy` is keyed on the **target's** `environmentType`. Initial config: `preDeploy: prd: [{file: "precheck.yaml"}]`.
-- Wait hard cap `retry.timeout: "2h"`. Per-check timeout: `now() - date(response.body.created_at) > duration(vars.checkTimeout)`.
+- Wait hard cap `retry.timeout: "2h"`. Per-check timeout: `now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}')`.
 - Dispatch inputs (exactly six): `capability, app, stage, target, commit` (= `commitFrom(vars.repo).ID`), and `image`/`module` via `(vars.artifactKey)`.
 - Rendered `promote-gha` and `promote-argocd` stay byte-identical.
 - VCS is jj: `jj commit -m ...`. No git mutations, no pushes. Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
@@ -71,7 +71,7 @@
   - `gha-check` var names equal the list above, and its steps' `uses` are `http,http`
   - dispatch `config.url` equals `promote-gha`'s dispatch url, and so do its headers
   - dispatch body contains `'commit': commitFrom(vars.repo).ID`, `'return_run_details': true`, and `(vars.artifactKey): vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest`, and does *not* contain `task.outputs.commit`
-  - wait has `retry.timeout == "2h"`; its `failureExpression` contains `now() - date(response.body.created_at) > duration(vars.checkTimeout)` and the full `promote-gha` wait failure expression
+  - wait has `retry.timeout == "2h"`; its `failureExpression` contains `now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}')` and the full `promote-gha` wait failure expression
   - wait `errorExpression` mentions `vars.checkTimeout` in the timeout case
 - [ ] **Step 2:** Make `TestKargoExpressionsNotCutShort` also scan `testdata/golden/kargo/_promotion-tasks.yaml` and the shared render's `PromotionTasksFile`, if `kargo/*.yaml` doesn't already match it.
 - [ ] **Step 3:** `go test ./internal/render/ -run 'TestGhaCheckTask|TestStagesSatisfy'`. Expected: FAIL, no `gha-check`.
