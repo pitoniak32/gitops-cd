@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: web
+    example.com/capability: payments
+    example.com/stage: dev
+    example.com/target: us-east4-dev-k8s
+    example.com/environment: dev
+    example.com/environment-type: dev
+    example.com/billing: dev
+  name: web
+  namespace: payments-us-dev
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: cue-platform
+        app.kubernetes.io/name: web
+        example.com/capability: payments
+        example.com/stage: dev
+        example.com/target: us-east4-dev-k8s
+        example.com/environment: dev
+        example.com/environment-type: dev
+        example.com/billing: dev
+    spec:
+      containers:
+        - env:
+            - name: GREETING
+              value: hello
+          image: ghcr.io/example/web
+          name: web
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      serviceAccountName: web

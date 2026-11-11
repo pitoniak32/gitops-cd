@@ -36,7 +36,11 @@ pipelines: {for an, a in apps {
 							cluster:   _capTargets[tn].config.cluster
 							namespace: _capTargets[tn].config.namespace
 						}
-						if platform == "TERRAFORM" {gcpProject: _capTargets[tn].config.terraform.gcpProject}
+						if platform == "TERRAFORM" {gcpProject: _capTargets[tn].config.gcpProject}
+						if platform == "CLOUD_RUN" {
+							gcpProject: _capTargets[tn].config.gcpProject
+							region:     _capTargets[tn].config.region
+						}
 						environment:     _capTargets[tn].config.environment
 						environmentType: _capTargets[tn].config.environmentType
 						path:            "apps/\(_cap)/\(an)/\(sn)/\(tn)"

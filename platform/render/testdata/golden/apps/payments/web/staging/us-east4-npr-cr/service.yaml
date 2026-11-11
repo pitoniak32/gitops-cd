@@ -1,0 +1,53 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: web
+  namespace: acme-payments-npr
+  labels:
+    app: web
+    cloud.googleapis.com/location: us-east4
+    managed-by: cue-platform
+    capability: payments
+    stage: staging
+    target: us-east4-npr-cr
+    environment: staging
+    environment-type: npr
+    billing: payments
+spec:
+  template:
+    metadata:
+      labels:
+        app: web
+        managed-by: cue-platform
+        capability: payments
+        stage: staging
+        target: us-east4-npr-cr
+        environment: staging
+        environment-type: npr
+        billing: payments
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        run.googleapis.com/secrets: acme-secrets-web-api-key:projects/acme-secrets/secrets/web-api-key
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/example/web
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: acme-secrets-web-api-key
+                  key: latest
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: db_pass
+                  key: "3"
+            - name: GREETING
+              value: hello

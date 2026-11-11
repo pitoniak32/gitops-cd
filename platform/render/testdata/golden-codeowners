@@ -6,6 +6,7 @@
 /capabilities/payments/apps/infra/ @acme/team1
 /capabilities/payments/apps/my-app/ @acme/team1
 /capabilities/payments/apps/payments/ @acme/team1
+/capabilities/payments/apps/web/ @acme/team1
 /capabilities/payments/apps/worker/ @acme/team1 @acme/team2
 /capabilities/search/ @acme/team2
 /capabilities/search/apps/api/ @acme/team2

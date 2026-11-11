@@ -12,10 +12,53 @@
     "Name": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]{0,39}$"
+    },
+    "_clusterC": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "const": "us-east4"
+            },
+            {
+              "const": "dc1"
+            }
+          ]
+        }
+      ]
+    },
+    "_gcpProjectC": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+        }
+      ]
+    },
+    "_namespaceC": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+    },
+    "_regionC": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "const": "us-central1"
+            },
+            {
+              "const": "us-east1"
+            },
+            {
+              "const": "us-east4"
+            }
+          ]
+        }
+      ]
     }
   },
   "type": "object",
-  "description": "targets/<name>/target.yml — where a stage deploys. Reusable across apps.\nSibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.\nplatform K8S (default): a namespace in a platform cluster, deployed by Argo CD or a gha workflow.\nplatform TERRAFORM: a GCP project + GCS state backend, applied by a gha workflow (terraform apps only).",
+  "description": "targets/<name>/target.yml — where a stage deploys. Reusable across apps.\nSibling environment-variables/<n>.yml files: see #EnvironmentVariables, envFrom.\nplatform K8S (default): a namespace in a platform cluster, deployed by Argo CD or a gha workflow.\nplatform TERRAFORM: a GCP project + GCS state backend, applied by a gha workflow (terraform apps only).\nplatform CLOUD_RUN: a GCP project + region, a Cloud Run service deployed by a gha workflow (image apps only).",
   "properties": {
     "config": {
       "type": "object",
@@ -38,24 +81,44 @@
             "errorMessage": "Unknown key. Allowed: wifEmail"
           }
         },
+        "backend": {
+          "type": "object",
+          "properties": {
+            "bucket": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$"
+                }
+              ]
+            },
+            "prefix": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9._/-]+$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "bucket"
+          ],
+          "propertyNames": {
+            "enum": [
+              "bucket",
+              "prefix"
+            ],
+            "errorMessage": "Unknown key. Allowed: bucket, prefix"
+          }
+        },
         "billing": {
           "type": "string",
           "pattern": "^[a-z0-9-]+$"
         },
         "cluster": {
-          "description": "Constraints for both platforms here (the editor schema is exported generic, so it allows either);\nwhich fields are required or forbidden is per platform below.",
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "const": "us-east4"
-                },
-                {
-                  "const": "dc1"
-                }
-              ]
-            }
-          ]
+          "description": "Which fields are required or forbidden is per platform. cluster, namespace: K8S only. region\n(the GCP region; a K8S target's is its cluster's), gcpProject: TERRAFORM and CLOUD_RUN.\nbackend (GCS state; prefix default <capability>/<app>/<target>): TERRAFORM only.",
+          "$ref": "#/$defs/_clusterC"
         },
         "environment": {
           "description": "free name (namespaces, labels); the type drives policy",
@@ -68,9 +131,11 @@
             }
           ]
         },
+        "gcpProject": {
+          "$ref": "#/$defs/_gcpProjectC"
+        },
         "namespace": {
-          "type": "string",
-          "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+          "$ref": "#/$defs/_namespaceC"
         },
         "platform": {
           "anyOf": [
@@ -79,82 +144,14 @@
             },
             {
               "const": "TERRAFORM"
+            },
+            {
+              "const": "CLOUD_RUN"
             }
           ]
         },
         "region": {
-          "description": "TERRAFORM only: the GCP region (a K8S target's is its cluster's)",
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "const": "us-central1"
-                },
-                {
-                  "const": "us-east1"
-                },
-                {
-                  "const": "us-east4"
-                }
-              ]
-            }
-          ]
-        },
-        "terraform": {
-          "type": "object",
-          "properties": {
-            "backend": {
-              "type": "object",
-              "description": "GCS state; prefix default <capability>/<app>/<target>",
-              "properties": {
-                "bucket": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$"
-                    }
-                  ]
-                },
-                "prefix": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "pattern": "^[A-Za-z0-9._/-]+$"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "bucket"
-              ],
-              "propertyNames": {
-                "enum": [
-                  "bucket",
-                  "prefix"
-                ],
-                "errorMessage": "Unknown key. Allowed: bucket, prefix"
-              }
-            },
-            "gcpProject": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
-                }
-              ]
-            }
-          },
-          "required": [
-            "backend",
-            "gcpProject"
-          ],
-          "propertyNames": {
-            "enum": [
-              "backend",
-              "gcpProject"
-            ],
-            "errorMessage": "Unknown key. Allowed: backend, gcpProject"
-          }
+          "$ref": "#/$defs/_regionC"
         }
       },
       "required": [
@@ -166,16 +163,17 @@
       "propertyNames": {
         "enum": [
           "auth",
+          "backend",
           "billing",
           "cluster",
           "environment",
           "environmentType",
+          "gcpProject",
           "namespace",
           "platform",
-          "region",
-          "terraform"
+          "region"
         ],
-        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, environmentType, namespace, platform, region, terraform"
+        "errorMessage": "Unknown key. Allowed: auth, backend, billing, cluster, environment, environmentType, gcpProject, namespace, platform, region"
       }
     }
   },

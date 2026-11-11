@@ -8,7 +8,6 @@ config:
   auth:
     wifEmail: team1-stg@team1-stg.iam.gserviceaccount.com
   billing: stg
-  terraform:
-    gcpProject: team1-stg
-    backend:
-      bucket: tfstate-team1-stg  # prefix defaults to payments/infra/us-east4-npr-tf
+  gcpProject: team1-stg
+  backend:
+    bucket: tfstate-team1-stg  # prefix defaults to payments/infra/us-east4-npr-tf
