@@ -150,3 +150,64 @@ spec:
         successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
         failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')
         errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ClusterPromotionTask
+metadata:
+  name: gha-check
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+spec:
+  vars:
+    - name: repo
+    - name: image
+    - name: capability
+    - name: app
+    - name: stage
+    - name: target
+    - name: artifactKey
+    - name: workflowRepo
+    - name: workflowFile
+    - name: workflowRef
+    - name: checkTimeout
+  steps:
+    - uses: http
+      as: dispatch
+      config:
+        method: POST
+        url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/workflows/${{ vars.workflowFile }}/dispatches
+        headers:
+          - name: Authorization
+            value: Bearer ${{ sharedSecret('github-actions').token }}
+          - name: Accept
+            value: application/vnd.github+json
+          - name: X-GitHub-Api-Version
+            value: "2022-11-28"
+          - name: Content-Type
+            value: application/json
+        body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': vars.capability, ''app'': vars.app, ''stage'': vars.stage, ''target'': vars.target, ''commit'': commitFrom(vars.repo).ID, (vars.artifactKey): vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+        successExpression: response.status == 200
+        failureExpression: response.status != 200
+        errorExpression: response.body.message
+        outputs:
+          - name: runID
+            fromExpression: response.body.workflow_run_id
+          - name: runURL
+            fromExpression: response.body.html_url
+    - uses: http
+      as: wait
+      retry:
+        timeout: 2h
+      config:
+        method: GET
+        url: https://api.github.com/repos/${{ vars.workflowRepo }}/actions/runs/${{ task.outputs.dispatch.runID }}
+        headers:
+          - name: Authorization
+            value: Bearer ${{ sharedSecret('github-actions').token }}
+          - name: Accept
+            value: application/vnd.github+json
+          - name: X-GitHub-Api-Version
+            value: "2022-11-28"
+        successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
+        failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success') || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration(vars.checkTimeout))
+        errorExpression: 'response.status != 200 ? response.body.message : response.body.status != ''completed'' ? ''run '' + string(response.body.id) + '' exceeded '' + vars.checkTimeout + '': '' + response.body.html_url : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'

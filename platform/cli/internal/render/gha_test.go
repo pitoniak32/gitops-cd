@@ -131,7 +131,7 @@ func TestStagesSatisfyPromotionTasks(t *testing.T) {
 		}
 		tn = append(tn, str(x["kind"])+"/"+str(get(x, "metadata.name")))
 	}
-	if strings.Join(tn, " ") != "ClusterPromotionTask/promote-argocd ClusterPromotionTask/promote-gha" {
+	if strings.Join(tn, " ") != "ClusterPromotionTask/promote-argocd ClusterPromotionTask/promote-gha ClusterPromotionTask/gha-check" {
 		t.Errorf("promotion tasks: %s", strings.Join(tn, " "))
 	}
 }
@@ -214,5 +214,71 @@ func TestGhaTargets(t *testing.T) {
 	au := stepUsing(t, k, "worker-us-east4-npr-k8s", "argocd-update")
 	if str(get(au, "config.apps.0.name"))+" "+str(get(au, "config.apps.0.sources.0.desiredRevision")) != "${{ vars.capability }}-${{ vars.app }}-${{ vars.target }} ${{ task.outputs.commit.commit }}" {
 		t.Error("argocd-update app name / revision")
+	}
+}
+
+// gha-check (ADR 0028): pre-deploy check dispatched before anything is pushed; same dispatch/wait as
+// promote-gha, but inputs come from the Freight and the wait has a per-check timeout under a 2h cap.
+func TestGhaCheckTask(t *testing.T) {
+	t.Parallel()
+	ts := promotionTasks(t)
+	c := find(ts, "ClusterPromotionTask", "gha-check")
+	g := find(ts, "ClusterPromotionTask", "promote-gha")
+	if c == nil || g == nil {
+		t.Fatal("need ClusterPromotionTasks gha-check and promote-gha")
+	}
+	var vs []string
+	for _, v := range list(c, "spec.vars") {
+		vs = append(vs, str(get(v, "name")))
+	}
+	if strings.Join(vs, ",") != "repo,image,capability,app,stage,target,artifactKey,workflowRepo,workflowFile,workflowRef,checkTimeout" {
+		t.Errorf("gha-check vars: %s", strings.Join(vs, ","))
+	}
+	stepByAs := func(task map[string]any, as string) map[string]any {
+		for _, s := range list(task, "spec.steps") {
+			if str(get(s, "as")) == as {
+				return s.(map[string]any)
+			}
+		}
+		t.Fatalf("%s: no step %s", str(get(task, "metadata.name")), as)
+		return nil
+	}
+	var uses []string
+	for _, s := range list(c, "spec.steps") {
+		uses = append(uses, str(get(s, "uses"))+":"+str(get(s, "as")))
+	}
+	if strings.Join(uses, ",") != "http:dispatch,http:wait" {
+		t.Errorf("gha-check steps: %s", strings.Join(uses, ","))
+	}
+	cd, gd := stepByAs(c, "dispatch"), stepByAs(g, "dispatch")
+	for _, f := range []string{"config.url", "config.method", "config.successExpression", "config.failureExpression", "config.errorExpression"} {
+		if str(get(cd, f)) != str(get(gd, f)) {
+			t.Errorf("dispatch %s differs from promote-gha", f)
+		}
+	}
+	if len(list(cd, "config.headers")) != len(list(gd, "config.headers")) {
+		t.Error("dispatch headers differ from promote-gha")
+	}
+	body := str(get(cd, "config.body"))
+	for _, f := range []string{"'commit': commitFrom(vars.repo).ID", "'return_run_details': true", "'ref': vars.workflowRef", "(vars.artifactKey): vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest"} {
+		if !strings.Contains(body, f) {
+			t.Errorf("gha-check dispatch body missing %s", f)
+		}
+	}
+	if strings.Contains(body, "task.outputs.commit") {
+		t.Error("gha-check runs before the push: no commit output to read")
+	}
+	cw, gw := stepByAs(c, "wait"), stepByAs(g, "wait")
+	if str(get(cw, "retry.timeout")) != "2h" {
+		t.Errorf("gha-check wait cap: %s", str(get(cw, "retry.timeout")))
+	}
+	if str(get(cw, "config.url")) != str(get(gw, "config.url")) || str(get(cw, "config.successExpression")) != str(get(gw, "config.successExpression")) {
+		t.Error("gha-check wait url/success differ from promote-gha")
+	}
+	if want := str(get(gw, "config.failureExpression")) + " || (response.status == 200 && response.body.status != 'completed' && now() - date(response.body.created_at) > duration(vars.checkTimeout))"; str(get(cw, "config.failureExpression")) != want {
+		t.Errorf("gha-check wait failure:\n got %s\nwant %s", str(get(cw, "config.failureExpression")), want)
+	}
+	if !strings.Contains(str(get(cw, "config.errorExpression")), "' exceeded ' + vars.checkTimeout") {
+		t.Error("gha-check wait error must name the exceeded timeout")
 	}
 }

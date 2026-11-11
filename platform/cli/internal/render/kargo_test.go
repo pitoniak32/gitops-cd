@@ -210,6 +210,7 @@ func TestKargoExpressionsNotCutShort(t *testing.T) {
 	t.Parallel()
 	re := regexp.MustCompile(`[^ ]\}\}`)
 	files := append(globOne(t, filepath.Join(sharedOut(t), "kargo/payments.yaml")), globOne(t, abs(t, "testdata/golden/kargo/*.yaml"))...)
+	files = append(files, filepath.Join(sharedOut(t), PromotionTasksFile))
 	for _, f := range files {
 		if l := grepLines(mustRead(t, f), re); len(l) > 0 {
 			t.Errorf("Kargo expression cut short: \"}}\" not preceded by a space (%s): %v", f, l)
