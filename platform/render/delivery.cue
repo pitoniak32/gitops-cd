@@ -40,6 +40,16 @@ _platformLabel: {K8S: "k8s", TERRAFORM: "terraform", CLOUD_RUN: "cloudrun"}
 // Kargo Stage names per app (graph.cue): target Stages <app>-<target> + control-flow Stages
 _tgtName: {#app: string, #target: string, out: "\(#app)-\(#target)"}
 _kargoStages: {for an, _ in pipelines {(an): list.SortStrings([for n, _ in _graph[an] {n}])}}
+// Stage names must fit a label value: Kargo 1.12 labels each PromotionRequest with the unshortened
+// Stage name (pkg/api/promotion_request.go), so a longer name creates the Stage but fails every promotion.
+_maxStageName: 63
+// Reported via stageNameErrors (not apps: the graph is computed from apps); lint.sh locates
+// stageNameErrors.<app>.<stage>[.<target>] in the app's app.yml.
+stageNameErrors: {for an, g in _graph for n, x in g if len(n) > _maxStageName {
+	let _msg = "Kargo Stage name \(n) is \(len(n)) characters (max \(_maxStageName)): shorten the app or"
+	if x.kind == "target" {(an): (x.stage): (x.target): error("\(_msg) target name")}
+	if x.kind == "control-flow" {(an): (x.stage): error("\(_msg) stage names")}
+}}
 // auto-promoted: every control-flow Stage (it only means "upstream verified") + targets of autoPromote stages
 _autoStages: list.SortStrings([for an, p in pipelines for n, x in _graph[an]
 	if x.kind == "control-flow" || p.stages[x.stage].autoPromote {n}])

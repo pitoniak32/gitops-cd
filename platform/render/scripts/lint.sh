@@ -35,6 +35,10 @@ locate() {
     capOwners) LOC_FILE="$(yamlfile "$C/owners")"; n=2 ;; # skip list index (0 or 1 file)
     legacyAppOwners) LOC_FILE="$(yamlfile "$C/apps/${segs[1]}/owners")"; n=${#segs[@]} ;;
     teams) LOC_FILE="$(yamlfile "teams/${segs[1]}")"; n=2 ;;
+    stageNameErrors) # <app>.<stage>[.<target>]: the stage (control flow) or target entry in app.yml
+      LOC_FILE="$(yamlfile "$C/apps/${segs[1]}/app")"; LOC_Q=".stages.\"${segs[2]}\""; LOC_LABEL="stages.${segs[2]}"
+      [[ -n ${segs[3]:-} ]] && { LOC_Q+=".targets.\"${segs[3]}\""; LOC_LABEL+=".targets.${segs[3]}"; }
+      LOC_Q="($LOC_Q) | key"; return 0 ;;
     stageDepth) LOC_FILE="$(yamlfile "$C/stages/${segs[1]}")"; LOC_Q=".dependsOn"; LOC_LABEL="dependsOn"; n=${#segs[@]} ;;
     deploys) # "app/target": point at the target entry under its stage
       local t="${segs[1]#*/}"
