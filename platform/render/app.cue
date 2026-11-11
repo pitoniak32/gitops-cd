@@ -90,6 +90,9 @@ _defaults: {
 	// Cloud Run (ADR 0024): scale to zero, Cloud Run's default container port
 	crReplicas: 0
 	crPort:     8080
+	// Cloud Run's smallest sensible container: 1 vCPU, 512Mi
+	crCpu:    "1"
+	crMemory: "512Mi"
 	crWorkflow: {repo: _ghRepo, file: "cloud-run.yaml", ref: "main"}
 }
 
@@ -161,12 +164,14 @@ deploys: {for an, a in apps for sn, s in a.stages for tn, t in s.targets {
 				if t.resources.cpu != _|_ {t.resources.cpu},
 				if s.resources.cpu != _|_ {s.resources.cpu},
 				if a.resources.cpu != _|_ {a.resources.cpu},
+				if tgt.platform == "CLOUD_RUN" {_defaults.crCpu},
 				_defaults.cpu,
 			][0]
 			memory: [
 				if t.resources.memory != _|_ {t.resources.memory},
 				if s.resources.memory != _|_ {s.resources.memory},
 				if a.resources.memory != _|_ {a.resources.memory},
+				if tgt.platform == "CLOUD_RUN" {_defaults.crMemory},
 				_defaults.memory,
 			][0]
 

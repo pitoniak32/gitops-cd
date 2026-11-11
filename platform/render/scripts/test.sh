@@ -149,9 +149,21 @@ echo "terraform kargo ok"
 # Cloud Run image apps (ADR 0024): service.yaml, gha Stage on the hub, no Argo CD for the CLOUD_RUN target
 cr="$tmp/apps/payments/web/staging/us-east4-npr-cr"
 [[ "$(ls "$cr")" == "service.yaml" ]] || { echo "CLOUD_RUN target renders only service.yaml: $(ls "$cr")" >&2; exit 1; }
-[[ "$(yq '.kind + " " + .apiVersion + " " + .metadata.namespace + " " + .metadata.annotations."run.googleapis.com/location"' "$cr/service.yaml")" == "Service serving.knative.dev/v1 acme-payments-npr us-east4" ]] || { echo "service.yaml header" >&2; exit 1; }
+[[ "$(yq '.kind + " " + .apiVersion + " " + .metadata.namespace + " " + .metadata.labels."cloud.googleapis.com/location"' "$cr/service.yaml")" == "Service serving.knative.dev/v1 acme-payments-npr us-east4" ]] || { echo "service.yaml header + location label" >&2; exit 1; }
+[[ "$(yq '.metadata.annotations // "none"' "$cr/service.yaml")" == "none" ]] || { echo "service.yaml: no run.googleapis.com/location annotation" >&2; exit 1; }
+[[ "$(yq -o=json -I=0 '.spec.template.metadata.labels' "$cr/service.yaml")" == '{"app":"web","managed-by":"cue-platform","capability":"payments","stage":"staging","target":"us-east4-npr-cr","environment":"staging","environment-type":"npr","billing":"payments"}' ]] || { echo "service.yaml template labels (GCP-safe keys)" >&2; exit 1; }
+[[ "$(yq '[.metadata.labels, .spec.template.metadata.labels] | .[] | keys | .[] | select(test("^[a-z0-9_.-]+$") | not) | . ' "$cr/service.yaml" | grep -v '^cloud.googleapis.com/location$' || true)" == "" ]] || { echo "service.yaml label keys must be GCP-safe" >&2; exit 1; }
 [[ "$(yq '.spec.template.metadata.annotations."autoscaling.knative.dev/minScale" + " " + (.spec.template.spec.containers[0].ports[0].containerPort|tostring) + " " + .spec.template.spec.containers[0].image' "$cr/service.yaml")" == "0 8080 ghcr.io/example/web" ]] || { echo "service.yaml minScale 0 / port 8080 / image repo" >&2; exit 1; }
-[[ "$(yq -o=json -I=0 '.spec.template.spec.containers[0].env' "$cr/service.yaml")" == '[{"name":"API_KEY","valueFrom":{"secretKeyRef":{"name":"projects/acme-secrets/secrets/web-api-key","key":"latest"}}},{"name":"GREETING","value":"hello"}]' ]] || { echo "service.yaml env (secret ref key latest, sorted)" >&2; exit 1; }
+[[ "$(yq -o=json -I=0 '.spec.template.spec.containers[0].resources' "$cr/service.yaml")" == '{"limits":{"cpu":"1","memory":"512Mi"}}' ]] || { echo "CLOUD_RUN default cpu 1 / memory 512Mi" >&2; exit 1; }
+[[ "$(yq '.spec.template.spec.containerConcurrency // "absent"' "$cr/service.yaml")" == "absent" ]] || { echo "no containerConcurrency at 1 vCPU" >&2; exit 1; }
+[[ "$(yq '.spec.template.metadata.annotations."run.googleapis.com/secrets"' "$cr/service.yaml")" == "acme-secrets-web-api-key:projects/acme-secrets/secrets/web-api-key" ]] || { echo "service.yaml secrets alias annotation (cross-project only)" >&2; exit 1; }
+[[ "$(yq -o=json -I=0 '.spec.template.spec.containers[0].env' "$cr/service.yaml")" == '[{"name":"API_KEY","valueFrom":{"secretKeyRef":{"name":"acme-secrets-web-api-key","key":"latest"}}},{"name":"DB_PASS","valueFrom":{"secretKeyRef":{"name":"db_pass","key":"3"}}},{"name":"GREETING","value":"hello"}]' ]] || { echo "service.yaml env (cross-project alias, same-project direct name + version, sorted)" >&2; exit 1; }
+# below 1 vCPU Cloud Run needs containerConcurrency 1
+c="$(mktemp -d)"; cp -R testdata/root/. "$c/"
+yq -i '.stages.staging.targets.us-east4-npr-cr.resources.cpu = "500m"' "$c/capabilities/payments/apps/web/app.yml"
+o="$(mktemp -d)"; scripts/render.sh "$c" payments "$o" >/dev/null
+[[ "$(yq '.spec.template.spec.containerConcurrency + " " + .spec.template.spec.containers[0].resources.limits.cpu' "$o/apps/payments/web/staging/us-east4-npr-cr/service.yaml")" == "1 500m" ]] || { echo "cpu 500m must set containerConcurrency 1" >&2; exit 1; }
+rm -rf "$c" "$o"
 [[ "$(st web-us-east4-npr-cr '(.spec.shard // "-") + " " + .metadata.labels."example.com/platform" + " " + .metadata.labels."example.com/deploy-with"')" == "- cloudrun gha" ]] || { echo "web-us-east4-npr-cr: no shard, cloudrun, gha" >&2; exit 1; }
 [[ "$(st web-us-east4-npr-cr '.spec.promotionTemplate.spec.steps[] | select(.uses == "yaml-update") | .config.path + " " + .config.updates[0].key')" == "./out/service.yaml spec.template.spec.containers.0.image" ]] || { echo "cloud run yaml-update" >&2; exit 1; }
 [[ "$(st web-us-east4-npr-cr '.spec.promotionTemplate.spec.vars[] | select(.name == "workflowFile") | .value')" == "cloud-run.yaml" ]] || { echo "cloud run workflow default" >&2; exit 1; }

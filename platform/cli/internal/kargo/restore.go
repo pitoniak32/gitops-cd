@@ -42,7 +42,7 @@ var (
 
 // FreightFromBranch rebuilds the Freight a target's env branch was promoted from: the source commit from
 // Kargo's commit message ("promote <cap>/<app> to <stage>/<target> from <sha>[, image|module <tag>]") and
-// the pinned artifact (<repo>:<tag>@<digest>) from the branch's deployment.yaml (K8s app) or terraform.yaml
+// the pinned artifact (<repo>:<tag>@<digest>) from the branch's deployment.yaml (K8s app), service.yaml (Cloud Run app) or terraform.yaml
 // `module` (terraform app, ADR 0021). Same artifacts -> Kargo computes the same Freight ID. The error is the
 // reason the branch can't be restored.
 func FreightFromBranch(warehouse, repoURL, imageRepo, headMessage, pinned string) (*unstructured.Unstructured, error) {
@@ -53,7 +53,7 @@ func FreightFromBranch(warehouse, repoURL, imageRepo, headMessage, pinned string
 	}
 	im := pinnedImg.FindStringSubmatch(pinned)
 	if im == nil {
-		return nil, fmt.Errorf("no pinned artifact (<repo>:<tag>@<digest>) in deployment.yaml or terraform.yaml (promoted before ADR 0016?)")
+		return nil, fmt.Errorf("no pinned artifact (<repo>:<tag>@<digest>) in deployment.yaml, service.yaml or terraform.yaml (promoted before ADR 0016?)")
 	}
 	if im[1] != imageRepo {
 		return nil, fmt.Errorf("pinned artifact %s is not %s", im[1], imageRepo)
@@ -102,9 +102,13 @@ func (GHReader) Head(repoURL, branch string) (string, string, bool, error) {
 }
 
 // branchArtifact returns what an env branch pins: the deployment.yaml image (K8s app), else the
-// terraform.yaml module (terraform app); "" if neither is readable.
+// service.yaml image (Cloud Run app, same container image path), else the terraform.yaml module
+// (terraform app); "" if none is readable.
 func branchArtifact(read func(path string) ([]byte, bool)) string {
 	if raw, ok := read("deployment.yaml"); ok {
+		return deploymentImage(raw)
+	}
+	if raw, ok := read("service.yaml"); ok {
 		return deploymentImage(raw)
 	}
 	if raw, ok := read("terraform.yaml"); ok {

@@ -129,7 +129,7 @@ func TestRestore(t *testing.T) {
 		"other: no Kargo project kargo-other (not rendered/synced yet?), skipped",
 		"payments/have: already has Freight, skipped",
 		"payments/never: env/payments/my-app/never doesn't exist (never promoted), skipped",
-		"payments/pre: no pinned artifact (<repo>:<tag>@<digest>) in deployment.yaml or terraform.yaml (promoted before ADR 0016?), skipped",
+		"payments/pre: no pinned artifact (<repo>:<tag>@<digest>) in deployment.yaml, service.yaml or terraform.yaml (promoted before ADR 0016?), skipped",
 		"payments/dev: promoting 1.1.0 from a35be03 (Freight freight-abc)",
 		"dev-restore-xyz: Succeeded",
 	} {
@@ -278,6 +278,7 @@ func TestBranchArtifact(t *testing.T) {
 		want  string
 	}{
 		{"k8s", map[string]string{"deployment.yaml": dep}, goodImg},
+		{"cloud run", map[string]string{"service.yaml": dep}, goodImg},
 		{"terraform", map[string]string{"terraform.yaml": "module: " + modPin + "\n"}, modPin},
 		{"neither", map[string]string{"manifests.yaml": "x: 1\n"}, ""},
 	} {

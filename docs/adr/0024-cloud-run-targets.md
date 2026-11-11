@@ -26,7 +26,7 @@ config:
 | `region` (`#GcpRegion`) | forbidden | required | required |
 | `backend: {bucket, prefix?}` | forbidden | required | forbidden |
 
-TERRAFORM's `terraform: {gcpProject, backend}` moves up to `config.gcpProject` + `config.backend`, and TERRAFORM gains a required `region`, which is added to `terraform.yaml`. A leftover `terraform:` is a lint error: `moved: use config.gcpProject / config.backend`.
+TERRAFORM's `terraform: {gcpProject, backend}` moves up to `config.gcpProject` + `config.backend`, and TERRAFORM's required `region` is ADR 0025's. A leftover `terraform:` is a lint error: `moved: use config.gcpProject / config.backend`.
 
 **App**: the same `image` app as K8S. One app may mix K8S and CLOUD_RUN targets (one Warehouse, one digest through the pipeline). `module` apps can't use CLOUD_RUN targets. Runtime settings are `#Layer` fields (app → stage → target). Defaults depend on the platform:
 
@@ -34,9 +34,9 @@ TERRAFORM's `terraform: {gcpProject, backend}` moves up to `config.gcpProject` +
 |---|---|---|
 | `replicas` | Deployment replicas, default 2 | `autoscaling.knative.dev/minScale`, default 0 |
 | `port` | optional (Service on :80) | `containerPort`, default 8080 |
-| `resources` | requests/limits | `limits` |
+| `resources` | requests/limits; defaults 100m / 128Mi | `limits`; defaults `1` / `512Mi`. Below 1 vCPU (`<n>m`, n < 1000) `containerConcurrency: 1` is set |
 | `env` plain | `value` | `value` |
-| `env` `secret:<p>/<s>[@<v>]` | ExternalSecret if the cluster has a store, else omitted | `valueFrom.secretKeyRef: {name: projects/<p>/secrets/<s>, key: <v> or latest}` |
+| `env` `secret:<p>/<s>[@<v>]` | ExternalSecret if the cluster has a store, else omitted | `valueFrom.secretKeyRef: {name: <s>, key: <v> or latest}` if `<p>` is the target's `gcpProject`; else an alias (`<p>-<s>` lowercased, `_` → `-`) declared in the template annotation `run.googleapis.com/secrets` (`<alias>:projects/<p>/secrets/<s>`, comma-joined, sorted) and `name: <alias>` |
 | `deployWith` | argocd or gha | ignored (always gha) |
 | `workflow.file` default | `deploy.yaml` | `cloud-run.yaml` |
 
@@ -46,8 +46,8 @@ The runtime service account isn't set: Cloud Run uses the project's default comp
 
 **Render**: `rendered/apps/<cap>/<app>/<stage>/<target>/service.yaml`, one `serving.knative.dev/v1` `Service`:
 
-- `metadata`: `name` is the app, `namespace` is `gcpProject`, labels as for K8S (capability, stage, target, environment, billing), annotation `run.googleapis.com/location: <region>`.
-- `spec.template`: a `minScale` annotation and one container (image, port, env, limits).
+- `metadata`: `name` is the app, `namespace` is `gcpProject`, labels with GCP-safe keys only (lowercase letters, digits, `_`, `-`): `app`, `managed-by`, `capability`, `stage`, `target`, `environment`, `environment-type`, `billing` (so not the K8S label keys), plus the system label `cloud.googleapis.com/location: <region>` on the Service (no location annotation).
+- `spec.template`: the same labels (without location), a `minScale` annotation, the `run.googleapis.com/secrets` alias annotation when a secret is cross-project, `containerConcurrency: 1` below 1 vCPU, and one container (image, port, env, limits).
 
 There are no Argo CD params, no AppProject destination, and no `spec.shard`: the hub's default controller runs the Stage, as for TERRAFORM.
 
@@ -66,8 +66,9 @@ There are no Argo CD params, no AppProject destination, and no `spec.shard`: the
 
 ## Consequences
 
-- Breaking change for TERRAFORM targets (`terraform:` → flat fields). Both fixtures and `capabilities/payments/targets/us-{dev,stg}-tf` migrate in the same change.
+- Breaking change for TERRAFORM targets (`terraform:` → flat fields). Both fixtures and `capabilities/payments/targets/us-east4-{dev,npr}-tf` migrate in the same change.
 - Like ADR 0020, a CLOUD_RUN Stage is Healthy after any successful promotion. The demo workflow deploys nothing, so there's nothing to verify.
 - Moving a target between K8S and CLOUD_RUN isn't supported. Create a new target. Moving a stage of an app from a K8S target to a CLOUD_RUN target leaves the Argo CD Application to be pruned by the `workloads` AppSet (`preserveResourcesOnDeletion`: the workload stays).
+- The service.yaml shape follows Cloud Run's documented YAML rules from memory; not yet checked against a live `gcloud run services replace`: the first real deploy is the check.
 - Secret refs are only validated, never resolved, so a wrong secret only fails at a real deploy.
 - Cloud Run service names are unique per project+region. App names are already unique across capabilities, so there's no extra check.

@@ -5,6 +5,7 @@ deployWith: argocd # app-level; must not affect the CLOUD_RUN target
 env:
   GREETING: hello
   API_KEY: secret:acme-secrets/web-api-key
+  DB_PASS: secret:acme-payments-npr/db_pass@3
 stages:
   dev:
     targets: {us-east4-dev-k8s: {}}
