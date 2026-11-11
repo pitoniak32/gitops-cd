@@ -3,6 +3,7 @@ package render
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,7 +13,8 @@ import (
 )
 
 // UniqueApps fails if two capabilities render the same workload Application name in one region
-// (<cap>-<app>-<target> can collide; one duplicate breaks the region's whole workloads AppSet).
+// (<cap>-<app>-<target> can collide; one duplicate breaks the region's whole workloads AppSet) or the same
+// Kargo project (kargo-<cap>-<app>).
 func UniqueApps(out string) error {
 	regions, _ := filepath.Glob(filepath.Join(out, "argocd", "deploys", "*"))
 	sort.Strings(regions)
@@ -53,10 +55,62 @@ func UniqueApps(out string) error {
 			msgs = append(msgs, fmt.Sprintf("duplicate workload Application name %s in region %s: rename a capability or app", n, filepath.Base(r)))
 		}
 	}
+	pm, err := duplicateProjects(out)
+	if err != nil {
+		return err
+	}
+	msgs = append(msgs, pm...)
 	if len(msgs) > 0 {
 		return fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 	return nil
+}
+
+// duplicateProjects reports Kargo projects (kargo-<cap>-<app>, ADR 0029) rendered by more than one
+// capability file; _-prefixed files are platform-level.
+func duplicateProjects(out string) ([]string, error) {
+	files, _ := filepath.Glob(filepath.Join(out, "kargo", "*.yaml"))
+	sort.Strings(files)
+	where := map[string][]string{}
+	for _, f := range files {
+		if strings.HasPrefix(filepath.Base(f), "_") {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			return nil, err
+		}
+		dec := yaml.NewDecoder(strings.NewReader(string(b)))
+		for {
+			var d struct {
+				Kind     string `yaml:"kind"`
+				Metadata struct {
+					Name string `yaml:"name"`
+				} `yaml:"metadata"`
+			}
+			if err := dec.Decode(&d); err != nil {
+				if err == io.EOF {
+					break
+				}
+				return nil, fmt.Errorf("%s: %w", f, err)
+			}
+			if d.Kind == "Project" {
+				where[d.Metadata.Name] = append(where[d.Metadata.Name], filepath.ToSlash(filepath.Join("kargo", filepath.Base(f))))
+			}
+		}
+	}
+	var names []string
+	for n, fs := range where {
+		if len(fs) > 1 {
+			names = append(names, n)
+		}
+	}
+	sort.Strings(names)
+	var msgs []string
+	for _, n := range names {
+		msgs = append(msgs, fmt.Sprintf("duplicate Kargo project %s in %s: rename a capability or app", n, strings.Join(where[n], ", ")))
+	}
+	return msgs, nil
 }
 
 // CodeOwners assembles <root>/.github/CODEOWNERS from CODEOWNERS.tmpl: "#GENERATED" is replaced by the

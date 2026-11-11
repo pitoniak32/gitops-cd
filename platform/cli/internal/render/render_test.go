@@ -191,6 +191,31 @@ func TestUniqueApps(t *testing.T) {
 	}
 }
 
+// kargo-<cap>-<app> can collide across capabilities (cap a-b + app c vs cap a + app b-c, ADR 0029)
+func TestUniqueKargoProjects(t *testing.T) {
+	t.Parallel()
+	out := t.TempDir()
+	renderTestRoot(t, abs(t, "testdata/root"), out, "payments")
+	b, err := os.ReadFile(filepath.Join(out, "kargo/payments.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// platform files (_-prefixed) are not capabilities
+	if err := os.WriteFile(filepath.Join(out, "kargo/_promotion-tasks.yaml"), b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := UniqueApps(out); err != nil {
+		t.Fatalf("clean render rejected: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "kargo/payments-dup.yaml"), b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err = UniqueApps(out)
+	if err == nil || !strings.Contains(err.Error(), "duplicate Kargo project kargo-payments-my-app in kargo/payments-dup.yaml, kargo/payments.yaml") {
+		t.Fatalf("duplicate project not rejected: %v", err)
+	}
+}
+
 func TestCapabilityEmptyGlobs(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

@@ -122,8 +122,11 @@ if !generic if len(_capOwnerFiles) == 0 {capOwners: error("capability needs owne
 
 _uniqSorted: {#in: [...string], out: list.SortStrings([for x, _ in {for x in #in {(x): _}} {x}])}
 
-// the capability's owners.yml (empty struct when missing; capOwners reports that)
-_o: {for o in capOwners {o}}
+// the capability's owners.yml, raw (empty struct when missing). capOwners validates it; values here read the
+// raw file because the validated one is closed over _stageNames, and `stages` depends on deploys (prod
+// autoPromote rule): reading it from outputs made closedness evaluation-order dependent in CUE v0.17
+// ("_o.promoters.<stage>: field not allowed").
+_o: {for o in _capOwnerFiles {o}}
 
 // Per app, sorted: the app's field if set, else the capability's.
 codeOwners: {for an, _ in _capApps {(an): (_uniqSorted & {#in: [if _o.apps[an].codeOwners != _|_ {_o.apps[an].codeOwners}, _o.codeOwners][0]}).out}}
@@ -140,7 +143,16 @@ _allOwners: (_uniqSorted & {#in: [
 	for _, c in codeOwners for t in c {t},
 	if len(codeOwners) == 0 if _o.codeOwners != _|_ for t in _o.codeOwners {t},
 ]}).out
-// everyone who can see the capability in Kargo / Argo CD: all promoters (every stage, app
+// per app: everyone who can see the app in Kargo / Argo CD (ADR 0029): its promoters (stages it uses, after
+// overrides), its viewers (apps.<app>.viewers, else the capability's) and break-glass
+_appEmails: {for an, _ in _capApps {(an): (_uniqSorted & {#in: [
+	for _, l in _promoters[an] for x in l {x},
+	if _o.apps[an].viewers != _|_ for x in _o.apps[an].viewers {x},
+	if _o.apps[an].viewers == _|_ if _o.viewers != _|_ for x in _o.viewers {x},
+	for x in _breakGlass {x},
+]}).out
+}}
+// everyone who can list the capability's projects in Kargo (users-<cap>): all promoters (every stage, app
 // overrides too), viewers and break-glass
 _allEmails: (_uniqSorted & {#in: [
 	if _o.promoters != _|_ for _, l in _o.promoters for x in l {x},

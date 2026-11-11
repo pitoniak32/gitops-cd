@@ -1,6 +1,6 @@
 # Per-stage promoters, one owners.yml per capability
 
-Status: accepted. Amends ADR 0011 (owners.yml shape, `promote-<app>`) and ADR 0013 (break-glass in promote roles).
+Status: accepted. Amends ADR 0011 (owners.yml shape, `promote-<app>`) and ADR 0013 (break-glass in promote roles). Amended by ADR 0029: `promote-<stage>` in the app's project `kargo-<cap>-<app>`; viewers per app.
 
 Promoters could promote an app to every stage. We want finer control, e.g. anyone on the team promotes to dev but only leads promote to prod. Kargo can't select Stages by label (`promote` is a plain Kubernetes RBAC verb: `resourceNames` only, and an empty list means every Stage). The renderer already lists Stage names, so the grouping lives in YAML and CUE expands it.
 
@@ -35,7 +35,7 @@ Rendering (Kargo project = capability):
 
 - One ServiceAccount + Role + RoleBinding `promote-<app>-<stage>` per app and stage the app uses. This replaces `promote-<app>`.
   - Claims: that stage's merged promoters plus `breakGlass`.
-  - `promote` on that app's Kargo Stages that belong to the stage: target Stages `<app>-<target>` and its control-flow Stages.
+  - `promote` on that app's Kargo Stages that belong to the stage: target Stages `<app>-<target>` (now `<target>`, ADR 0029) and its control-flow Stages.
   - Same `promotions` and `freights: create` rules as before.
 - Kargo grants the union of every SA whose claims match, so a dev+prod promoter gets both.
 - `viewers` SA, `users-<cap>` and Argo CD AppProject viewer roles: same as before. The email set is all stages' promoters (capability and app overrides) + viewers + breakGlass.

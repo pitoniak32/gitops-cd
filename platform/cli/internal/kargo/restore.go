@@ -16,7 +16,6 @@ import (
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
 	"gopkg.in/yaml.v3"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -238,77 +237,23 @@ func Restore(ctx context.Context, root string, hub *kube.Clients, caps []string,
 			return err
 		}
 	}
-	type promo struct{ ns, name string }
 	var promos []promo
 	for _, cap := range caps {
-		pns := "kargo-" + cap
-		if _, err := hub.Core.CoreV1().Namespaces().Get(ctx, pns, metav1.GetOptions{}); err != nil {
-			if apierrors.IsNotFound(err) {
-				fmt.Fprintf(out, "%s: no Kargo project %s (not rendered/synced yet?), skipped\n", cap, pns)
-				continue
-			}
-			return fmt.Errorf("get namespace %s: %w", pns, err)
-		}
-		stages, err := hub.Dyn.Resource(stageGVR).Namespace(pns).List(ctx, metav1.ListOptions{})
+		// one Kargo project per app (ADR 0029), found by its rendered namespace label
+		sel := capabilityLabel + "=" + cap
+		nss, err := hub.Core.CoreV1().Namespaces().List(ctx, metav1.ListOptions{LabelSelector: sel})
 		if err != nil {
-			return fmt.Errorf("list stages in %s: %w", pns, err)
+			return fmt.Errorf("list namespaces %s: %w", sel, err)
 		}
-		fr := hub.Dyn.Resource(freightGVR).Namespace(pns)
-		for _, t := range targets(stages.Items) {
-			label := cap + "/" + t.stage
-			if t.hasFreight {
-				fmt.Fprintf(out, "%s: already has Freight, skipped\n", label)
-				continue
+		if len(nss.Items) == 0 {
+			fmt.Fprintf(out, "%s: no Kargo project labeled %s (not rendered/synced yet?), skipped\n", cap, sel)
+			continue
+		}
+		sort.Slice(nss.Items, func(i, j int) bool { return nss.Items[i].Name < nss.Items[j].Name })
+		for _, ns := range nss.Items {
+			if err := restoreProject(ctx, hub, branches, out, cap+"/"+ns.Labels[appLabel], ns.Name, &promos); err != nil {
+				return err
 			}
-			if t.warehouse == "" {
-				fmt.Fprintf(out, "%s: no requestedFreight origin (unexpected Stage shape), skipped\n", label)
-				continue
-			}
-			msg, img, exists, err := branches.Head(t.repo, t.branch)
-			if err != nil {
-				return fmt.Errorf("%s: read %s: %w", label, t.branch, err)
-			}
-			if !exists {
-				fmt.Fprintf(out, "%s: %s doesn't exist (never promoted), skipped\n", label, t.branch)
-				continue
-			}
-			f, err := FreightFromBranch(t.warehouse, t.repo, t.imageRepo, msg, img)
-			if err != nil {
-				fmt.Fprintf(out, "%s: %s, skipped\n", label, err)
-				continue
-			}
-			// existing Freight with the same artifacts (re-run, or another target of the same app) else create it
-			existing, err := fr.List(ctx, metav1.ListOptions{})
-			if err != nil {
-				return fmt.Errorf("list freight in %s: %w", pns, err)
-			}
-			name := findFreight(existing.Items, f)
-			if name == "" {
-				// Kargo's mutating webhook names the Freight from its artifacts, so no name is sent.
-				created, err := fr.Create(ctx, f, metav1.CreateOptions{FieldManager: kube.FieldManager})
-				if err != nil {
-					return fmt.Errorf("%s: create freight: %w", label, err)
-				}
-				name = created.GetName()
-			}
-			// available to the target Stage without re-running the gates (same as a break-glass approval)
-			patch := fmt.Sprintf(`{"status":{"approvedFor":{%q:{"approvedAt":%q}}}}`, t.stage, time.Now().UTC().Format(time.RFC3339))
-			if _, err := fr.Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{FieldManager: kube.FieldManager}, "status"); err != nil {
-				return fmt.Errorf("%s: approve freight %s: %w", label, name, err)
-			}
-			p := &unstructured.Unstructured{Object: map[string]any{
-				"apiVersion": "kargo.akuity.io/v1alpha1", "kind": "Promotion",
-				"metadata": map[string]any{"generateName": t.stage + "-restore-", "namespace": pns},
-				"spec":     map[string]any{"stage": t.stage, "freight": name},
-			}}
-			cp, err := hub.Dyn.Resource(promotionGVR).Namespace(pns).Create(ctx, p, metav1.CreateOptions{FieldManager: kube.FieldManager})
-			if err != nil {
-				return fmt.Errorf("%s: create promotion: %w", label, err)
-			}
-			promos = append(promos, promo{pns, cp.GetName()})
-			im := f.Object["images"].([]any)[0].(map[string]any)
-			cm := f.Object["commits"].([]any)[0].(map[string]any)
-			fmt.Fprintf(out, "%s: promoting %s from %s (Freight %s)\n", label, im["tag"], cm["id"].(string)[:7], name)
 		}
 	}
 
@@ -352,4 +297,77 @@ func waitPromotion(ctx context.Context, hub *kube.Clients, ns, name string) (pha
 		case <-time.After(PromotionPoll):
 		}
 	}
+}
+
+type promo struct{ ns, name string }
+
+const (
+	capabilityLabel = "example.com/capability"
+	appLabel        = "example.com/app"
+)
+
+// restoreProject restores the target Stages of one Kargo project (namespace pns); prefix (<cap>/<app>) labels its output.
+func restoreProject(ctx context.Context, hub *kube.Clients, branches BranchReader, out io.Writer, prefix, pns string, promos *[]promo) error {
+	stages, err := hub.Dyn.Resource(stageGVR).Namespace(pns).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("list stages in %s: %w", pns, err)
+	}
+	fr := hub.Dyn.Resource(freightGVR).Namespace(pns)
+	for _, t := range targets(stages.Items) {
+		label := prefix + "/" + t.stage
+		if t.hasFreight {
+			fmt.Fprintf(out, "%s: already has Freight, skipped\n", label)
+			continue
+		}
+		if t.warehouse == "" {
+			fmt.Fprintf(out, "%s: no requestedFreight origin (unexpected Stage shape), skipped\n", label)
+			continue
+		}
+		msg, img, exists, err := branches.Head(t.repo, t.branch)
+		if err != nil {
+			return fmt.Errorf("%s: read %s: %w", label, t.branch, err)
+		}
+		if !exists {
+			fmt.Fprintf(out, "%s: %s doesn't exist (never promoted), skipped\n", label, t.branch)
+			continue
+		}
+		f, err := FreightFromBranch(t.warehouse, t.repo, t.imageRepo, msg, img)
+		if err != nil {
+			fmt.Fprintf(out, "%s: %s, skipped\n", label, err)
+			continue
+		}
+		// existing Freight with the same artifacts (re-run, or another target of the same app) else create it
+		existing, err := fr.List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("list freight in %s: %w", pns, err)
+		}
+		name := findFreight(existing.Items, f)
+		if name == "" {
+			// Kargo's mutating webhook names the Freight from its artifacts, so no name is sent.
+			created, err := fr.Create(ctx, f, metav1.CreateOptions{FieldManager: kube.FieldManager})
+			if err != nil {
+				return fmt.Errorf("%s: create freight: %w", label, err)
+			}
+			name = created.GetName()
+		}
+		// available to the target Stage without re-running the gates (same as a break-glass approval)
+		patch := fmt.Sprintf(`{"status":{"approvedFor":{%q:{"approvedAt":%q}}}}`, t.stage, time.Now().UTC().Format(time.RFC3339))
+		if _, err := fr.Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{FieldManager: kube.FieldManager}, "status"); err != nil {
+			return fmt.Errorf("%s: approve freight %s: %w", label, name, err)
+		}
+		p := &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "kargo.akuity.io/v1alpha1", "kind": "Promotion",
+			"metadata": map[string]any{"generateName": t.stage + "-restore-", "namespace": pns},
+			"spec":     map[string]any{"stage": t.stage, "freight": name},
+		}}
+		cp, err := hub.Dyn.Resource(promotionGVR).Namespace(pns).Create(ctx, p, metav1.CreateOptions{FieldManager: kube.FieldManager})
+		if err != nil {
+			return fmt.Errorf("%s: create promotion: %w", label, err)
+		}
+		*promos = append(*promos, promo{pns, cp.GetName()})
+		im := f.Object["images"].([]any)[0].(map[string]any)
+		cm := f.Object["commits"].([]any)[0].(map[string]any)
+		fmt.Fprintf(out, "%s: promoting %s from %s (Freight %s)\n", label, im["tag"], cm["id"].(string)[:7], name)
+	}
+	return nil
 }

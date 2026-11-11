@@ -7,5 +7,5 @@
   "namespace": "payments-us-prod",
   "branch": "env/payments/payments/us-east4-prd-k8s",
   "destination": "in-cluster",
-  "authorizedStage": "kargo-payments:payments-us-east4-prd-k8s"
+  "authorizedStage": "kargo-payments-payments:us-east4-prd-k8s"
 }

@@ -57,7 +57,7 @@ Central install: `api.argocd.urls` maps shard name → that Argo CD's URL (UI de
   - Applications still carry `kargo.akuity.io/authorized-stage: <project>:<stage>`; Argo CD rejects Kargo updates without it.
   - emit Applications/AppProjects **per management cluster** (e.g. `rendered/argocd/<mgmt>/`), not one flat dir; Kargo resources stay in `rendered/kargo/` (central).
 - `platform/bootstrap/`: each management cluster's Argo CD gets a root Application syncing only its `rendered/argocd/<mgmt>/` dir. Central keeps syncing `rendered/kargo/`.
-- RBAC: owner-generated Argo CD AppProject `viewer` roles must exist in every management cluster's Argo CD, and each Argo CD needs the OIDC client with the `email` claim and `scopes: [email]` (ADR 0011). Kargo `promote-<app>-<stage>`/`viewers` roles stay central.
+- RBAC: owner-generated Argo CD AppProject `viewer-<app>` roles (ADR 0029) must exist in every management cluster's Argo CD, and each Argo CD needs the OIDC client with the `email` claim and `scopes: [email]` (ADR 0011). Kargo `promote-<stage>`/`viewers` roles (per app project) stay central.
 - Warehouses: usually unsharded (default controller, central). Shard only if a mgmt cluster must pull from registries/git only it can reach.
 - Git creds: every shard controller needs the GitHub App creds (`kargo-shared-resources` in central works only if the shard reads secrets from the central cluster via `kubeconfigSecrets.kargo`, as in option A).
 

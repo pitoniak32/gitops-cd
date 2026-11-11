@@ -19,8 +19,8 @@ api:
         email: [admin@example.com]
     # no global viewers/users; all access is generated per capability from owners.yml emails
     # (rendered/kargo/<cap>.yaml):
-    #   promote-<app> in kargo-<cap>: the app's promoters promote its stages
-    #   viewers in kargo-<cap>: promoters + viewers get Kargo's kargo-viewer Role (read project)
+    #   promote-<stage> in kargo-<cap>-<app> (one project per app, ADR 0029): that stage's promoters
+    #   viewers in kargo-<cap>-<app>: the app's promoters + viewers get Kargo's kargo-viewer Role (read project)
     #   users-<cap> in kargo-shared-resources: kargo-user (list project names), via the SAs below
     globalServiceAccounts:
       namespaces:

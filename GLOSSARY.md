@@ -27,18 +27,22 @@ An email listed under `breakGlass` in `owners.yml`. Only break-glass users (and 
 _Avoid_: approver (promoters approve normal promotions by promoting)
 
 **Viewer**:
-An email listed under `viewers` in `owners.yml`. Viewers see the whole capability in Kargo and Argo CD, read-only.
+An email listed under `viewers` in `owners.yml`. Viewers see the capability's apps in Kargo and Argo CD, read-only; `apps.<app>.viewers` replaces them for that app (ADR 0029).
 
 **Stage**:
 A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on. In Kargo it becomes one target stage per target, plus control-flow Stages where needed (ADR 0019).
 _Avoid_: environment, phase
 
 **Control-flow Stage**:
-A Kargo Stage with no promotion steps that always auto-promotes, rendered only where it helps (ADR 0019): `<app>-<S>-done` waits for all targets of stage S and fans out to several downstream targets; `<app>-<D>` fans into stage D's targets or gives a multi-target stage a one-click "Promote to downstream".
+A Kargo Stage with no promotion steps that always auto-promotes, rendered only where it helps (ADR 0019): `<S>-done` waits for all targets of stage S and fans out to several downstream targets; `<D>` fans into stage D's targets or gives a multi-target stage a one-click "Promote to downstream".
 _Avoid_: gate (ADR 0012's gate per stage is gone), join
 
 **Target stage**:
-The Kargo Stage `<app>-<target>` that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
+The Kargo Stage `<target>`, in its app's Kargo project, that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
+
+**Kargo project**:
+One per app, `kargo-<cap>-<app>` (ADR 0029): the app's Warehouse, Stages and access. Its Stage names carry no app prefix.
+_Avoid_: capability project (gone)
 
 **Promotion task**:
 A platform `ClusterPromotionTask` (`promote-argocd`, `promote-gha`) holding the steps every target stage runs; the target stage passes only vars (ADR 0027).

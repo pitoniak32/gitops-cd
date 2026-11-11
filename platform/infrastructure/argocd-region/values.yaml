@@ -8,7 +8,7 @@ configs:
   cm:
     admin.enabled: false  # keycloak only; break-glass = kubectl (cluster admin)
   rbac:
-    # email claim only (ADR 0011); teams read-only via generated AppProject `viewer` roles; admins by email (ADR 0009)
+    # email claim only (ADR 0011); teams read-only via generated AppProject `viewer-<app>` roles (ADR 0029); admins by email (ADR 0009)
     scopes: "[email]"
     policy.default: ""
     policy.csv: |

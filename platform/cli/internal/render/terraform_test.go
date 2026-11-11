@@ -41,8 +41,8 @@ func TestTerraformRender(t *testing.T) {
 // (no shard), pins module in terraform.yaml, dispatches with `module`, waits 60m
 func TestTerraformKargo(t *testing.T) {
 	t.Parallel()
-	k := kargoPayments(t)
-	const inf = "infra-us-east4-dev-tf"
+	k := kargoApp(t, "infra")
+	const inf = "us-east4-dev-tf"
 	wh := find(k, "Warehouse", "infra")
 	img := get(wh, "spec.subscriptions.1.image")
 	_, hasPlatform := get(wh, "spec.subscriptions.1.image").(map[string]any)["platform"]
@@ -56,7 +56,7 @@ func TestTerraformKargo(t *testing.T) {
 	if shard+" "+st(t, k, inf, `metadata.labels."example.com/platform"`)+" "+st(t, k, inf, `metadata.labels."example.com/deploy-with"`) != "- terraform gha" {
 		t.Error("infra-us-east4-dev-tf: no shard, platform/deploy-with labels")
 	}
-	if st(t, k, "my-app-us-east4-dev-k8s", `metadata.labels."example.com/platform"`) != "k8s" {
+	if st(t, kargoApp(t, "my-app"), "us-east4-dev-k8s", `metadata.labels."example.com/platform"`) != "k8s" {
 		t.Error("k8s platform label")
 	}
 	if strings.Join(stepUses(t, k, inf), ",") != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" {

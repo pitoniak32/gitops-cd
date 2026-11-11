@@ -16,11 +16,11 @@ Normal promotions: promoters promote Freight that is verified upstream. When Fre
   ```
 - **Check a Stage's list**:
   ```sh
-  kubectl -n kargo-<cap> get stage <app>-<stage-or-target> -o jsonpath='{.metadata.annotations.example\.com/break-glass}'
+  kubectl -n kargo-<cap>-<app> get stage <stage-or-target> -o jsonpath='{.metadata.annotations.example\.com/break-glass}'
   ```
 - **Undo an approval** (cluster admin):
   ```sh
-  kubectl -n kargo-<cap> patch freight <id> --subresource=status --type=json \
+  kubectl -n kargo-<cap>-<app> patch freight <id> --subresource=status --type=json \
     -p '[{"op":"remove","path":"/status/approvedFor/<stage>"}]'
   ```
 - **Remove it**: see "Removing it" in `docs/adr/0013-break-glass-approval.md`.
@@ -36,7 +36,7 @@ mise run kargo-restore            # all capabilities; or: mise run kargo-restore
 For each target Stage with no current Freight it reads the branch head (Kargo's commit message names the source commit; `deployment.yaml`, `service.yaml` for Cloud Run apps, or `terraform.yaml` `module` for terraform apps, pins `<repo>:<tag>@<digest>`), recreates that Freight (same artifacts give the same Freight ID; the alias is new), approves it for the Stage and promotes it. The promotion re-copies identical manifests: no new commit, no rollout. Re-running is a no-op. Terraform targets (ADR 0021) and Cloud Run targets (ADR 0024) are the exception: the promotion re-dispatches their workflow (`terraform.yaml` re-runs plan + apply; `cloud-run.yaml` re-runs the deploy), like any gha target.
 
 - **Skipped, with a reason**: targets never promoted (no branch), branches from before ADR 0016 (no pinned image), heads that aren't Kargo promotion commits. Promote fresh Freight to those normally; the next rebuild can restore them.
-- **Control-flow Stages** (`<app>-<stage>`, `<app>-<stage>-done`) stay empty until new Freight flows through; they auto-promote.
+- **Control-flow Stages** (`<stage>`, `<stage>-done`) stay empty until new Freight flows through; they auto-promote.
 - **Auto-promoting targets** (dev) may show two Promotions for the same Freight: Kargo's own auto-promotion fires once the Freight is approved. Both succeed; harmless.
 - **Auto-promoting targets restored to older Freight** can end up "Auto-promotion paused": restore's Promotion is a manual one, and Kargo holds auto-promotion when that isn't the newest Freight (`docs/gotchas.md`). Resume it in the UI once the next Freight should flow.
 
@@ -51,11 +51,11 @@ Configured in `platform/render/prechecks.cue` (platform only); each prd target S
 
 ## Resetting a capability's promotion state
 
-State lives in three places: Kargo (`kargo-<cap>`: Freight, Promotions, Stage status), GitHub (`env/<cap>/<app>/<target>` branches) and the deployed workloads (`<cap>-<target>` namespaces). Pick the lightest option that does the job.
+State lives in three places: Kargo (`kargo-<cap>-<app>` per app: Freight, Promotions, Stage status), GitHub (`env/<cap>/<app>/<target>` branches) and the deployed workloads (`<cap>-<target>` namespaces). Pick the lightest option that does the job.
 
 **A. Kargo only.** Workloads and branches stay.
 ```sh
-kubectl -n kargo-<cap> delete promotions.kargo.akuity.io,freight.kargo.akuity.io,stages.kargo.akuity.io,warehouses.kargo.akuity.io --all
+kubectl -n kargo-<cap>-<app> delete promotions.kargo.akuity.io,freight.kargo.akuity.io,stages.kargo.akuity.io,warehouses.kargo.akuity.io --all
 ```
 Argo CD self-heal recreates the Stages and Warehouses from `rendered/` with empty status. Warehouses are Manual (ADR 0016): assemble new Freight in the UI, then auto-promote stages (dev) promote it again. `kubectl` as cluster admin isn't blocked by `gitops-only.yaml`, which only applies to the kargo-api ServiceAccount.
 

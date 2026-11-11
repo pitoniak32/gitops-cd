@@ -7,5 +7,5 @@
   "namespace": "payments-us-dev",
   "branch": "env/payments/web/us-east4-dev-k8s",
   "destination": "in-cluster",
-  "authorizedStage": "kargo-payments:web-us-east4-dev-k8s"
+  "authorizedStage": "kargo-payments-web:us-east4-dev-k8s"
 }

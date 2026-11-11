@@ -10,7 +10,7 @@ import (
 //   CI renders every (app, stage, target) to <repo>@rendered (branch, ADR 0022): rendered/apps/<cap>/<app>/<stage>/<target>/
 //   Kargo Warehouse per app watches that path and the app's image repo (SemVer tags); Freight creation
 //   is Manual: promoters assemble Freight = (config commit, image digest) in the UI (ADR 0016).
-//   Target Stage <app>-<target> takes Freight from its upstream node (graph.cue, ADR 0019: the Warehouse,
+//   Target Stage <target> (in the app's project, ADR 0029) takes Freight from its upstream node (graph.cue, ADR 0019: the Warehouse,
 //   upstream targets, or a control-flow Stage where many targets feed many or a stage needs a one-click
 //   release point) and copies its target folder from that commit onto branch env/<cap>/<app>/<target>,
 //   pins the Freight's image in its deployment.yaml, then syncs that target's Argo CD app.
@@ -18,7 +18,13 @@ import (
 //   deployWith: gha targets (ADR 0020) get no Application: after the push the Stage dispatches a GitHub
 //   Actions workflow (http step, PAT from the shared `github-actions` secret) and waits for its run.
 
-_kargoProject: "kargo-\(_cap)"
+// one Kargo project per app (ADR 0029); its name is also the project's namespace
+_kargoProject: {for an, _ in pipelines {(an): "kargo-\(_cap)-\(an)"}}
+_maxProjectName: 63
+// gcd lint locates projectNameErrors.<app> at the app's app.yml
+projectNameErrors: {for an, n in _kargoProject if len(n) > _maxProjectName {
+	(an): error("Kargo project name \(n) is \(len(n)) characters (max \(_maxProjectName)): shorten the app name")
+}}
 
 // per deploy kind: what the Freight's image subscription pins (dispatch input, commit message)
 _artifactKey: {k8s: "image", terraform: "module"}
@@ -27,22 +33,24 @@ _pinFile: {K8S: "./out/deployment.yaml", TERRAFORM: "./out/terraform.yaml", CLOU
 _pinKey: {K8S: "spec.template.spec.containers.0.image", TERRAFORM: "module", CLOUD_RUN: "spec.template.spec.containers.0.image"}
 _platformLabel: {K8S: "k8s", TERRAFORM: "terraform", CLOUD_RUN: "cloudrun"}
 
-// Kargo Stage names per app (graph.cue): target Stages <app>-<target> + control-flow Stages
-_tgtName: {#app: string, #target: string, out: "\(#app)-\(#target)"}
+// Kargo Stage names per app (graph.cue): target Stages <target> + control-flow Stages
 _kargoStages: {for an, _ in pipelines {(an): list.SortStrings([for n, _ in _graph[an] {n}])}}
 // Stage names must fit a label value: Kargo 1.12 labels each PromotionRequest with the unshortened
 // Stage name (pkg/api/promotion_request.go), so a longer name creates the Stage but fails every promotion.
 _maxStageName: 63
 // Reported via stageNameErrors (not apps: the graph is computed from apps); gcd lint locates
 // stageNameErrors.<app>.<stage>[.<target>] in the app's app.yml.
-stageNameErrors: {for an, g in _graph for n, x in g if len(n) > _maxStageName {
-	let _msg = "Kargo Stage name \(n) is \(len(n)) characters (max \(_maxStageName)): shorten the app or"
-	if x.kind == "target" {(an): (x.stage): (x.target): error("\(_msg) target name")}
-	if x.kind == "control-flow" {(an): (x.stage): error("\(_msg) stage names")}
-}}
-// auto-promoted: every control-flow Stage (it only means "upstream verified") + targets of autoPromote stages
-_autoStages: list.SortStrings([for an, p in pipelines for n, x in _graph[an]
+stageNameErrors: {
+	for an, g in _graph for n, x in g if len(n) > _maxStageName {
+		let _msg = "Kargo Stage name \(n) is \(len(n)) characters (max \(_maxStageName)): shorten the"
+		if x.kind == "target" {(an): (x.stage): (x.target): error("\(_msg) target name")}
+		if x.kind == "control-flow" {(an): (x.stage): error("\(_msg) stage names")}
+	}
+}
+// auto-promoted, per app: every control-flow Stage (it only means "upstream verified") + targets of autoPromote stages
+_autoStages: {for an, p in pipelines {(an): list.SortStrings([for n, x in _graph[an]
 	if x.kind == "control-flow" || p.stages[x.stage].autoPromote {n}])
+}}
 _stageAnnotations: {
 	#app:   string
 	#stage: string
@@ -76,22 +84,28 @@ _freightRequest: {
 	][0]
 }
 
-_kargoCore: [
+// per app: its project's Namespace, Project, ProjectConfig, Warehouse and Stages
+_kargoCore: {for an, _ in pipelines {(an): [
 	// Rendered (not left to Kargo) so Argo CD's dry-run of the namespaced resources below passes on
-	// first sync; Kargo adopts a pre-existing namespace carrying this label.
-	{apiVersion: "v1", kind: "Namespace", metadata: {name: _kargoProject, labels: "kargo.akuity.io/project": "true"}},
-	{apiVersion: _kargoAPI, kind: "Project", metadata: name: _kargoProject},
+	// first sync; Kargo adopts a pre-existing namespace carrying this label. kargo-restore finds a
+	// capability's projects by example.com/capability.
+	{apiVersion: "v1", kind: "Namespace", metadata: {name: _kargoProject[an], labels: {
+		"kargo.akuity.io/project": "true"
+		"example.com/capability":  _cap
+		"example.com/app":         an
+	}}},
+	{apiVersion: _kargoAPI, kind: "Project", metadata: name: _kargoProject[an]},
 	{
 		apiVersion: _kargoAPI
 		kind:       "ProjectConfig"
-		metadata: {name: _kargoProject, namespace: _kargoProject}
+		metadata: {name: _kargoProject[an], namespace: _kargoProject[an]}
 		// a stage's autoPromote covers its targets; control-flow Stages always auto-promote
-		spec: promotionPolicies: [for n in _autoStages {stageSelector: name: n, autoPromotionEnabled: true}]
+		spec: promotionPolicies: [for n in _autoStages[an] {stageSelector: name: n, autoPromotionEnabled: true}]
 	},
-	for an, _ in pipelines {
+	{
 		apiVersion: _kargoAPI
 		kind:       "Warehouse"
-		metadata: {name: an, namespace: _kargoProject}
+		metadata: {name: an, namespace: _kargoProject[an]}
 		spec: {
 			freightCreationPolicy: "Manual"
 			subscriptions: [{git: {
@@ -110,26 +124,26 @@ _kargoCore: [
 		}
 	},
 	// control-flow Stages (no promotionTemplate, hub controller): Freight promoted here is verified at once
-	for an, _ in pipelines for n, x in _graph[an] if x.kind == "control-flow" {
+	for n, x in _graph[an] if x.kind == "control-flow" {
 		apiVersion: _kargoAPI
 		kind:       "Stage"
 		metadata: {
 			name:      n
-			namespace: _kargoProject
+			namespace: _kargoProject[an]
 			labels: _stageLabels & {#app: an, #stage: x.stage, "example.com/kind": "control-flow"}
 			annotations: _stageAnnotations & {#app: an, #stage: x.stage}
 		}
 		spec: requestedFreight: [_freightRequest & {#app: an, #node: x}]
 	},
-	for an, p in pipelines for sn, s in p.stages for tn, _ in s.targets
+	for sn, s in pipelines[an].stages for tn, _ in s.targets
 	let d = deploys["\(an)/\(tn)"]
 	// platform pre-deploy checks for this target's environment type (prechecks.cue, ADR 0028)
 	let _checks = [if preDeploy[d.tgt.environmentType] != _|_ {preDeploy[d.tgt.environmentType]}, []][0] {
 		apiVersion: _kargoAPI
 		kind:       "Stage"
 		metadata: {
-			name: (_tgtName & {#app: an, #target: tn}).out
-			namespace: _kargoProject
+			name:      tn
+			namespace: _kargoProject[an]
 			labels: _stageLabels & {#app: an, #stage: sn, "example.com/kind": "target", "example.com/target": tn, "example.com/deploy-with": d.deployWith, "example.com/platform": _platformLabel[d.tgt.platform]}
 			annotations: _stageAnnotations & {#app: an, #stage: sn}
 			if len(_checks) > 0 {
@@ -140,7 +154,7 @@ _kargoCore: [
 			// the region's Kargo controller promotes it (control-flow Stages and Warehouses stay on the hub controller);
 			// terraform and Cloud Run targets touch no cluster: hub controller too
 			if targets[tn].config.platform == "K8S" {shard: clusters[targets[tn].config.cluster].region}
-			requestedFreight: [_freightRequest & {#app: an, #node: _graph[an][(_tgtName & {#app: an, #target: tn}).out]}]
+			requestedFreight: [_freightRequest & {#app: an, #node: _graph[an][tn]}]
 			// steps: the shared ClusterPromotionTask for this deployWith (promotiontasks.cue, ADR 0027); its vars
 			// come from here. kargo-restore reads repo/branch/image by name.
 			promotionTemplate: spec: {
@@ -175,7 +189,7 @@ _kargoCore: [
 			}
 		}
 	},
-]
+]}}
 
 // Argo CD output per region (one Argo CD per region): rendered/argocd/projects/<region>/<cap>.yaml, an
 // AppProject per capability with only that region's destinations (synced by the `projects` AppSet).
@@ -196,16 +210,23 @@ _appProject: {
 		}]
 		clusterResourceWhitelist: [{group: "", kind: "Namespace"}] // CreateNamespace=true
 		namespaceResourceWhitelist: [{group: "*", kind: "*"}]
-		// Argo CD UI/CLI: owners see this capability's apps, read-only (Kargo does all syncing)
-		roles: [{
-			name:        "viewer"
-			description: "read-only view of \(_cap) apps for its promoters and viewers"
-			policies: ["p, proj:\(_cap):viewer, applications, get, \(_cap)/*, allow"]
-			// matched against the OIDC email claim (argocd-rbac-cm scopes: [email])
-			groups: _allEmails
-		}]
+		// Argo CD UI/CLI, per app (ADR 0029)
+		roles: _viewerRoles[#region]
 	}
 }
+
+// per region, one role per app with argocd deploys there: its promoters, viewers and break-glass see its
+// Applications, read-only (Kargo does all syncing). Exact names: a glob <cap>-<app>-* would also match an app
+// named <app>-<x>.
+_viewerRoles: {for r, _ in _deployRegion {(r): [for an in list.SortStrings([for an, _ in {for _, d in _argoDeploys if clusters[d.tgt.cluster].region == r {(d.app): _}} {an}]) {
+	name:        "viewer-\(an)"
+	description: "read-only view of \(_cap)/\(an) for its promoters and viewers"
+	policies: list.SortStrings([for _, d in _argoDeploys if d.app == an if clusters[d.tgt.cluster].region == r {
+		"p, proj:\(_cap):viewer-\(an), applications, get, \(_cap)/\(_cap)-\(an)-\(d.target), allow"
+	}])
+	// matched against the OIDC email claim (argocd-rbac-cm scopes: [email])
+	groups: _appEmails[an]
+}]}}
 
 argocdProjects: {for r, _ in _deployRegion {(r): _appProject & {#region: r}}}
 
@@ -223,17 +244,18 @@ argocdDeploys: {for _, d in _argoDeploys {
 		namespace:       d.tgt.namespace
 		branch:          "env/\(_cap)/\(d.app)/\(d.target)"
 		destination:     clusters[d.tgt.cluster].argocdName
-		authorizedStage: "\(_kargoProject):\((_tgtName & {#app: d.app, #target: d.target}).out)"
+		authorizedStage: "\(_kargoProject[d.app]):\(d.target)"
 	}
 }}
 
-// Promote RBAC (ADR 0023): one Kargo ServiceAccount per app and stage, mapped from the OIDC email claim to
+// Promote RBAC (ADR 0023, 0029): in each app's project, one Kargo ServiceAccount promote-<stage> per stage, mapped from the OIDC email claim to
 // that stage's promoters + break-glass, allowed to promote (and manually approve Freight for) the Kargo Stages
 // of that capability stage. Only stages with Kargo Stages: an empty resourceNames would mean *every* stage.
 _rbacMeta: {
+	#app:      string
 	#name:     string
 	name:      #name
-	namespace: _kargoProject
+	namespace: _kargoProject[#app]
 	labels: "app.kubernetes.io/managed-by":      "gitops-platform"
 	annotations: "rbac.kargo.akuity.io/managed": "true"
 }
@@ -242,12 +264,12 @@ _rbacMeta: {
 _nodeStages: {for an, nodes in _graph {(an): {for n, x in nodes {
 	(n): [
 		if x.kind == "target" {[x.stage]},
-		if n == "\(an)-\(x.stage)" {[x.stage]},
+		if n == x.stage {[x.stage]},
 		[for _, g in _gp[an].grp if g.shared if g.name == n for m in g.mem {m}],
 	][0]
 }}}}
-_kargoRBAC: [for an in list.SortStrings([for an, _ in _promoters {an}]) for sn in list.SortStrings([for sn, _ in _promoters[an] {sn}]) let _names = list.SortStrings([for n, _ in _graph[an] if list.Contains(_nodeStages[an][n], sn) {n}]) if len(_names) > 0 {
-	let meta = _rbacMeta & {#name: "promote-\(an)-\(sn)"}
+_kargoRBAC: {for an, _ in pipelines {(an): list.Concat([for sn in list.SortStrings([for sn, _ in _promoters[an] {sn}]) let _names = list.SortStrings([for n, _ in _graph[an] if list.Contains(_nodeStages[an][n], sn) {n}]) if len(_names) > 0 {
+	let meta = _rbacMeta & {#app: an, #name: "promote-\(sn)"}
 	let _emails = (_uniqSorted & {#in: list.Concat([_promoters[an][sn], _breakGlass])}).out
 	[{
 		apiVersion: "v1"
@@ -269,7 +291,7 @@ _kargoRBAC: [for an in list.SortStrings([for an, _ in _promoters {an}]) for sn i
 			verbs: ["create", "get", "list", "watch"]
 		}, {
 			// Freight assembly (Warehouses are Manual, ADR 0016). Names are content hashes, so this can't
-			// be limited to the app's Warehouse: any promoter in the project can assemble for any app.
+			// name a Warehouse; the project holds only this app's (ADR 0029).
 			apiGroups: ["kargo.akuity.io"]
 			resources: ["freights"]
 			verbs: ["create"]
@@ -279,23 +301,25 @@ _kargoRBAC: [for an in list.SortStrings([for an, _ in _promoters {an}]) for sn i
 		kind:       "RoleBinding"
 		metadata:   meta
 		roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "Role", name: meta.name}
-		subjects: [{kind: "ServiceAccount", name: meta.name, namespace: _kargoProject}]
+		subjects: [{kind: "ServiceAccount", name: meta.name, namespace: _kargoProject[an]}]
 	}]
-}]
+}])
+}}
 
-// read access to the whole project for every promoter and viewer: Kargo's own per-project kargo-viewer Role
-_viewersMeta: _rbacMeta & {#name: "viewers"}
-_kargoViewers: [{
-	apiVersion: "v1"
-	kind:       "ServiceAccount"
-	metadata: _viewersMeta & {annotations: "rbac.kargo.akuity.io/claims": json.Marshal({email: _allEmails})}
-}, {
-	apiVersion: "rbac.authorization.k8s.io/v1"
-	kind:       "RoleBinding"
-	metadata:   _viewersMeta
-	roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "Role", name: "kargo-viewer"}
-	subjects: [{kind: "ServiceAccount", name: _viewersMeta.name, namespace: _kargoProject}]
-}]
+// read access to the app's project for its promoters, viewers and break-glass (_appEmails): Kargo's own
+// per-project kargo-viewer Role
+_kargoViewers: {for an, _ in pipelines let meta = _rbacMeta & {#app: an, #name: "viewers"} {(an): [
+	{
+		apiVersion: "v1"
+		kind:       "ServiceAccount"
+		metadata: meta & {annotations: "rbac.kargo.akuity.io/claims": json.Marshal({email: _appEmails[an]})}
+	}, {
+		apiVersion: "rbac.authorization.k8s.io/v1"
+		kind:       "RoleBinding"
+		metadata:   meta
+		roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "Role", name: "kargo-viewer"}
+		subjects: [{kind: "ServiceAccount", name: meta.name, namespace: _kargoProject[an]}]
+	}]}}
 
 // Listing projects needs cluster-scoped read (Kargo's kargo-user ClusterRole). Promoters/viewers get it via a
 // global ServiceAccount (api.oidc.globalServiceAccounts: kargo-shared-resources). They see other
@@ -320,4 +344,4 @@ _kargoUsers: [{
 	subjects: [{kind: "ServiceAccount", name: "users-\(_cap)", namespace: "kargo-shared-resources"}]
 }]
 
-kargo: list.Concat([_kargoCore, for r in _kargoRBAC {r}, _kargoViewers, _kargoUsers])
+kargo: list.Concat([for an in list.SortStrings([for an, _ in pipelines {an}]) for l in [_kargoCore[an], _kargoRBAC[an], _kargoViewers[an]] {l}, _kargoUsers])
