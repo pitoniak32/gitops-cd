@@ -3,6 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 GCD="$(cd ../.. && pwd)/.bin/gcd"
+lint() { "$GCD" lint --root "$1" "${@:2}"; } # <root> <cap>: until test.sh moves to Go tests
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 for cap in payments search; do "$GCD" render "$tmp" --root testdata/root --capability "$cap" >/dev/null; done
 "$GCD" render "$tmp" --root testdata/root --regions >/dev/null  # platform-level outputs from clusters.cue
@@ -184,7 +185,7 @@ echo "target schema ok"
 # deployWith/workflow resolve per field, target > stage > app > default
 r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
 yq -i '.workflow.ref = "release" | .stages.dev.deployWith = "gha" | .stages.dev.targets.dc1-dev-k8s = {"deployWith": "argocd", "workflow": {"file": "x.yml"}} | .stages.dev.targets.us-east4-dev-k8s.workflow.repo = "acme/deploys"' "$c"
-scripts/lint.sh "$r" payments >/dev/null || { echo "app-level workflow with argocd targets must lint clean" >&2; exit 1; }
+lint "$r" payments >/dev/null || { echo "app-level workflow with argocd targets must lint clean" >&2; exit 1; }
 "$GCD" render "$o" --root "$r" --capability payments >/dev/null
 pt() { jq -r ".\"my-app\".stages.$1.targets.\"$2\".deployWith" "$o/pipelines/payments.json"; }
 [[ "$(pt dev us-east4-dev-k8s) $(pt dev dc1-dev-k8s) $(pt prod us-east4-prd-k8s)" == "gha argocd argocd" ]] || { echo "deployWith resolution: $(pt dev us-east4-dev-k8s) $(pt dev dc1-dev-k8s) $(pt prod us-east4-prd-k8s)" >&2; exit 1; }
@@ -200,18 +201,18 @@ rm -rf "${r:?}/capabilities/search"; out2="$(mktemp -d)"
 "$GCD" codeowners --root "$r" --out "$out2"
 if grep -q search "$r/.github/CODEOWNERS"; then echo "deleted capability still in CODEOWNERS" >&2; exit 1; fi
 rm -rf "${r:?}" "${out2:?}"; echo "codeowners prune ok"
-scripts/lint.sh testdata/root payments; echo "lint ok"
+lint testdata/root payments; echo "lint ok"
 # env keys: any C identifier (some apps need lowercase, terraform TF_VAR_<name>)
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 yq -i '.env.TF_VAR_lower_ok = "x"' "$r/capabilities/payments/apps/my-app/app.yml"
-scripts/lint.sh "$r" payments >/dev/null || { echo "lowercase env key must lint clean" >&2; exit 1; }
+lint "$r" payments >/dev/null || { echo "lowercase env key must lint clean" >&2; exit 1; }
 rm -rf "${r:?}"; echo "lowercase env ok"
 
 # Lint cases: <file under testdata/root> TAB <yq -i expr> TAB <ERE the lint output must match>
 while IFS=$'\t' read -r file expr want; do
   c="$(mktemp -d)"; cp -R testdata/root/. "$c/"
   yq -i "$expr" "$c/$file"
-  got="$(scripts/lint.sh "$c" payments || true)"; rm -rf "$c"
+  got="$(lint "$c" payments || true)"; rm -rf "$c"
   grep -qE "$want" <<<"$got" || { printf 'lint case FAILED: %s %s\nwant: %s\ngot:\n%s\n' "$file" "$expr" "$want" "$got" >&2; exit 1; }
   echo "lint case ok: $expr"
 done < testdata/lint-cases.tsv
@@ -221,7 +222,7 @@ done < testdata/lint-cases.tsv
 nospur() {
   c="$(mktemp -d)"; cp -R testdata/root/. "$c/"
   yq -i "$2" "$c/$1"
-  got="$(scripts/lint.sh "$c" payments || true)"; rm -rf "$c"
+  got="$(lint "$c" payments || true)"; rm -rf "$c"
   [[ "$(head -n1 <<<"$got")" =~ $3 ]] || { printf 'first lint line wrong: %s\nwant: %s\ngot:\n%s\n' "$2" "$3" "$got" >&2; exit 1; }
   ! grep -qE 'expected a GCP project id|unknown region|unknown cluster' <<<"$got" || { printf 'spurious pattern line: %s\ngot:\n%s\n' "$2" "$got" >&2; exit 1; }
   echo "no spurious lines: $2"
@@ -254,7 +255,7 @@ rm -rf "${r:?}" "${o:?}"; echo "app viewers ok"
 # Leftover apps/<a>/owners.yml (pre-ADR 0023 layout) fails loudly
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 printf 'owners: [team1]\n' >"$r/capabilities/payments/apps/worker/owners.yml"
-got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE 'apps/worker/owners\.yml:[0-9]+:[0-9]+: .*move into capabilities/payments/owners\.yml apps\.worker' <<<"$got" || { printf 'legacy app owners.yml not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "legacy app owners ok"
 # no Role may ever render an empty resourceNames
@@ -265,7 +266,7 @@ if yq -e 'select(.kind == "Role") | .rules[] | select(has("resourceNames") and (
 for d in apps/worker stages/perf targets/dc1-dev-k8s; do
   r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments"
   mv "$c/$d" "$c/$(dirname "$d")/Bad_Name" 2>/dev/null || mv "$c/$d.yml" "$c/$(dirname "$d")/Bad_Name.yml"
-  got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+  got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
   grep -qE '^capabilities/payments/[a-z]+/Bad_Name(/app|/target)?\.yml:[0-9]+:[0-9]+: .*invalid name' <<<"$got" || { printf 'bad name not rejected for %s:\n%s\n' "$d" "$got" >&2; exit 1; }
   echo "bad name ok: $d"
 done
@@ -273,13 +274,13 @@ done
 # A target named like a stage would collide as a Kargo Stage name (<app>-<name>)
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 cp -R "$r/capabilities/payments/targets/dc1-dev-k8s" "$r/capabilities/payments/targets/dev"
-got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE '^capabilities/payments/targets/dev/target\.yml:[0-9]+:[0-9]+: .*also a stage name' <<<"$got" || { printf 'target/stage name collision not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "target/stage name collision ok"
 # ...nor like <stage>-done (fan-out control-flow Stage <app>-<stage>-done, ADR 0019)
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"
 cp -R "$r/capabilities/payments/targets/dc1-dev-k8s" "$r/capabilities/payments/targets/dev-done"
-got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE '^capabilities/payments/targets/dev-done/target\.yml:[0-9]+:[0-9]+: .*target name dev-done is <stage>-done; Kargo control-flow stage names <app>-dev-done would collide' <<<"$got" || { printf 'target named <stage>-done not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "target <stage>-done collision ok"
 
@@ -287,7 +288,7 @@ echo "target <stage>-done collision ok"
 r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; t="$r/capabilities/payments/targets"
 cp "$t/dc1-dev-k8s/target.yml" "$t/old.yml"
 mkdir -p "$t/ghost/environment-variables"; echo 'A: b' >"$t/ghost/environment-variables/x.yml"
-got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE '^capabilities/payments/targets/old\.yml:1:1: .*move to targets/old/target\.yml' <<<"$got" || { printf 'legacy target file not rejected:\n%s\n' "$got" >&2; exit 1; }
 grep -qE '^capabilities/payments/targets/ghost/environment-variables/x\.yml:[0-9]+:[0-9]+: .*without targets/ghost/target\.yml' <<<"$got" || { printf 'bundle without target not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "target layout ok"
@@ -307,7 +308,7 @@ yq -i '.stages.dev.targets.us-east4-dev-k8s.envFrom = ["flags"]' "$c/apps/my-app
 v="$(yq 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select(.name == "LD_RELAY_URL") | .value' "$o/apps/payments/my-app/dev/us-east4-dev-k8s/deployment.yaml")"
 [[ $v == https://other ]] || { echo "target-level envFrom must win: LD_RELAY_URL=$v" >&2; exit 1; }
 yq -i '.stages.dev.targets.us-east4-dev-k8s.envFrom = ["flags", "launchdarkly"]' "$c/apps/my-app/app.yml"
-got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}" "${o:?}"
+got="$(lint "$r" payments || true)"; rm -rf "${r:?}" "${o:?}"
 grep -qE '^capabilities/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.us-east4-dev-k8s\.envFrom: .*LD_RELAY_URL differs between environment-variables/\{flags,launchdarkly\}\.yml \(both in target-level' <<<"$got" || { printf 'same-layer clash not rejected:\n%s\n' "$got" >&2; exit 1; }
 grep -q LD_SDK_KEY <<<"$got" && { printf 'equal values must not clash:\n%s\n' "$got" >&2; exit 1; }
 echo "envFrom clash ok"
@@ -367,11 +368,11 @@ oneclick "$kk"; rm -rf "${r:?}" "${o:?}"
 echo "control-flow graph ok"
 
 # A cluster that narrows its environmentTypes rejects other types, naming what it accepts
-# (copy of the renderer: clusters.cue is platform-owned, so the case can't be a lint-cases.tsv edit)
-p="$(mktemp -d)"; r="$(mktemp -d)"; cp -R ../cue.mod "$p/"; cp -R . "$p/render"; cp -R testdata/root/. "$r/"
+# (copy of the renderer into the root: clusters.cue is platform-owned, so the case can't be a lint-cases.tsv edit)
+r="$(mktemp -d)"; p="$r/platform"; cp -R testdata/root/. "$r/"; mkdir -p "$p"; cp -R ../cue.mod "$p/"; cp -R . "$p/render"
 sed -i.bak 's/dc1: {region: "dc1", kind: "kind", environmentTypes: \["dev", "npr", "prd"\]/dc1: {region: "dc1", kind: "kind", environmentTypes: ["dev"]/' "$p/render/clusters.cue"
 grep -q 'environmentTypes: \["dev"\]' "$p/render/clusters.cue" || { echo "cluster-types case: sed did not narrow dc1" >&2; exit 1; }
-got="$("$p/render/scripts/lint.sh" "$r" payments || true)"; rm -rf "${p:?}" "${r:?}"
+got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE '^capabilities/payments/targets/dc1-prd-k8s/target\.yml:[0-9]+:[0-9]+: config\.environmentType: cluster dc1 accepts environment types: dev$' <<<"$got" || { printf 'cluster environment-type check failed:\n%s\n' "$got" >&2; exit 1; }
 echo "cluster types ok"
 
@@ -384,7 +385,7 @@ cp -R "$c/targets/us-east4-dev-k8s" "$c/targets/$long_tgt"
 yq -i '.config.namespace = "payments-long"' "$c/targets/$long_tgt/target.yml"
 mv "$c/apps/web" "$c/apps/$long_app"
 yq -i ".stages.dev.targets = {\"$long_tgt\": {}}" "$c/apps/$long_app/app.yml"
-got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE "^capabilities/payments/apps/$long_app/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name $long_app-$long_tgt is 71 characters \(max 63\): shorten the app or target name$" <<<"$got" || { printf 'long target Stage name not rejected:\n%s\n' "$got" >&2; exit 1; }
 # control flow: a first stage with 2 targets gets an entry Stage <app>-<stage>
 long_stage=ssssssssssssssssssssssssssssssssss            # 34
@@ -393,7 +394,7 @@ printf 'dependsOn: []\n' >"$c/stages/$long_stage.yml"
 yq -i ".promoters.\"$long_stage\" = [\"doug@example.com\"]" "$c/owners.yml"
 mv "$c/apps/web" "$c/apps/$long_app"
 yq -i ".stages = {\"$long_stage\": {\"targets\": {\"us-east4-dev-k8s\": {}, \"dc1-dev-k8s\": {}}}}" "$c/apps/$long_app/app.yml"
-got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
 grep -qE "^capabilities/payments/apps/$long_app/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name $long_app-$long_stage is 65 characters \(max 63\): shorten the app or stage names$" <<<"$got" || { printf 'long control-flow Stage name not rejected:\n%s\n' "$got" >&2; exit 1; }
 echo "kargo stage name length ok"
 
@@ -401,7 +402,7 @@ echo "kargo stage name length ok"
 name_case() { # <from> <to> <want: ok | grep -E pattern>
   r="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/targets"
   mv "$c/$1" "$c/$2"; perl -pi -e "s/(?<![\\w-])$1(?![\\w-])/$2/g" "$r"/capabilities/payments/apps/*/app.yml
-  got="$(scripts/lint.sh "$r" payments || true)"; rm -rf "${r:?}"
+  got="$(lint "$r" payments || true)"; rm -rf "${r:?}"
   if [[ $3 == ok ]]; then
     [[ -z "$got" ]] || { printf 'name %s should pass:\n%s\n' "$2" "$got" >&2; exit 1; }
   else
