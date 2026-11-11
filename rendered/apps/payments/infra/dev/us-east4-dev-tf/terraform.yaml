@@ -1,0 +1,14 @@
+capability: payments
+app: infra
+stage: dev
+target: us-east4-dev-tf
+environment: dev
+gcpProject: team1-dev
+region: us-east4
+wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
+backend:
+  bucket: tfstate-team1-dev
+  prefix: payments/infra/us-east4-dev-tf
+module: ghcr.io/pitoniak32/tf-bucket
+env:
+  TF_VAR_bucket_name: payments-dev-bucket

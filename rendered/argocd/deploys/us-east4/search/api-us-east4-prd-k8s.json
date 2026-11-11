@@ -1,0 +1,11 @@
+{
+  "appName": "search-api-us-east4-prd-k8s",
+  "capability": "search",
+  "app": "api",
+  "stage": "prod",
+  "target": "us-east4-prd-k8s",
+  "namespace": "search-us-prod",
+  "branch": "env/search/api/us-east4-prd-k8s",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-search:api-us-east4-prd-k8s"
+}

@@ -1,0 +1,11 @@
+{
+  "appName": "payments-my-app-dc1-npr-k8s",
+  "capability": "payments",
+  "app": "my-app",
+  "stage": "staging",
+  "target": "dc1-npr-k8s",
+  "namespace": "payments-onprem-stg",
+  "branch": "env/payments/my-app/dc1-npr-k8s",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-payments:my-app-dc1-npr-k8s"
+}

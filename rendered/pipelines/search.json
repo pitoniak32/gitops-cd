@@ -8,12 +8,13 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "us-dev": {
-            "cluster": "us",
+          "us-east4-dev-k8s": {
+            "cluster": "us-east4",
             "namespace": "search-us-dev",
             "platform": "K8S",
             "environment": "dev",
-            "path": "apps/search/api/dev/us-dev",
+            "environmentType": "dev",
+            "path": "apps/search/api/dev/us-east4-dev-k8s",
             "deployWith": "argocd"
           }
         }
@@ -25,20 +26,22 @@
         "autoPromote": false,
         "level": 1,
         "targets": {
-          "us-prod": {
-            "cluster": "us",
+          "us-east4-prd-k8s": {
+            "cluster": "us-east4",
             "namespace": "search-us-prod",
             "platform": "K8S",
             "environment": "prod",
-            "path": "apps/search/api/prod/us-prod",
+            "environmentType": "prd",
+            "path": "apps/search/api/prod/us-east4-prd-k8s",
             "deployWith": "argocd"
           },
-          "onprem-prod": {
-            "cluster": "onprem",
+          "dc1-prd-k8s": {
+            "cluster": "dc1",
             "namespace": "search-onprem-prod",
             "platform": "K8S",
             "environment": "prod",
-            "path": "apps/search/api/prod/onprem-prod",
+            "environmentType": "prd",
+            "path": "apps/search/api/prod/dc1-prd-k8s",
             "deployWith": "argocd"
           }
         }
