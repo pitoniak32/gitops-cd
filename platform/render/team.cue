@@ -43,13 +43,12 @@ _platformSuffix: {K8S: "k8s", TERRAFORM: "tf"}
 		namespace?: =~"^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
 		// TERRAFORM only: the GCP region (a K8S target's is its cluster's)
 		region?: or(_gcpRegions) | error("unknown region; allowed: \(strings.Join(_gcpRegions, ", "))")
-		terraform?: {
-			gcpProject!: =~"^[a-z][a-z0-9-]{4,28}[a-z0-9]$" | error("expected a GCP project id")
-			// GCS state; prefix default <capability>/<app>/<target>
-			backend: {
-				bucket!: =~"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$" | error("expected a GCS bucket name")
-				prefix?: =~"^[A-Za-z0-9._/-]+$" | error("expected a GCS object prefix")
-			}
+		// TERRAFORM only
+		gcpProject?: =~"^[a-z][a-z0-9-]{4,28}[a-z0-9]$" | error("expected a GCP project id")
+		// GCS state; prefix default <capability>/<app>/<target>
+		backend?: {
+			bucket!: =~"^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$" | error("expected a GCS bucket name")
+			prefix?: =~"^[A-Za-z0-9._/-]+$" | error("expected a GCS object prefix")
 		}
 		if !generic {
 			if platform == "K8S" {
@@ -59,11 +58,13 @@ _platformSuffix: {K8S: "k8s", TERRAFORM: "tf"}
 					// the cluster must accept this environment type
 					environmentType: or(clusters[cluster].environmentTypes) | error("cluster \(cluster) accepts environment types: \(strings.Join(clusters[cluster].environmentTypes, ", "))")
 				}
-				region?:    error("region not allowed on a K8S target (it's the cluster's)")
-				terraform?: error("terraform not allowed on a K8S target (set platform: TERRAFORM)")
+				region?:     error("region not allowed on a K8S target (it's the cluster's)")
+				gcpProject?: error("gcpProject not allowed on a K8S target")
+				backend?:    error("backend not allowed on a K8S target")
 			}
 			if platform == "TERRAFORM" {
-				terraform:  _
+				gcpProject: _
+				backend:    _
 				region:     _
 				cluster?:   error("cluster not allowed on a TERRAFORM target")
 				namespace?: error("namespace not allowed on a TERRAFORM target")

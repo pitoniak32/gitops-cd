@@ -57,6 +57,19 @@ for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.target
 	targets: (tn): config: region: error("region required on a TERRAFORM target; allowed: \(strings.Join(_gcpRegions, ", "))")
 }
 
+// a TERRAFORM target needs a GCP project and a state backend
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform == "TERRAFORM" if v.config.gcpProject == _|_ {
+	targets: (tn): config: gcpProject: error("expected a GCP project id")
+}
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.platform == "TERRAFORM" if v.config.backend == _|_ {
+	targets: (tn): config: backend: error("backend required on a TERRAFORM target (bucket, optional prefix)")
+}
+
+// the nested terraform: key moved up to config.gcpProject / config.backend
+for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.terraform != _|_ {
+	targets: (tn): config: terraform: error("moved: use config.gcpProject / config.backend")
+}
+
 // name must be <region>-<env>-<platform>[-<qualifier>] (ADR 0025); from the raw file so it can't cycle through targets.
 // Skipped while the region can't be resolved (unknown cluster / missing region already error).
 for k, v in in if k =~ _route.targets let tn = regexp.FindSubmatch(_route.targets, k)[1] if v.config.environmentType != _|_ if list.Contains(["dev", "npr", "prd"], v.config.environmentType) {

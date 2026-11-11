@@ -28,9 +28,12 @@ capabilities/payments/apps/worker/app.yml	.deployWith = "jenkins"	^capabilities/
 capabilities/payments/apps/worker/app.yml	.workflow.repo = "not-a-repo"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: workflow\.repo: expected <owner>/<name>$
 capabilities/payments/apps/worker/app.yml	.workflow.ref = ""	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: workflow\.ref: expected a non-empty git ref$
 capabilities/payments/targets/us-east4-dev-tf/target.yml	.config.cluster = "us"	^capabilities/payments/targets/us-east4-dev-tf/target\.yml:[0-9]+:[0-9]+: .*cluster not allowed on a TERRAFORM target
-capabilities/payments/targets/us-east4-dev-tf/target.yml	del(.config.terraform.backend.bucket)	^capabilities/payments/targets/us-east4-dev-tf/target\.yml:[0-9]+:[0-9]+: .*bucket
-capabilities/payments/targets/us-east4-dev-tf/target.yml	.config.terraform.gcpProject = "Bad"	^capabilities/payments/targets/us-east4-dev-tf/target\.yml:[0-9]+:[0-9]+: .*gcpProject
-capabilities/payments/targets/us-east4-dev-k8s/target.yml	.config.terraform = {"gcpProject": "team1-dev", "backend": {"bucket": "b-x"}}	^capabilities/payments/targets/us-east4-dev-k8s/target\.yml:[0-9]+:[0-9]+: .*terraform not allowed on a K8S target
+capabilities/payments/targets/us-east4-dev-tf/target.yml	del(.config.backend.bucket)	^capabilities/payments/targets/us-east4-dev-tf/target\.yml:[0-9]+:[0-9]+: .*bucket
+capabilities/payments/targets/us-east4-dev-tf/target.yml	.config.gcpProject = "Bad"	^capabilities/payments/targets/us-east4-dev-tf/target\.yml:[0-9]+:[0-9]+: .*gcpProject
+capabilities/payments/targets/us-east4-dev-k8s/target.yml	.config.gcpProject = "acme-payments-dev"	^capabilities/payments/targets/us-east4-dev-k8s/target\.yml:[0-9]+:[0-9]+: .*gcpProject not allowed on a K8S target
+capabilities/payments/targets/us-east4-dev-k8s/target.yml	.config.backend = {"bucket": "b-xx"}	^capabilities/payments/targets/us-east4-dev-k8s/target\.yml:[0-9]+:[0-9]+: .*backend not allowed on a K8S target
+capabilities/payments/targets/us-east4-dev-tf/target.yml	.config.terraform = {"gcpProject": "acme-x"}	^capabilities/payments/targets/us-east4-dev-tf/target\.yml:[0-9]+:[0-9]+: config\.terraform: moved: use config\.gcpProject / config\.backend
+capabilities/payments/targets/us-east4-dev-tf/target.yml	del(.config.gcpProject)	^capabilities/payments/targets/us-east4-dev-tf/target\.yml:[0-9]+:[0-9]+: .*gcpProject
 capabilities/payments/targets/us-east4-dev-k8s/target.yml	del(.config.namespace)	^capabilities/payments/targets/us-east4-dev-k8s/target\.yml:[0-9]+:[0-9]+: .*namespace
 capabilities/payments/apps/infra/app.yml	.image = "ghcr.io/x/y"	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*set exactly one of image \(K8s app\) or module \(terraform app\)
 capabilities/payments/apps/infra/app.yml	del(.module)	^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*set exactly one of image \(K8s app\) or module \(terraform app\)

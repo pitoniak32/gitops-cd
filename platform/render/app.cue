@@ -175,8 +175,8 @@ deploys: {for an, a in apps for sn, s in a.stages for tn, t in s.targets {
 			deployWith: "gha"
 			if tgt.platform == "TERRAFORM" {
 				backend: {
-					bucket: tgt.terraform.backend.bucket
-					prefix: *tgt.terraform.backend.prefix | "\(_cap)/\(an)/\(tn)"
+					bucket: tgt.backend.bucket
+					prefix: *tgt.backend.prefix | "\(_cap)/\(an)/\(tn)"
 				}
 			}
 		}

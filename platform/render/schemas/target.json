@@ -38,6 +38,38 @@
             "errorMessage": "Unknown key. Allowed: wifEmail"
           }
         },
+        "backend": {
+          "type": "object",
+          "description": "GCS state; prefix default <capability>/<app>/<target>",
+          "properties": {
+            "bucket": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$"
+                }
+              ]
+            },
+            "prefix": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9._/-]+$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "bucket"
+          ],
+          "propertyNames": {
+            "enum": [
+              "bucket",
+              "prefix"
+            ],
+            "errorMessage": "Unknown key. Allowed: bucket, prefix"
+          }
+        },
         "billing": {
           "type": "string",
           "pattern": "^[a-z0-9-]+$"
@@ -65,6 +97,15 @@
           "anyOf": [
             {
               "$ref": "#/$defs/EnvironmentType"
+            }
+          ]
+        },
+        "gcpProject": {
+          "description": "TERRAFORM only",
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
             }
           ]
         },
@@ -99,62 +140,6 @@
               ]
             }
           ]
-        },
-        "terraform": {
-          "type": "object",
-          "properties": {
-            "backend": {
-              "type": "object",
-              "description": "GCS state; prefix default <capability>/<app>/<target>",
-              "properties": {
-                "bucket": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$"
-                    }
-                  ]
-                },
-                "prefix": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "pattern": "^[A-Za-z0-9._/-]+$"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "bucket"
-              ],
-              "propertyNames": {
-                "enum": [
-                  "bucket",
-                  "prefix"
-                ],
-                "errorMessage": "Unknown key. Allowed: bucket, prefix"
-              }
-            },
-            "gcpProject": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
-                }
-              ]
-            }
-          },
-          "required": [
-            "backend",
-            "gcpProject"
-          ],
-          "propertyNames": {
-            "enum": [
-              "backend",
-              "gcpProject"
-            ],
-            "errorMessage": "Unknown key. Allowed: backend, gcpProject"
-          }
         }
       },
       "required": [
@@ -166,16 +151,17 @@
       "propertyNames": {
         "enum": [
           "auth",
+          "backend",
           "billing",
           "cluster",
           "environment",
           "environmentType",
+          "gcpProject",
           "namespace",
           "platform",
-          "region",
-          "terraform"
+          "region"
         ],
-        "errorMessage": "Unknown key. Allowed: auth, billing, cluster, environment, environmentType, namespace, platform, region, terraform"
+        "errorMessage": "Unknown key. Allowed: auth, backend, billing, cluster, environment, environmentType, gcpProject, namespace, platform, region"
       }
     }
   },
