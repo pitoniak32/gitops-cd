@@ -31,7 +31,7 @@ _emailDomain: "example.com"
 // per-app overrides: each field set replaces the capability's (promoters: per stage)
 #AppOwners: {
 	codeOwners?: [...#TeamRef]
-	promoters?:  #Promoters
+	promoters?: #Promoters
 	viewers?: [...#Email]
 	if !generic {
 		breakGlass?: error("breakGlass is capability-wide; set it at the top level")

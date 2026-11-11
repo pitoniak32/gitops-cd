@@ -28,10 +28,10 @@ _nameRe: "^[a-z][a-z0-9-]{0,39}$"
 in: [string]: _
 let C = "capabilities/\(capability)/"
 _route: {
-	stages:    "^\(C)stages/([^/]+)\\.ya?ml$"
-	targets:   "^\(C)targets/([^/]+)/target\\.ya?ml$"
-	apps:      "^\(C)apps/([^/]+)/app\\.ya?ml$"
-	teams:     "^teams/([^/]+)\\.ya?ml$"
+	stages:  "^\(C)stages/([^/]+)\\.ya?ml$"
+	targets: "^\(C)targets/([^/]+)/target\\.ya?ml$"
+	apps:    "^\(C)apps/([^/]+)/app\\.ya?ml$"
+	teams:   "^teams/([^/]+)\\.ya?ml$"
 }
 for f, re in _route {(f): {for k, v in in if k =~ re {(regexp.FindSubmatch(re, k)[1]): v}}}
 
