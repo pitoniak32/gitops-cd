@@ -1,6 +1,7 @@
 # Terraform apps
 
 Status: accepted. Extends ADR 0016 (Freight = config commit + one discovered artifact) and ADR 0020 (gha deploy).
+Amended by ADR 0024: `terraform: {gcpProject, backend}` → `config.gcpProject`, `config.backend`.
 
 Some teams ship infrastructure with Terraform, not Kubernetes workloads. They want the same capability pipeline (stages, promoters, break-glass, one Kargo Stage per target) with a versioned module artifact, applied by GitHub Actions. Argo CD has no part in it.
 

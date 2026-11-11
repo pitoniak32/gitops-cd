@@ -22,13 +22,16 @@ owners.yml                codeOwners: [team, ..], promoters: {<stage>: [email, .
                           breakGlass: [email, ..], apps: {<app>: {codeOwners?, promoters?, viewers?}}
 ../../teams/<team>.yml    githubTeam
 stages/<stage>.yml        dependsOn: [..], autoPromote: bool
-targets/<t>/target.yml    config: {platform (K8S|TERRAFORM), environmentType (dev|npr|prd), auth.wifEmail, billing,
-                          K8S: cluster, namespace; TERRAFORM: region, terraform.{gcpProject, backend.{bucket, prefix}}}
-                          dir name: <region>-<env>-<platform>[-<qualifier>] (k8s|tf), ADR 0025
+targets/<t>/target.yml    config: {platform (K8S|TERRAFORM|CLOUD_RUN), environmentType (dev|npr|prd), auth.wifEmail, billing,
+                          K8S: cluster, namespace; TERRAFORM: region, gcpProject, backend.{bucket, prefix};
+                          CLOUD_RUN: region, gcpProject (ADR 0024)}
+                          dir name: <region>-<env>-<platform>[-<qualifier>] (k8s|tf|cr), ADR 0025
 targets/<t>/environment-variables/<name>.yml   KEY: value (flat)
 apps/<app>/app.yml        image (repo only), imageConstraint, port, replicas, env, envFrom, resources, stages.<s>.targets.<t>
                           terraform app (ADR 0021): module (OCI repo) + moduleConstraint instead of image; env, envFrom,
                           workflow only; renders terraform.yaml per target
+                          image apps may also use CLOUD_RUN targets: renders service.yaml (Knative Service), gha only,
+                          replicas → minScale, default workflow cloud-run.yaml (ADR 0024)
 ```
 
 ## Merge rules

@@ -1,6 +1,6 @@
 # Cloud Run targets
 
-Status: proposed. Extends ADR 0020 (gha deploy) and ADR 0021 (non-K8s platforms); changes ADR 0021's TERRAFORM target fields. Builds on ADR 0025 (target names, `environmentType` `dev|npr|prd`, `#GcpRegion`).
+Status: accepted. Extends ADR 0020 (gha deploy) and ADR 0021 (non-K8s platforms); changes ADR 0021's TERRAFORM target fields. Builds on ADR 0025 (target names, `environmentType` `dev|npr|prd`, `#GcpRegion`).
 
 Some teams want to run a service on Cloud Run instead of a kind/GKE cluster, sometimes only for some stages (dev on kind, prod on Cloud Run). Cloud Run accepts Knative Serving YAML (`gcloud run services replace`), so the renderer can emit a Knative `Service` from the same app settings.
 
@@ -39,6 +39,8 @@ TERRAFORM's `terraform: {gcpProject, backend}` moves up to `config.gcpProject` +
 | `env` `secret:<p>/<s>[@<v>]` | ExternalSecret if the cluster has a store, else omitted | `valueFrom.secretKeyRef: {name: projects/<p>/secrets/<s>, key: <v> or latest}` |
 | `deployWith` | argocd or gha | ignored (always gha) |
 | `workflow.file` default | `deploy.yaml` | `cloud-run.yaml` |
+
+The minReplicas `policy` applies to K8S targets only.
 
 The runtime service account isn't set: Cloud Run uses the project's default compute SA. It will be an app-layer field when needed.
 
