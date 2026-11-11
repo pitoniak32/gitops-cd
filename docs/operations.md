@@ -38,6 +38,7 @@ For each target Stage with no current Freight it reads the branch head (Kargo's 
 - **Skipped, with a reason**: targets never promoted (no branch), branches from before ADR 0016 (no pinned image), heads that aren't Kargo promotion commits. Promote fresh Freight to those normally; the next rebuild can restore them.
 - **Control-flow Stages** (`<app>-<stage>`, `<app>-<stage>-done`) stay empty until new Freight flows through; they auto-promote.
 - **Auto-promoting targets** (dev) may show two Promotions for the same Freight: Kargo's own auto-promotion fires once the Freight is approved. Both succeed; harmless.
+- **Auto-promoting targets restored to older Freight** can end up "Auto-promotion paused": restore's Promotion is a manual one, and Kargo holds auto-promotion when that isn't the newest Freight (`docs/gotchas.md`). Resume it in the UI once the next Freight should flow.
 
 ## Resetting a capability's promotion state
 
