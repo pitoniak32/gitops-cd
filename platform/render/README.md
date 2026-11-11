@@ -29,7 +29,7 @@ targets/<t>/target.yml    config: {platform (K8S|TERRAFORM|CLOUD_RUN), environme
                           CLOUD_RUN: region, gcpProject (ADR 0024)}
                           dir name: <region>-<env>-<platform>[-<qualifier>] (k8s|tf|cr), ADR 0025
 targets/<t>/environment-variables/<name>.yml   KEY: value (flat)
-apps/<app>/app.yml        image (repo only), imageConstraint, port, replicas, env, envFrom, resources, stages.<s>.targets.<t>
+apps/<app>/app.yml        sourceRepo (<owner>/<name>, required), image (repo only), imageConstraint, port, replicas, env, envFrom, resources, stages.<s>.targets.<t>
                           terraform app (ADR 0021): module (OCI repo) + moduleConstraint instead of image; env, envFrom,
                           workflow only; renders terraform.yaml per target
                           image apps may also use CLOUD_RUN targets: renders service.yaml (Knative Service), gha only,
@@ -61,6 +61,10 @@ Promoting target T copies `rendered/apps/<cap>/<app>/<stage>/T/` from the Freigh
 and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availabilityStrategy: All`: ADR 0012.
 The steps live in ClusterPromotionTask `promote-<deployWith>`; each target Stage's template is one `task`
 step plus vars (ADR 0027).
+Platform pre-deploy checks (`prechecks.cue`, ADR 0028): `preDeploy: <environmentType>: [{file, ref, timeout}]`
+(teams can't set it). Target Stages of that type run `pre-<n>` steps (ClusterPromotionTask `gha-check`,
+workflow vars on the step) before `promote`: dispatch `file` to the app's `sourceRepo` with the Freight's
+commit and artifact, wait for success (`timeout`, max 2h); anything else fails the Promotion before the push.
 
 ## Editor feedback (two layers)
 - **Editor** — `schemas/*.json` from the CUE defs (`gcd schemas`, generic=true): structure, types, formats, cluster/env enums.
