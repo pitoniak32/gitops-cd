@@ -1,31 +1,33 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: kargo-search
+  name: kargo-search-api
   labels:
     kargo.akuity.io/project: "true"
+    example.com/capability: search
+    example.com/app: api
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Project
 metadata:
-  name: kargo-search
+  name: kargo-search-api
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: ProjectConfig
 metadata:
-  name: kargo-search
-  namespace: kargo-search
+  name: kargo-search-api
+  namespace: kargo-search-api
 spec:
   promotionPolicies:
     - stageSelector:
-        name: api-us-east4-dev-k8s
+        name: us-east4-dev-k8s
       autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
 metadata:
   name: api
-  namespace: kargo-search
+  namespace: kargo-search-api
 spec:
   freightCreationPolicy: Manual
   subscriptions:
@@ -42,8 +44,8 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: api-us-east4-dev-k8s
-  namespace: kargo-search
+  name: us-east4-dev-k8s
+  namespace: kargo-search-api
   labels:
     example.com/capability: search
     example.com/app: api
@@ -97,8 +99,8 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: api-us-east4-prd-k8s
-  namespace: kargo-search
+  name: us-east4-prd-k8s
+  namespace: kargo-search-api
   labels:
     example.com/capability: search
     example.com/app: api
@@ -119,7 +121,7 @@ spec:
         name: api
       sources:
         stages:
-          - api-us-east4-dev-k8s
+          - us-east4-dev-k8s
   promotionTemplate:
     spec:
       vars:
@@ -167,8 +169,8 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: api-dc1-prd-k8s
-  namespace: kargo-search
+  name: dc1-prd-k8s
+  namespace: kargo-search-api
   labels:
     example.com/capability: search
     example.com/app: api
@@ -189,7 +191,7 @@ spec:
         name: api
       sources:
         stages:
-          - api-us-east4-dev-k8s
+          - us-east4-dev-k8s
   promotionTemplate:
     spec:
       vars:
@@ -237,8 +239,8 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: promote-api-dev
-  namespace: kargo-search
+  name: promote-dev
+  namespace: kargo-search-api
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
@@ -248,8 +250,8 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: promote-api-dev
-  namespace: kargo-search
+  name: promote-dev
+  namespace: kargo-search-api
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
@@ -260,7 +262,7 @@ rules:
     resources:
       - stages
     resourceNames:
-      - api-us-east4-dev-k8s
+      - us-east4-dev-k8s
     verbs:
       - promote
   - apiGroups:
@@ -282,8 +284,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: promote-api-dev
-  namespace: kargo-search
+  name: promote-dev
+  namespace: kargo-search-api
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
@@ -291,17 +293,17 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: promote-api-dev
+  name: promote-dev
 subjects:
   - kind: ServiceAccount
-    name: promote-api-dev
-    namespace: kargo-search
+    name: promote-dev
+    namespace: kargo-search-api
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: promote-api-prod
-  namespace: kargo-search
+  name: promote-prod
+  namespace: kargo-search-api
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
@@ -311,8 +313,8 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: promote-api-prod
-  namespace: kargo-search
+  name: promote-prod
+  namespace: kargo-search-api
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
@@ -323,8 +325,8 @@ rules:
     resources:
       - stages
     resourceNames:
-      - api-dc1-prd-k8s
-      - api-us-east4-prd-k8s
+      - dc1-prd-k8s
+      - us-east4-prd-k8s
     verbs:
       - promote
   - apiGroups:
@@ -346,8 +348,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: promote-api-prod
-  namespace: kargo-search
+  name: promote-prod
+  namespace: kargo-search-api
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
@@ -355,17 +357,17 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: promote-api-prod
+  name: promote-prod
 subjects:
   - kind: ServiceAccount
-    name: promote-api-prod
-    namespace: kargo-search
+    name: promote-prod
+    namespace: kargo-search-api
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: viewers
-  namespace: kargo-search
+  namespace: kargo-search-api
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
@@ -376,7 +378,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: viewers
-  namespace: kargo-search
+  namespace: kargo-search-api
   labels:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
@@ -388,7 +390,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: viewers
-    namespace: kargo-search
+    namespace: kargo-search-api
 ---
 apiVersion: v1
 kind: ServiceAccount

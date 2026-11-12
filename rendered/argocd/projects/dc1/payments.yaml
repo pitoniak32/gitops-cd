@@ -20,10 +20,12 @@ spec:
     - group: '*'
       kind: '*'
   roles:
-    - name: viewer
-      description: read-only view of payments apps for its promoters and viewers
+    - name: viewer-my-app
+      description: read-only view of payments/my-app for its promoters and viewers
       policies:
-        - p, proj:payments:viewer, applications, get, payments/*, allow
+        - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-dc1-dev-k8s, allow
+        - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-dc1-npr-k8s, allow
+        - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-dc1-prd-k8s, allow
       groups:
         - bob@example.com
         - doug@example.com
