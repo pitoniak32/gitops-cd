@@ -2,10 +2,16 @@ package capability
 
 import "strings"
 
+// exampleDir prefixes every fixture example; shown once in the header instead of per field.
+const exampleDir = FixtureRoot + "/capabilities/"
+
 // SchemaYAML renders docs as annotated YAML skeletons, one document per kind, each opened by a header
 // comment. examples adds each field's fixture example to its comment.
 func SchemaYAML(docs []SchemaDoc, examples bool) string {
 	var b strings.Builder
+	if examples {
+		b.WriteString("# e.g. paths are under " + exampleDir + "\n")
+	}
 	for i, d := range docs {
 		if i > 0 {
 			b.WriteString("---\n")
@@ -64,7 +70,7 @@ func fieldComment(f FieldDoc, examples bool) string {
 		parts = append(parts, "(platforms: "+strings.Join(f.Platforms, ", ")+")")
 	}
 	if examples && f.Example != "" {
-		parts = append(parts, "(e.g. "+f.Example+")")
+		parts = append(parts, "(e.g. "+strings.TrimPrefix(f.Example, exampleDir)+")")
 	}
 	return strings.Join(parts, " ")
 }
