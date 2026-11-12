@@ -175,7 +175,7 @@ func Selected(root string, names []string, out string, w io.Writer, prog *progre
 	}
 	var errs []error
 	if d := teams.Lint(); len(d) > 0 {
-		errs = append(errs, fmt.Errorf("teams:\n%s", capability.Error(d)))
+		errs = append(errs, fmt.Errorf("teams:\n%w", capability.Error(d)))
 	}
 	capErrs := make([]error, len(names))
 	p := prog.Start("capabilities", len(names))
@@ -184,7 +184,7 @@ func Selected(root string, names []string, out string, w io.Writer, prog *progre
 	for i, n := range names {
 		g.Go(func() error {
 			if _, err := capabilityWith(root, n, out, teams); err != nil {
-				capErrs[i] = fmt.Errorf("%s:\n%s", n, Wrap(err))
+				capErrs[i] = fmt.Errorf("%s:\n%w", n, Wrap(err))
 			}
 			p.Step(n)
 			return nil // every capability runs; errors are joined below

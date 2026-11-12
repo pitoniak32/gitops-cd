@@ -62,6 +62,27 @@ func (e Error) Error() string {
 	return strings.Join(l, "\n")
 }
 
+// DiagsOf collects the diagnostics of every Error in err's tree (wrapped or joined), in order.
+func DiagsOf(err error) []Diag {
+	var out []Diag
+	var walk func(error)
+	walk = func(e error) {
+		switch x := e.(type) {
+		case nil:
+		case Error:
+			out = append(out, x...)
+		case interface{ Unwrap() []error }:
+			for _, c := range x.Unwrap() {
+				walk(c)
+			}
+		case interface{ Unwrap() error }:
+			walk(x.Unwrap())
+		}
+	}
+	walk(err)
+	return out
+}
+
 // reporter collects diagnostics for one file.
 type reporter struct {
 	f     *file

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -136,5 +137,68 @@ func TestLintJSON(t *testing.T) {
 	}
 	if got := strings.TrimSpace(out.String()); got != "[]" {
 		t.Errorf("clean json = %q, want []", got)
+	}
+}
+
+// --changed with no --base lints what this branch changed since it left trunk, committed or not:
+// payments is broken on trunk already (not this branch's), search is broken by a branch commit.
+func TestLintChangedDefaultBase(t *testing.T) {
+	for _, kind := range []string{"git", "jj"} {
+		t.Run(kind, func(t *testing.T) {
+			root := t.TempDir()
+			if err := os.CopyFS(root, os.DirFS("../../../render/testdata/root")); err != nil {
+				t.Fatal(err)
+			}
+			run := func(name string, args ...string) {
+				t.Helper()
+				c := exec.Command(name, args...)
+				c.Dir = root
+				c.Env = append(os.Environ(), "JJ_CONFIG=")
+				if out, err := c.CombinedOutput(); err != nil {
+					t.Fatalf("%s %v: %v\n%s", name, args, err, out)
+				}
+			}
+			if _, err := exec.LookPath(kind); err != nil {
+				t.Skip(kind + " not installed")
+			}
+			breakCap := func(name string) {
+				if err := yamledit.Set(filepath.Join(root, "capabilities", name, "owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			breakCap("payments")
+			if kind == "git" {
+				g := []string{"-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"}
+				run("git", "init", "-q", "-b", "main")
+				run("git", "add", "-A")
+				run("git", append(g, "commit", "-qm", "trunk")...)
+				run("git", "checkout", "-qb", "feature")
+				breakCap("search")
+				run("git", "add", "-A")
+				run("git", append(g, "commit", "-qm", "branch")...)
+			} else {
+				id := []string{"--config", "user.name=t", "--config", "user.email=t@example.com"}
+				run("jj", append(id, "git", "init", ".")...)
+				run("jj", append(id, "commit", "-m", "trunk")...)
+				run("jj", "bookmark", "create", "main", "-r", "@-")
+				run("jj", "config", "set", "--repo", `revset-aliases."trunk()"`, "main")
+				breakCap("search")
+				run("jj", append(id, "commit", "-m", "branch")...)
+			}
+			c := NewRoot()
+			var out, errOut bytes.Buffer
+			c.SetOut(&out)
+			c.SetErr(&errOut)
+			c.SetArgs([]string{"lint", "--changed", "--no-progress", "--root", root})
+			if err := c.Execute(); err == nil {
+				t.Fatalf("want lint failure\n%s", errOut.String())
+			}
+			if !strings.Contains(out.String(), "capabilities/search/owners.yml:") || strings.Contains(out.String(), "capabilities/payments/") {
+				t.Errorf("want search only:\n%s\n%s", out.String(), errOut.String())
+			}
+			if !strings.Contains(errOut.String(), "changes since") {
+				t.Errorf("no scope note: %q", errOut.String())
+			}
+		})
 	}
 }

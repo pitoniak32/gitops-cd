@@ -90,8 +90,9 @@ func ChangedCaps(baseRoot, root string) ([]string, error) {
 	return out, nil
 }
 
-// renderSide renders capName from root in memory; a missing capability dir yields no files.
-func renderSide(cfg capability.Config, root, capName string) (map[string]string, error) {
+// RenderCap renders capName from root in memory (rendered/-relative path -> content); a capability
+// absent from root yields no files.
+func RenderCap(cfg capability.Config, root, capName string) (map[string]string, error) {
 	if st, err := os.Stat(filepath.Join(root, "capabilities", capName)); err != nil || !st.IsDir() {
 		return nil, nil
 	}
@@ -107,11 +108,11 @@ func renderSide(cfg capability.Config, root, capName string) (map[string]string,
 func Diff(cfg capability.Config, baseRoot, root string, caps []string) ([]FileDiff, error) {
 	var out []FileDiff
 	for _, c := range caps {
-		now, err := renderSide(cfg, root, c)
+		now, err := RenderCap(cfg, root, c)
 		if err != nil {
 			return nil, err
 		}
-		was, err := renderSide(cfg, baseRoot, c)
+		was, err := RenderCap(cfg, baseRoot, c)
 		if err != nil {
 			return nil, fmt.Errorf("base: %w", err)
 		}

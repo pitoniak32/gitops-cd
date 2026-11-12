@@ -13,8 +13,7 @@ Run `gcd` from repo root (`mise run cli` builds `.bin/gcd`). Teams write YAML on
 2. **Check allowed fields**: `gcd schema <kind>` (kinds: owners, stage, app, target, env-vars). Prints a YAML skeleton: placeholders (`<int>`, `a|b`), comments for required, pattern, platforms, description. `-s` adds `(e.g. file:line)` of a real use. `--json` for machines.
 3. **Edit** the YAML at the narrowest layer that matches the request (below).
 4. **Lint until clean**: `gcd lint <cap>` (`--format json` for machine-readable diags). If `gcd show` errors, run `gcd lint <cap>` first. Output is `file:line:col: message`; fix each, re-run.
-5. **Review rendered effect**: `gcd diff --stat`, then `gcd diff --capability <cap>` for detail. Default base: jj `@-` (parent of the working copy), git `HEAD`. Once committed the default diff is empty: use `--base @--`/`trunk()` (jj) or `HEAD~1`/`main` (git). Both sides use the current gcd, so it shows input changes only.
-   "Effective"/"new" manifest = rendered output: `gcd show <cap>/<app> [--stage s] [--target t] --diff` (diff of changed files only, empty = no change; `--rendered` for the full manifest; `--base` as above). Add `--include-platform` only if asked about Argo CD/Kargo.
+5. **Review rendered effect**: `gcd show --diff --stat` (every changed capability), then `gcd show <cap>[/<app>] [--stage s] [--target t] --diff` for detail (changed files only; empty = no change; `--rendered` for the full manifest; `--include-platform` only if asked about Argo CD/Kargo). Default base is the branch fork point (jj `fork_point(trunk() | @)`, git merge-base with `origin/main`/`main`), so committed and uncommitted branch work both show; `--base <jj revset|git rev>` overrides. Both sides use the current gcd, so it shows input changes only.
 6. **Owners or `teams/` changed**: `mise run codeowners`, commit the regenerated `.github/CODEOWNERS`.
 
 ## Narrowest layer
@@ -39,6 +38,6 @@ If a value is overridden at a narrower layer, editing a wider one changes nothin
 
 ## Examples and sandbox
 
-Reference capabilities `payments` and `search` live in `platform/render/testdata/root`. Every `gcd schema` field cites an example line there. Try changes without touching real config: add `--root platform/render/testdata/root` to `show`, `lint`, `render`. `schema` and `diff` `--root` is a repo root (jj or git), not the sandbox.
+Reference capabilities `payments` and `search` live in `platform/render/testdata/root`. Every `gcd schema` field cites an example line there. Try changes without touching real config: add `--root platform/render/testdata/root` to `show`, `lint`, `render`, `schema` (global flag). `show --diff` and `lint --changed` need the root to be a jj or git repo, so not the sandbox.
 
-Done when `gcd lint <cap>` prints nothing, `gcd diff --stat` lists only the files you meant to change, and `gcd show` reports the intended value with the `file:line` (`-s`) you edited.
+Done when `gcd lint <cap>` prints nothing, `gcd show --diff --stat` lists only the files you meant to change, and `gcd show` reports the intended value with the `file:line` (`-s`) you edited.

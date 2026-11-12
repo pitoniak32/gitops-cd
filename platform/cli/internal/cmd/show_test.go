@@ -132,6 +132,10 @@ func TestShowFlagConflicts(t *testing.T) {
 		{"payments", "--diff", "--sources"},
 		{"payments", "--rendered", "--diff"},
 		{"payments", "--include-platform"},
+		{"payments", "--stat"},
+		{"payments", "--base", "main"},
+		{"--diff", "--stage", "dev"},
+		{},
 	} {
 		if out, _, err := runShow(t, root, args...); err == nil || out != "" {
 			t.Errorf("%v: want error, got %v %q", args, err, out)
@@ -161,7 +165,7 @@ func vcsRepo(t *testing.T, kind string) string {
 		if _, err := exec.LookPath("git"); err != nil {
 			t.Skip("git not installed")
 		}
-		run("git", "init", "-q", ".")
+		run("git", "init", "-q", "-b", "main", ".")
 		run("git", "add", ".")
 		run("git", "-c", id[0], "-c", id[1], "-c", "commit.gpgsign=false", "commit", "-q", "-m", "base")
 	case "jj":
@@ -170,6 +174,9 @@ func vcsRepo(t *testing.T, kind string) string {
 		}
 		run("jj", "--config", id[0], "--config", id[1], "git", "init", ".")
 		run("jj", "--config", id[0], "--config", id[1], "commit", "-m", "base")
+		// no remote here: name trunk() so the default base is the commit the branch started from
+		run("jj", "bookmark", "create", "main", "-r", "@-")
+		run("jj", "config", "set", "--repo", `revset-aliases."trunk()"`, "main")
 	}
 	p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
 	b, _ := os.ReadFile(p)
@@ -200,5 +207,96 @@ func TestShowDiff(t *testing.T) {
 			}
 			t.Log("\n" + out)
 		})
+	}
+}
+
+func TestShowRequiresCapability(t *testing.T) {
+	root, _ := filepath.Abs(fixtureRoot)
+	if _, _, err := runShow(t, root); err == nil || !strings.Contains(err.Error(), "a capability is required") {
+		t.Errorf("got %v", err)
+	}
+}
+
+func TestShowUnknownCapability(t *testing.T) {
+	root, _ := filepath.Abs(fixtureRoot)
+	if _, _, err := runShow(t, root, "nope", "--diff"); err == nil || !strings.HasPrefix(err.Error(), "unknown capability nope; allowed: ") {
+		t.Errorf("got %v", err)
+	}
+}
+
+// No capability: every changed one, from the default base (the branch fork point), in git and jj.
+func TestShowDiffAllChanged(t *testing.T) {
+	for _, kind := range []string{"git", "jj"} {
+		t.Run(kind, func(t *testing.T) {
+			root := vcsRepo(t, kind)
+			out, errOut, err := runShow(t, root, "--diff")
+			if err != nil {
+				t.Fatalf("%v\n%s", err, errOut)
+			}
+			if !strings.Contains(out, "+++ b/rendered/apps/payments/my-app/dev/us-east4-dev-k8s/deployment.yaml") || !strings.Contains(out, "+  replicas: 5") {
+				t.Errorf("want my-app diff:\n%s", out)
+			}
+			if strings.Contains(out, "rendered/apps/search") {
+				t.Errorf("unchanged capability present:\n%s", out)
+			}
+			stat, _, err := runShow(t, root, "--diff", "--stat")
+			if err != nil || !strings.Contains(stat, "my-app") || !strings.Contains(stat, "files changed") || strings.Contains(stat, "@@") {
+				t.Errorf("stat: %v\n%s", err, stat)
+			}
+			// a capability deleted in the working tree shows as removed files
+			if err := os.RemoveAll(filepath.Join(root, "capabilities/search")); err != nil {
+				t.Fatal(err)
+			}
+			out, _, err = runShow(t, root, "--diff", "--stat")
+			if err != nil || !strings.Contains(out, "apps/search/") {
+				t.Errorf("deleted capability: %v\n%s", err, out)
+			}
+		})
+	}
+}
+
+// With a capability, --stat counts only the selected deploys' files.
+func TestShowDiffStatCapability(t *testing.T) {
+	root := vcsRepo(t, "git")
+	out, _, err := runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--stat")
+	if err != nil || !strings.Contains(out, "us-east4-dev-k8s/deployment.yaml | +1 -1") || strings.Contains(out, "@@") {
+		t.Errorf("%v\n%s", err, out)
+	}
+}
+
+func TestShowDiffNoChange(t *testing.T) {
+	for _, kind := range []string{"git", "jj"} {
+		root := vcsRepo(t, kind)
+		runShow(t, root, "--diff") // warm: jj snapshots the edit
+		// revert the edit: nothing differs from the base
+		p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
+		b, _ := os.ReadFile(p)
+		if err := os.WriteFile(p, []byte(strings.Replace(string(b), "    replicas: 5\n", "    replicas: 1\n", 1)), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if out, _, err := runShow(t, root, "--diff"); err != nil || out != "" {
+			t.Errorf("%s: err=%v out=%q", kind, err, out)
+		}
+	}
+}
+
+func TestShowDiffBadBase(t *testing.T) {
+	for _, kind := range []string{"git", "jj"} {
+		root := vcsRepo(t, kind)
+		bad := "nope"
+		if kind == "jj" {
+			bad = "all()"
+		}
+		if _, _, err := runShow(t, root, "--diff", "--base", bad); err == nil {
+			t.Errorf("%s: want error for base %q", kind, bad)
+		}
+	}
+}
+
+// An explicit base is used as given: jj "all()" resolves to several commits and is refused with a count.
+func TestShowDiffBaseCount(t *testing.T) {
+	root := vcsRepo(t, "jj")
+	if _, _, err := runShow(t, root, "--diff", "--base", "all()"); err == nil || !strings.Contains(err.Error(), "want exactly 1") {
+		t.Errorf("got %v", err)
 	}
 }

@@ -5,18 +5,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"gopkg.in/yaml.v3"
 )
 
 // Pick is one deploy whose rendered files are wanted.
 type Pick struct{ App, Stage, Target string }
-
-// RenderCap renders one capability from root in memory (rendered/-relative path -> content); a
-// capability absent from root yields no files.
-func RenderCap(cfg capability.Config, root, capName string) (map[string]string, error) {
-	return renderSide(cfg, root, capName)
-}
 
 // SelectFiles picks from a capability's rendered files those of the deploys: workload files
 // apps/<cap>/<app>/<stage>/<target>/*; with platform also the Argo CD params
@@ -105,28 +98,19 @@ func FormatFiles(files map[string]string) string {
 	return sb.String()
 }
 
-// FormatSelectedDiff prints, per path (sorted), the unified diff of the files that differ between old
-// and now; unchanged files print nothing.
-func FormatSelectedDiff(old, now map[string]string) string {
-	set := map[string]bool{}
-	for p := range old {
-		set[p] = true
-	}
-	for p := range now {
-		set[p] = true
-	}
-	paths := make([]string, 0, len(set))
-	for p := range set {
-		paths = append(paths, p)
-	}
-	sort.Strings(paths)
-	var sb strings.Builder
-	for _, p := range paths {
-		o, n := old[p], now[p]
-		if o == n {
-			continue
+// SelectedDiffs lists, sorted by path, the files that differ between old and now (Old "" = added, New "" = removed).
+func SelectedDiffs(old, now map[string]string) []FileDiff {
+	var out []FileDiff
+	for p, n := range now {
+		if o := old[p]; o != n {
+			out = append(out, FileDiff{p, o, n})
 		}
-		sb.WriteString(Unified([]FileDiff{{p, o, n}}))
 	}
-	return sb.String()
+	for p, o := range old {
+		if _, ok := now[p]; !ok {
+			out = append(out, FileDiff{p, o, ""})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out
 }

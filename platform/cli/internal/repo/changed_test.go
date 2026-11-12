@@ -27,7 +27,7 @@ func write(t *testing.T, dir, rel, body string) {
 	}
 }
 
-func TestChanged(t *testing.T) {
+func TestChangedFilesGit(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("no git")
 	}
@@ -53,22 +53,44 @@ func TestChanged(t *testing.T) {
 	write(t, d, "capabilities/c/owners.yml", "x: 1\n")
 	write(t, d, "ignored/x.yml", "x: 1\n")
 
-	got, mb, err := Changed(d, "main")
+	want := []string{"capabilities/a/owners.yml", "capabilities/c/owners.yml", "teams/new.yml", "teams/old.yml"}
+	// explicit base and the default (no origin/main here, so main) fork from main
+	for _, base := range []string{"main", ""} {
+		id, err := ResolveForkBase(d, base)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := ChangedFiles(d, id)
+		if err != nil || !reflect.DeepEqual(got, want) {
+			t.Errorf("base %q: got %v (%v) want %v", base, got, err, want)
+		}
+	}
+	if _, err := ResolveForkBase(d, "nope"); err == nil {
+		t.Error("want error for unknown base")
+	}
+}
+
+func TestChangedFilesJJ(t *testing.T) {
+	root := jjRepo(t) // base commit (trunk), then an uncommitted edit and a new file
+	id, err := ResolveForkBase(root, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"capabilities/a/owners.yml", "capabilities/c/owners.yml", "teams/new.yml", "teams/old.yml"}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v want %v", got, want)
+	// no trunk() bookmark: the fork point is the root commit, so the base commit's own files count
+	if got, err := ChangedFiles(root, id); err != nil || len(got) != 4 {
+		t.Errorf("from root: %v %v", got, err)
 	}
-	if mb == "" {
-		t.Error("no merge-base")
+	base, err := ResolveOne(root, "@-")
+	if err != nil {
+		t.Fatal(err)
 	}
-	// default bases: no origin/main here, so main
-	if got2, _, err := Changed(d, ""); err != nil || !reflect.DeepEqual(got2, want) {
-		t.Errorf("default base: %v %v", got2, err)
+	got, err := ChangedFiles(root, base)
+	want := []string{"capabilities/a b/x y.yml", "capabilities/new.yml"}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v (%v) want %v", got, err, want)
 	}
-	if _, _, err := Changed(d, "nope"); err == nil {
-		t.Error("want error for unknown base")
+	// explicit base: fork_point(base | @)
+	if id, err := ResolveForkBase(root, "@-"); err != nil || id != base {
+		t.Errorf("fork base = %q (%v), want %q", id, err, base)
 	}
 }

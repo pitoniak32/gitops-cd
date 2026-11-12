@@ -6,23 +6,20 @@ import (
 	"os"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/render"
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	register(func() *cobra.Command {
-		var rootDir, outDir string
+		var outDir string
 		c := &cobra.Command{
 			Use:   "codeowners",
 			Short: "Regenerate .github/CODEOWNERS from owners files + CODEOWNERS.tmpl",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
-				root, err := rootDir, error(nil)
-				if root == "" {
-					if root, err = repo.Root(); err != nil {
-						return err
-					}
+				root, err := resolveRoot(cmd)
+				if err != nil {
+					return err
 				}
 				if outDir != "" {
 					// fragments already rendered under outDir/codeowners
@@ -48,7 +45,6 @@ func init() {
 				return nil
 			},
 		}
-		c.Flags().StringVar(&rootDir, "root", "", "repo root (default: this repo)")
 		c.Flags().StringVar(&outDir, "out", "", "use fragments already rendered under <out>/codeowners (default: render to a temp dir)")
 		return c
 	})

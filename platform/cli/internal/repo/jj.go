@@ -11,7 +11,20 @@ import (
 
 // jj runs read-only jj in root. --ignore-working-copy: never snapshot or mutate the working copy.
 func jj(root string, args ...string) ([]byte, error) {
-	full := append([]string{"-R", root, "--ignore-working-copy", "--no-pager", "--color", "never"}, args...)
+	return jjRun(root, true, args...)
+}
+
+// jjSnapshot is jj without --ignore-working-copy: jj first records the working copy's current files into @.
+func jjSnapshot(root string, args ...string) ([]byte, error) {
+	return jjRun(root, false, args...)
+}
+
+func jjRun(root string, ignoreWC bool, args ...string) ([]byte, error) {
+	full := []string{"-R", root, "--no-pager", "--color", "never"}
+	if ignoreWC {
+		full = append(full, "--ignore-working-copy")
+	}
+	full = append(full, args...)
 	cmd := exec.Command("jj", full...)
 	cmd.Dir = root // file list prints cwd-relative paths; root is the workspace root
 	var stderr bytes.Buffer
