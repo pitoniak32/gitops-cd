@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Regenerate editor JSON Schemas in platform/render/schemas/"
-#MISE depends=["cli"]
-#USAGE arg "[out]" help="output dir (default: platform/render/schemas)"
-exec "$MISE_PROJECT_ROOT/.bin/gcd" schemas "$@"

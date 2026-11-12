@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=../../render/schemas/owners.json
 codeOwners: [team1]
 promoters:
   dev: [doug@example.com]

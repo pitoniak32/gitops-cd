@@ -1,18 +1,16 @@
-// Package render writes the generated manifests (rendered/) from the CUE renderer (ADR 0026).
+// Package render writes the generated manifests (rendered/) built by package capability.
 package render
 
 import (
-	cueerrors "cuelang.org/go/cue/errors"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
-	"cuelang.org/go/cue"
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/cueload"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 )
 
 func writeFiles(out string, files map[string]string) ([]string, error) {
@@ -47,21 +45,10 @@ func removeGlob(pattern string) error {
 }
 
 // Capability renders one capability into out, replacing only that capability's paths.
-// Validation errors are returned unchanged (they carry CUE positions).
+// Validation errors are returned as capability.Error (the diagnostics, one per line).
 func Capability(root, capName, out string) ([]string, error) {
-	if st, err := os.Stat(filepath.Join(root, "capabilities", capName)); err != nil || !st.IsDir() {
-		return nil, fmt.Errorf("no capability dir %s", filepath.Join(root, "capabilities", capName))
-	}
-	v, err := cueload.Capability(root, capName)
+	files, err := capability.Render(capability.Default(), root, capName)
 	if err != nil {
-		return nil, err
-	}
-	// Validate checks everything; evaluating only `files` would miss e.g. typo'd fields.
-	if err := v.Validate(cue.Concrete(true)); err != nil {
-		return nil, err
-	}
-	var files map[string]string
-	if err := v.LookupPath(cueload.Lookup("files")).Decode(&files); err != nil {
 		return nil, err
 	}
 	if err := os.MkdirAll(out, 0o755); err != nil {
@@ -83,32 +70,32 @@ func Capability(root, capName, out string) ([]string, error) {
 }
 
 // PromotionTasksFile is the platform-level ClusterPromotionTasks file under rendered/ (ADR 0027).
-const PromotionTasksFile = "kargo/_promotion-tasks.yaml"
+const PromotionTasksFile = capability.PromotionTasksFile
 
-// Platform writes the platform-level files (no capability input) under out: regions.cue regionFiles and
-// promotiontasks.cue promotionTaskFiles.
+// Platform writes the platform-level files (no capability input) under out: region files and the
+// promotion tasks.
 func Platform(root, out string) error {
-	v, err := cueload.Platform(root, "clusters.cue", "regions.cue", "promotiontasks.cue")
-	if err != nil {
-		return err
-	}
-	files := map[string]string{}
-	for _, f := range []string{"regionFiles", "promotionTaskFiles"} {
-		var m map[string]string
-		if err := v.LookupPath(cueload.Lookup(f)).Decode(&m); err != nil {
-			return err
-		}
-		for k, c := range m {
-			files[k] = c
-		}
-	}
 	for _, p := range []string{"infrastructure", PromotionTasksFile} {
 		if err := os.RemoveAll(filepath.Join(out, p)); err != nil {
 			return err
 		}
 	}
-	_, err = writeFiles(out, files)
+	_, err := writeFiles(out, capability.PlatformFiles(capability.Default()))
 	return err
+}
+
+// readme is rendered/README.md's source: <root>/platform/render/rendered-README.md, or this repo's for
+// fixture roots that hold only YAML inputs.
+func readme(root string) ([]byte, error) {
+	const rel = "platform/render/rendered-README.md"
+	if b, err := os.ReadFile(filepath.Join(root, rel)); err == nil {
+		return b, nil
+	}
+	r, err := repo.Root()
+	if err != nil {
+		return nil, err
+	}
+	return os.ReadFile(filepath.Join(r, rel))
 }
 
 // All renders every capability, platform files, checks app names, assembles CODEOWNERS, copies the README.
@@ -125,7 +112,7 @@ func All(root, out string, w io.Writer) error {
 		return err
 	}
 	if err := Platform(root, out); err != nil {
-		return Wrap(err)
+		return err
 	}
 	if err := UniqueApps(out); err != nil {
 		return err
@@ -134,7 +121,7 @@ func All(root, out string, w io.Writer) error {
 	if err := CodeOwners(root, out); err != nil {
 		return err
 	}
-	b, err := os.ReadFile(filepath.Join(cueload.RenderDir(root), "rendered-README.md"))
+	b, err := readme(root)
 	if err != nil {
 		return err
 	}
@@ -168,14 +155,6 @@ func Selected(root string, names []string, out string, w io.Writer) error {
 	return errors.Join(errs...)
 }
 
-// Wrap expands CUE errors into "path: message" lines with positions; other errors pass through.
-func Wrap(err error) error {
-	if err == nil {
-		return nil
-	}
-	var ce cueerrors.Error
-	if !errors.As(err, &ce) {
-		return err
-	}
-	return fmt.Errorf("%s", strings.TrimSpace(cueerrors.Details(err, nil)))
-}
+// Wrap is the text shown for a render error: validation errors already carry "<file>:<line>:<col>:
+// <message>" lines, so every error passes through.
+func Wrap(err error) error { return err }

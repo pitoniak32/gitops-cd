@@ -90,7 +90,7 @@ The kind cluster `kargo-demo` running the Kargo control plane, Keycloak, Traefik
 _Avoid_: management cluster, control cluster
 
 **Region**:
-A workload cluster `region-<r>` (listed in `platform/cluster/regions`; `<r>` from the fixed GCP/datacenter lists in `clusters.cue`, e.g. `us-east4`, `dc1`) with its own Argo CD and Kargo shard. A cluster's `region` decides which Argo CD and shard deploy its targets.
+A workload cluster `region-<r>` (listed in `platform/cluster/regions`; `<r>` from the fixed GCP/datacenter lists in the cluster registry, `platform/cli/internal/capability/config.go`, e.g. `us-east4`, `dc1`) with its own Argo CD and Kargo shard. A cluster's `region` decides which Argo CD and shard deploy its targets.
 _Avoid_: zone, location (a target is a deploy destination; a region is the Argo CD + Kargo shard behind it)
 
 **Shard**:
@@ -137,7 +137,7 @@ The branch `env/<cap>/<app>/<target>` that Argo CD syncs one target from (manife
 _Avoid_: stage branch (the pre-ADR 0012 layout `env/<cap>/<app>/<stage>`)
 
 **Pre-deploy check**:
-A platform-owned GitHub Actions workflow Kargo dispatches to the app's source repo and waits for before a target Stage pushes anything; configured per environment type in `platform/render/prechecks.cue` (initially `prd`), never by teams. Any result but success fails the Promotion (ADR 0028).
+A platform-owned GitHub Actions workflow Kargo dispatches to the app's source repo and waits for before a target Stage pushes anything; configured per environment type in `platform/cli/internal/capability/config.go` (`PreDeploy`) (initially `prd`), never by teams. Any result but success fails the Promotion (ADR 0028).
 _Avoid_: verification (that runs after the deploy), gate
 
 **Source repo**:
@@ -146,8 +146,5 @@ _Avoid_: image repo (`image`), config repo (this repo)
 
 ### Validation
 
-**Editor schema**:
-The generic JSON Schema in `platform/render/schemas/` that editors use; it checks structure but not names that depend on other files.
-
 **Lint**:
-The full CUE validation over a capability's files (+ `teams/`) (`mise run lint`), run by CI and reported as `file:line:col` errors.
+The full validation (`gcd lint`, package `capability`) over a capability's files (+ `teams/`) (`mise run lint`), run by CI and reported as `file:line:col` errors.

@@ -315,7 +315,7 @@ func TestWrap(t *testing.T) {
 	}
 	plain := io.EOF
 	if Wrap(plain) != plain {
-		t.Fatal("non-CUE error must pass through")
+		t.Fatal("error must pass through")
 	}
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)

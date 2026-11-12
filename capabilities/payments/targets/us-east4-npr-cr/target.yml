@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 # Cloud Run target (ADR 0024): a service in a GCP project, deployed by .github/workflows/cloud-run.yaml
 config:
   platform: CLOUD_RUN

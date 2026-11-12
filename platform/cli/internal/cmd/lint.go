@@ -14,7 +14,7 @@ func init() {
 	var rootDir string
 	c := &cobra.Command{
 		Use:   "lint [caps...]",
-		Short: "Validate capabilities (+ teams/) with the full CUE rules: <file>:<line>:<col>: <message>",
+		Short: "Validate capabilities (+ teams/) with the full rules: <file>:<line>:<col>: <message>",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			root := rootDir
 			var err error

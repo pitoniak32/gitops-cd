@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/render"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/yamledit"
 	"gopkg.in/yaml.v3"
@@ -255,27 +256,28 @@ func TestDeployWithResolution(t *testing.T) {
 
 // test.sh: "cluster types ok"
 // A cluster that narrows its environmentTypes rejects other types, naming what it accepts
-// (copy of the renderer into the root: clusters.cue is platform-owned, so the case can't be a table edit)
+// (the cluster registry is platform-owned config, so the case is a narrowed Config, not a table edit)
 func TestClusterTypes(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	renderSrc := filepath.Join("..", "..", "..", "render")
-	cp(t, filepath.Join("..", "..", "..", "cue.mod"), filepath.Join(r, "platform/cue.mod"))
-	ents, err := os.ReadDir(renderSrc)
-	must(t, err)
-	for _, e := range ents {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".cue") {
-			write(t, filepath.Join(r, "platform/render", e.Name()), readFile(t, filepath.Join(renderSrc, e.Name())))
+	cfg := capability.Default()
+	narrowed := false
+	for i := range cfg.Clusters {
+		if cfg.Clusters[i].Name == "dc1" {
+			cfg.Clusters[i].EnvironmentTypes = []string{"dev"}
+			narrowed = true
 		}
 	}
-	cf := filepath.Join(r, "platform/render/clusters.cue")
-	old := `dc1: {region: "dc1", kind: "kind", environmentTypes: ["dev", "npr", "prd"]`
-	src := readFile(t, cf)
-	write(t, cf, strings.Replace(src, old, `dc1: {region: "dc1", kind: "kind", environmentTypes: ["dev"]`, 1))
-	if !strings.Contains(readFile(t, cf), `environmentTypes: ["dev"]`) {
-		t.Fatal("cluster-types case: edit did not narrow dc1")
+	if !narrowed {
+		t.Fatal("cluster-types case: no dc1 cluster to narrow")
 	}
-	got := lintOut(t, r)
+	d, err := CapabilityWith(cfg, r, "payments")
+	must(t, err)
+	var lines []string
+	for _, x := range d {
+		lines = append(lines, x.String())
+	}
+	got := strings.Join(lines, "\n")
 	if !matches(t, got, `^capabilities/payments/targets/dc1-prd-k8s/target\.yml:[0-9]+:[0-9]+: config\.environmentType: cluster dc1 accepts environment types: dev$`) {
 		t.Errorf("cluster environment-type check failed:\n%s", got)
 	}

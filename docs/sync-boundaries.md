@@ -38,8 +38,8 @@ TASK LANE (push: mise run infra / up, from your local checkout)
 | `platform/appsets/**` (chart pins, region values, which cluster gets what) | Push to `main`; the root app syncs the AppSets, which regenerate their Applications. |
 | Keycloak realm (`kargo-realm.json`) | Push; the configMap hash then restarts Keycloak, which re-imports the realm. |
 | Argo CD's own values (`argocd/`, `argocd-region/`, the AppSets' `valuesObject`) | Push; each Argo CD manages itself through its `argocd` Application. |
-| `platform/render/promotiontasks.cue` (promotion steps) | Merge; CI renders `rendered/kargo/_promotion-tasks.yaml`, hub `rendered-kargo` syncs it. Applies to every capability's next Promotion at once (ADR 0027). |
-| `platform/render/clusters.cue` regions | `mise run regions` (committed config; CI checks drift), merge; CI renders `rendered/infrastructure/regions/`. A new region also needs a clean `up`. |
+| `platform/cli/internal/capability/platformfiles.go` (promotion steps) | Merge; CI renders `rendered/kargo/_promotion-tasks.yaml`, hub `rendered-kargo` syncs it. Applies to every capability's next Promotion at once (ADR 0027). |
+| `platform/cli/internal/capability/config.go` clusters (regions) | `mise run regions` (committed config; CI checks drift), merge; CI renders `rendered/infrastructure/regions/`. A new region also needs a clean `up`. |
 | Drift (manual `kubectl edit` of anything Argo CD manages) | Reverted by `selfHeal` to what's on `main`. |
 
 ## `mise run infra` needed (idempotent, keeps the cluster)
@@ -70,7 +70,7 @@ Also needed outside the cluster: **push first**. Every Argo CD and Kargo read Gi
 - Under `capabilities/` or `teams/`? → merge it; CI and Argo CD handle the rest.
 - Under `platform/render/`? → merge it; it applies when CI renders.
 - Under `platform/infrastructure/` or `platform/appsets/`? → push to `main`.
-- `platform/render/clusters.cue` regions? → `mise run regions`, merge, clean `mise run up`.
+- `platform/cli/internal/capability/config.go` clusters (regions)? → `mise run regions`, merge, clean `mise run up`.
 - `platform/bootstrap/`? → `mise run infra`.
 - Under `platform/cluster/`, or you need to prove it from scratch? → `mise run up`.
 - `rendered/` → never edit it; CI owns branch `rendered`.

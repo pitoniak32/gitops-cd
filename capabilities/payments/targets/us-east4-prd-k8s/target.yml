@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 config:
   cluster: us-east4
   namespace: payments-us-prod

@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 config:
   cluster: dc1
   namespace: payments-onprem-stg

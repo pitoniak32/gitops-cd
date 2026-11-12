@@ -80,8 +80,8 @@ func TestDiagString(t *testing.T) {
 		d    Diag
 		want string
 	}{
-		{Diag{"a.yml", 2, 3, "x.y", "bad"}, "a.yml:2:3: x.y: bad"},
-		{Diag{"a.yml", 1, 1, "", "bad"}, "a.yml:1:1: bad"},
+		{Diag{File: "a.yml", Line: 2, Col: 3, Label: "x.y", Msg: "bad"}, "a.yml:2:3: x.y: bad"},
+		{Diag{File: "a.yml", Line: 1, Col: 1, Msg: "bad"}, "a.yml:1:1: bad"},
 	} {
 		if got := c.d.String(); got != c.want {
 			t.Errorf("got %q want %q", got, c.want)

@@ -3,49 +3,43 @@ package render
 import (
 	"testing"
 
-	"cuelang.org/go/cue"
-
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/cueload"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 )
 
-// #PreDeployCheck (prechecks.cue, ADR 0028): platform config errors fail the render.
+// capability.Check (ADR 0028): platform config errors fail the render.
 func TestPreDeployCheckSchema(t *testing.T) {
 	t.Parallel()
-	v, err := cueload.Platform(repoRoot(t), "clusters.cue", "prechecks.cue")
-	if err != nil {
-		t.Fatal(err)
-	}
-	def := v.LookupPath(cue.ParsePath("#PreDeployCheck"))
-	check := func(src map[string]any) error {
-		return def.Unify(v.Context().Encode(src)).Validate(cue.Concrete(true))
-	}
-	for _, ok := range []map[string]any{
-		{"file": "precheck.yaml"},
-		{"file": "c.yml", "ref": "v1", "timeout": "1m"},
-		{"file": "c.yml", "timeout": "120m"},
+	for _, ok := range []capability.Check{
+		{File: "precheck.yaml"},
+		{File: "c.yml", Ref: "v1", Timeout: "1m"},
+		{File: "c.yml", Timeout: "120m"},
 	} {
-		if err := check(ok); err != nil {
+		if _, err := ok.Normalize(); err != nil {
 			t.Errorf("%v: %v", ok, err)
 		}
 	}
-	for _, bad := range []map[string]any{
+	for _, bad := range []capability.Check{
 		{},
-		{"file": "c.sh"},
-		{"file": "c.yml", "timeout": "0m"},
-		{"file": "c.yml", "timeout": "121m"},
-		{"file": "c.yml", "timeout": "1h"},
-		{"file": "c.yml", "ref": ""},
+		{File: "c.sh"},
+		{File: "c.yml", Timeout: "0m"},
+		{File: "c.yml", Timeout: "121m"},
+		{File: "c.yml", Timeout: "1h"},
 	} {
-		if check(bad) == nil {
+		if _, err := bad.Normalize(); err == nil {
 			t.Errorf("%v: want error", bad)
 		}
 	}
-	var d map[string]any
-	if err := def.Unify(v.Context().Encode(map[string]any{"file": "x.yml"})).Decode(&d); err != nil || d["ref"] != "main" || d["timeout"] != "30m" {
+	if d, err := (capability.Check{File: "x.yml"}).Normalize(); err != nil || d.Ref != "main" || d.Timeout != "30m" {
 		t.Errorf("defaults: %v %v", d, err)
 	}
-	var prd []map[string]any
-	if err := v.LookupPath(cue.ParsePath("preDeploy.prd")).Decode(&prd); err != nil || len(prd) != 1 || prd[0]["file"] != "precheck.yaml" {
-		t.Errorf("preDeploy.prd: %v %v", prd, err)
+	prd := capability.Default().PreDeploy["prd"]
+	if len(prd) != 1 || prd[0].File != "precheck.yaml" {
+		t.Errorf("PreDeploy prd: %v", prd)
+	}
+	// a bad check in the platform config fails every render
+	cfg := capability.Default()
+	cfg.PreDeploy["prd"] = []capability.Check{{File: "c.sh"}}
+	if _, err := capability.Render(cfg, abs(t, "testdata/root"), "payments"); err == nil {
+		t.Error("render with an invalid pre-deploy check: want error")
 	}
 }

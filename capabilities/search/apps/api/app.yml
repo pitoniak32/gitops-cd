@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=../../../../platform/render/schemas/app.json
 image: ghcr.io/pitoniak32/nginx
 sourceRepo: pitoniak32/gitops-cd
 port: 80

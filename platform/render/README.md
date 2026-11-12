@@ -1,22 +1,22 @@
 # render
 
-CUE that turns capability YAML (stages, targets, apps) into k8s manifests + a promotion pipeline.
-Lives in the gitops monorepo; teams never edit it.
+Test fixtures and the golden tree for the renderer. The renderer itself is Go:
+`platform/cli/internal/capability` turns capability YAML (stages, targets, apps) into k8s manifests + a
+promotion pipeline (ADR 0030). Teams never edit either.
 
-| file | role |
+| where | role |
 |---|---|
-| `input.cue` | tags (`capability`, `repo`), routes YAML by path into `stages` / `targets` / `apps` / owners / `teams` |
-| `clusters.cue` | **platform-owned** cluster registry + per-environment-type policy |
-| `team.cue` | `#Stage`, `#Target`, DAG depth (cycle detection) |
-| `app.cue` | `#App`, layered merge app → stage → target → `deploys` |
-| `pipeline.cue` | neutral per-app promotion graph (`pipelines/<cap>.json`) for Kargo / Temporal |
-| `k8s.cue` | ServiceAccount (WIF), Deployment, Service, ExternalSecret per (app, target) |
-| `delivery.cue` | Kargo Project/ProjectConfig/Warehouse/Stages + Argo CD Applications |
-| `promotiontasks.cue` | **platform-level** `ClusterPromotionTask`s `promote-argocd` / `promote-gha`: the steps every target Stage runs (ADR 0027) |
-| `files.cue` | every output file, keyed by rendered-repo path |
-| `gcd render` / `gcd codeowners` (`platform/cli/internal/{cueload,render}`, ADR 0026) | `mise run render` / `codeowners`: validate + write `files`, region files, CODEOWNERS |
-| `gcd lint` (`platform/cli/internal/{lint,yamlpos}`) | `mise run lint`: full CUE validation as `file:line:col: message` (editors, CI annotations) |
-| `gcd schemas` (`platform/cli/internal/schemas`) | generic editor JSON Schemas → `schemas/` (committed, versioned with the platform) |
+| `capability/config.go` | **platform-owned** config: cluster registry, per-environment-type replica policy, pre-deploy checks, the platform table (everything that differs per target platform) |
+| `capability/load.go` | the one table of input file routes; reads the YAML |
+| `capability/schema.go`, `validate.go` | what each file may contain + cross-file rules, every problem a located diagnostic |
+| `capability/model.go` | layered merge app → stage → target → deploy, owners |
+| `capability/graph.go` | neutral per-app promotion graph (`pipelines/<cap>.json`), Kargo Stage graph (ADR 0019) |
+| `capability/kargo.go`, `output.go` | Kargo Project/ProjectConfig/Warehouse/Stages/RBAC, Argo CD params + AppProjects, k8s / Cloud Run / terraform files, CODEOWNERS fragment |
+| `capability/platformfiles.go` | **platform-level** `ClusterPromotionTask`s (ADR 0027), region files, `mise run regions` config |
+| `emit` | ordered maps → YAML/JSON in the committed formatting |
+| `gcd render` / `gcd codeowners` (`internal/render`) | `mise run render` / `codeowners`: validate + write the files, CODEOWNERS |
+| `gcd lint` (`internal/lint`) | `mise run lint`: full validation as `file:line:col: message` (editors, CI annotations) |
+| `testdata/` | fixture capabilities (`root/`) + golden output |
 
 ## Capability input (paths under the repo root)
 ```
@@ -37,7 +37,7 @@ apps/<app>/app.yml        sourceRepo (<owner>/<name>, required), image (repo onl
 ```
 
 ## Merge rules
-- `replicas`, `resources.*`: target > stage > app > default.
+- `replicas`, `resources.*`, `deployWith`, `workflow.*`: target > stage > app > platform default (`_platforms[].defaults`) > default. A platform or artifact can force `deployWith` (CLOUD_RUN, terraform apps: gha).
 - `env`: merged per key, same precedence. Keys can't be removed at a lower layer.
 - `envFrom: [<name>]` (any layer, unioned): adds `targets/<t>/environment-variables/<name>.yml` of each target, below all `env`; between files the most specific layer's `envFrom` wins. Missing file, or one KEY with different values from two files of the same layer = lint error (ADR 0014).
 - `image`, `imageConstraint`, `port`: app level only. `image` is a repo without tag/digest; Kargo discovers SemVer tags (within `imageConstraint`) and the image promotes through stages in Freight (ADR 0016).
@@ -49,8 +49,8 @@ apps/<app>/app.yml        sourceRepo (<owner>/<name>, required), image (repo onl
 apps/<cap>/<app>/<stage>/<target>/{deployment.yaml,manifests.yaml}
 kargo/<cap>.yaml      pipelines/<cap>.json
 argocd/deploys/<region>/<cap>/<app>-<target>.json   argocd/projects/<region>/<cap>.yaml
-infrastructure/regions/<region>.json                 (gcd render, clusters.cue only)
-kargo/_promotion-tasks.yaml                          (gcd render, promotiontasks.cue only)
+infrastructure/regions/<region>.json                 (gcd render, cluster registry only)
+kargo/_promotion-tasks.yaml                          (gcd render, platform-level)
 ```
 
 ## Promotion
@@ -61,18 +61,17 @@ Promoting target T copies `rendered/apps/<cap>/<app>/<stage>/T/` from the Freigh
 and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availabilityStrategy: All`: ADR 0012.
 The steps live in ClusterPromotionTask `promote-<deployWith>`; each target Stage's template is one `task`
 step plus vars (ADR 0027).
-Platform pre-deploy checks (`prechecks.cue`, ADR 0028): `preDeploy: <environmentType>: [{file, ref, timeout}]`
+Platform pre-deploy checks (`config.go` `PreDeploy`, ADR 0028): per environment type, `{File, Ref, Timeout}`
 (teams can't set it). Target Stages of that type run `pre-<n>` steps (ClusterPromotionTask `gha-check`,
 workflow vars on the step) before `promote`: dispatch `file` to the app's `sourceRepo` with the Freight's
 commit and artifact, wait for success (`timeout`, max 2h); anything else fails the Promotion before the push.
 
-## Editor feedback (two layers)
-- **Editor** — `schemas/*.json` from the CUE defs (`gcd schemas`, generic=true): structure, types, formats, cluster/env enums.
-  Stage/target names are only pattern-checked, so they don't depend on team files. Team YAML references
-  `platform/render/schemas/*.json` by relative path, so any editor works with no local tooling.
-- **CI** — `mise run lint` (`gcd lint [cap…]`, `--root` for another tree): the CUE Go library validates each capability's files (+ `teams/`) like `cue vet -c -E`, as `file:line:col: message`
-  (PR annotations). CUE paths without a YAML position are mapped back to the YAML key (`internal/yamlpos`). Custom messages come from `error("...")` in the CUE (unknown stage/target/cluster,
-  environment type/cluster mismatch, prod replicas). An app's computed checks (e.g. prod replicas) appear once its structural errors are fixed.
+## Feedback
+`mise run lint` (`gcd lint [cap…]`, `--root` for another tree; also CI, as PR annotations): validates each
+capability's files (+ `teams/`) as `file:line:col: message`, pointing at the offending key or list item.
+There is no editor schema (ADR 0030). Two rounds: the files as written (structure, names, per-platform
+fields, owners), then, once those are clean, what only shows in derived values (merged replicas vs policy,
+envFrom, prod autoPromote, stage cycles, generated name lengths).
 
 ## Dev loop
-`mise run test` (Go tests in `platform/cli/internal/{render,lint}`: golden diff of testdata/root, render assertions, lint cases), `UPDATE=1 mise run test` to accept.
+`mise run test` (Go tests in `platform/cli/internal/{capability,render,lint}`: golden diff of testdata/root, render assertions, lint cases), `UPDATE=1 mise run test` to accept.

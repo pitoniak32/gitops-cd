@@ -24,11 +24,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@v2   # pinned tools from .mise.toml (go; gcd embeds the CUE library)
+      - uses: jdx/mise-action@v2   # pinned tools from .mise.toml (go only: gcd is the renderer)
         with:
           install_args: go
-      - uses: actions/cache@v4
-        with: {path: ~/.cache/cue, key: "cue-${{ hashFiles('platform/cue.mod/module.cue') }}"}
       - name: go cache dirs
         id: go
         run: |
@@ -53,9 +51,7 @@ jobs:
 
       - name: renderer tests
         run: mise run test
-      - name: editor schemas up to date
-        run: mise run schemas && git diff --exit-code platform/render/schemas/
-      - name: region-derived config up to date (clusters.cue)
+      - name: region-derived config up to date (cluster registry)
         run: mise run regions && git diff --exit-code platform/cluster/regions platform/infrastructure/keycloak platform/infrastructure/kargo/values.yaml
 
       - name: lint all capabilities (annotates file:line)

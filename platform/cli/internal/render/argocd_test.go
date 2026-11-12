@@ -26,7 +26,7 @@ func TestRegions(t *testing.T) {
 		ns = append(ns, e.Name())
 	}
 	if strings.Join(ns, " ") != "dc1.json us-east4.json" {
-		t.Error("one regions JSON per clusters.cue region")
+		t.Error("one regions JSON per cluster-registry region")
 	}
 	if _, err := os.Stat(filepath.Join(out, "argocd/projects/dc1/.keep")); err != nil {
 		t.Error("argocd/projects/<r>/.keep missing")
@@ -169,25 +169,6 @@ func TestNoEmptyResourceNames(t *testing.T) {
 				}
 			}
 		}
-	}
-}
-
-// test.sh: "target schema ok"
-// editor schema (generic export) accepts both platforms: nothing platform-specific is required
-func TestTargetSchema(t *testing.T) {
-	t.Parallel()
-	var sch map[string]any
-	if err := json.Unmarshal([]byte(mustRead(t, abs(t, "schemas/target.json"))), &sch); err != nil {
-		t.Fatal(err)
-	}
-	req, _ := json.Marshal(get(sch, "properties.config.required"))
-	if string(req) != `["auth","billing","environment","environmentType"]` {
-		t.Errorf("target.json config.required: %s", req)
-	}
-	props, _ := get(sch, "properties.config.properties").(map[string]any)
-	has := func(k string) bool { _, ok := props[k]; return ok }
-	if !has("gcpProject") || !has("backend") || has("terraform") {
-		t.Error("target.json must describe flat gcpProject/backend")
 	}
 }
 

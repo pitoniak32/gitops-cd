@@ -1,13 +1,13 @@
 # gitops-cd
 
 Rendered-manifest continuous delivery, end to end on a laptop: teams describe apps in YAML per
-**capability**, a CUE renderer validates and renders Kubernetes manifests plus Kargo/Argo CD
+**capability**, a Go renderer (`gcd`) validates and renders Kubernetes manifests plus Kargo/Argo CD
 config, and a local kind cluster runs Argo CD + [Kargo](https://kargo.io) to promote them.
 
 ## Quickstart
 
 ```sh
-mise install   # pinned tools (kind, helm, kubectl, go, fnox, mkcert, oras, terraform, cue, jq, yq; gcd itself needs only go)
+mise install   # pinned tools (kind, helm, kubectl, go, fnox, mkcert, oras, terraform, jq, yq; gcd itself needs only go)
 # first time:
 #   - push this repo to github.com/pitoniak32/gitops-cd and wait for CI's first render: it creates branch
 #     rendered (rendered/ syncs from there); `up` times out without it
@@ -71,21 +71,19 @@ rendered/                     generated; lives on branch `rendered` (ADR 0022), 
   pipelines/<cap>.json        neutral promotion graph
   codeowners/<cap>            fragments → .github/CODEOWNERS
 platform/                     platform team only; app teams never edit
-  render/                     CUE renderer (package `render`), schemas, tests
-  cue.mod/                    CUE module root
+  render/                     renderer test fixtures + golden, rendered/ README
   bootstrap/root.yaml         root Application, same in every Argo CD: syncs platform/appsets/ (ADR 0017)
   appsets/                    ApplicationSets (cluster generator): addons/<addon>.yaml, rendered-kargo, projects, workloads
   infrastructure/<addon>/     add-on config read from git by its ApplicationSet (values.yaml, manifests/)
   cluster/kind.yaml           hub kind cluster (region.yaml + regions: regional clusters, no host ports)
-  cli/                        Go CLI `gcd` (ADR 0018): up, down, infra, regions, certs, creds, kargo-shards, kargo-restore, open, render, lint, codeowners, schemas
-  mise-tasks/                 one-line wrappers for gcd + render, lint, test, schemas
+  cli/                        Go CLI `gcd` (ADR 0018): up, down, infra, regions, certs, creds, kargo-shards, kargo-restore, open, render, lint, codeowners; the renderer is `internal/capability` (ADR 0030)
+  mise-tasks/                 one-line wrappers for gcd + render, lint, test
 ```
 
-## Editing (any editor, Mac or Windows)
+## Editing
 
-Each YAML file's first line points at `platform/render/schemas/`; editors with yaml-language-server
-(VS Code + Red Hat YAML, Zed, nvim, Helix, Sublime LSP-yaml) validate and complete as you type.
-See `capabilities/payments/apps/my-app/app.yml` for an example of every field.
+Plain YAML, no editor schema: `mise run lint` (also in CI, as PR annotations) reports every problem as
+`file:line:col: message`. See `capabilities/payments/apps/my-app/app.yml` for an example of every field.
 
 ## Ownership
 

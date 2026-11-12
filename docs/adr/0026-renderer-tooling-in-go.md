@@ -1,6 +1,6 @@
 # Renderer tooling in Go
 
-Status: accepted. Extends ADR 0018 (Go CLI) to the renderer tooling; ADR 0006 unchanged (teams never write CUE or code).
+Status: superseded by ADR 0030 (the rules moved to Go too). Extends ADR 0018 (Go CLI) to the renderer tooling; ADR 0006 unchanged (teams never write CUE or code).
 
 Render, lint, schemas and CI checks were bash over the `cue` CLI: awk over CUE text output, `yq` per assertion, helpers copied between scripts, `jq` splitting exported JSON.
 

@@ -21,7 +21,7 @@ No. Typical: **one Kargo control plane per org/platform**, on a management (hub)
 
 ### What does this repo run?
 
-Hub-and-spoke with one spoke: one kind cluster, one Kargo (`platform/infrastructure/kargo/`, chart 1.12.5), one Argo CD. `platform/render/clusters.cue` registers `in-cluster`; each entry's `argocdName` is an Argo CD cluster secret name. More clusters in hub-and-spoke = add Argo CD cluster secrets + `clusters` entries; no Kargo changes.
+Hub-and-spoke with one spoke: one kind cluster, one Kargo (`platform/infrastructure/kargo/`, chart 1.12.5), one Argo CD. the cluster registry (`platform/cli/internal/capability/config.go`) registers `in-cluster`; each entry's `argocdName` is an Argo CD cluster secret name. More clusters in hub-and-spoke = add Argo CD cluster secrets + `clusters` entries; no Kargo changes.
 
 ## Integrating with existing Argo CD in each management cluster
 
@@ -51,8 +51,8 @@ Central install: `api.argocd.urls` maps shard name → that Argo CD's URL (UI de
 
 ### What changes in this repo
 
-- `platform/render/clusters.cue`: add a field like `kargoShard` (or `argocd`) per cluster so targets know which management cluster's Argo CD owns them.
-- `platform/render/delivery.cue`:
+- cluster registry (`platform/cli/internal/capability/config.go`): add a field like `kargoShard` (or `argocd`) per cluster so targets know which management cluster's Argo CD owns them.
+- `platform/cli/internal/capability/kargo.go`:
   - set `spec.shard` on each Stage from its target's cluster.
   - Applications still carry `kargo.akuity.io/authorized-stage: <project>:<stage>`; Argo CD rejects Kargo updates without it.
   - emit Applications/AppProjects **per management cluster** (e.g. `rendered/argocd/<mgmt>/`), not one flat dir; Kargo resources stay in `rendered/kargo/` (central).

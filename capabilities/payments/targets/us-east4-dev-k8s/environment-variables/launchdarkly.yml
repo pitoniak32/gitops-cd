@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=../../../../../platform/render/schemas/environment-variables.json
 LD_SDK_KEY: 'secret:acme-dev-us/launchdarkly-sdk-key'
 LD_RELAY_URL: https://ld-relay.us-dev.example.com
 LD_TENANT: 'dev'

@@ -18,7 +18,7 @@ Approving only marks the Freight as allowed into that Stage; someone still has t
 | Piece | Where | Does |
 |---|---|---|
 | `breakGlass: [emails]` | `owners.yml` (capability-wide only) | the list |
-| Stage annotation `example.com/break-glass: '["oncall@example.com"]'` | rendered by `platform/render/delivery.cue` on every control-flow and target Stage of the app | carries the list to the cluster (synced by Argo CD) |
+| Stage annotation `example.com/break-glass: '["oncall@example.com"]'` | rendered by `platform/cli/internal/capability/kargo.go` on every control-flow and target Stage of the app | carries the list to the cluster (synced by Argo CD) |
 | `promote-<stage>` SA claims (app project) | same render | break-glass emails can promote too (needed after approving) |
 | IngressRoute `kargo-approve` (priority 1000) | `platform/infrastructure/break-glass/manifests/guard.yaml` | catches only the approve endpoint; beats the normal Kargo route |
 | Middleware `forwardAuth` | same | asks the guard before forwarding |

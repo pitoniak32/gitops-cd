@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=../../../../platform/render/schemas/target.json
 # terraform target (ADR 0021): a GCP project + GCS state, applied by .github/workflows/terraform.yaml
 config:
   platform: TERRAFORM
