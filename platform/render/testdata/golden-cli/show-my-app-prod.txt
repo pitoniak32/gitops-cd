@@ -1,0 +1,37 @@
+my-app  prod  dc1-prd-k8s  K8S
+  artifact: ghcr.io/pitoniak32/nginx                                   ← capabilities/payments/apps/my-app/app.yml:1
+  config.environment: prod                                             ← capabilities/payments/targets/dc1-prd-k8s/target.yml:4
+  config.environmentType: prd                                          ← capabilities/payments/targets/dc1-prd-k8s/target.yml:5
+  config.platform: K8S                                                 ← capabilities/payments/targets/dc1-prd-k8s/target.yml:9
+  config.cluster: dc1                                                  ← capabilities/payments/targets/dc1-prd-k8s/target.yml:2
+  config.namespace: payments-onprem-prod                               ← capabilities/payments/targets/dc1-prd-k8s/target.yml:3
+  config.billing: prod                                                 ← capabilities/payments/targets/dc1-prd-k8s/target.yml:8
+  config.auth.wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com  ← capabilities/payments/targets/dc1-prd-k8s/target.yml:7
+  port: 80                                                             ← capabilities/payments/apps/my-app/app.yml:4
+  replicas: 2                                                          ← capabilities/payments/apps/my-app/app.yml:5
+  resources.cpu: 500m                                                  ← capabilities/payments/apps/my-app/app.yml:40
+  resources.memory: 512Mi                                              ← capabilities/payments/apps/my-app/app.yml:41
+  deployWith: argocd                                                   ← global default
+  env.APP_ENV: true                                                    ← capabilities/payments/apps/my-app/app.yml:7
+  env.APP_SECRET: secret:acme-proj1/my-app-secret                      ← capabilities/payments/apps/my-app/app.yml:8
+my-app  prod  us-east4-prd-k8s  K8S
+  artifact: ghcr.io/pitoniak32/nginx                                   ← capabilities/payments/apps/my-app/app.yml:1
+  config.environment: prod                                             ← capabilities/payments/targets/us-east4-prd-k8s/target.yml:4
+  config.environmentType: prd                                          ← capabilities/payments/targets/us-east4-prd-k8s/target.yml:5
+  config.platform: K8S                                                 ← capabilities/payments/targets/us-east4-prd-k8s/target.yml:9
+  config.cluster: us-east4                                             ← capabilities/payments/targets/us-east4-prd-k8s/target.yml:2
+  config.namespace: payments-us-prod                                   ← capabilities/payments/targets/us-east4-prd-k8s/target.yml:3
+  config.billing: prod                                                 ← capabilities/payments/targets/us-east4-prd-k8s/target.yml:8
+  config.auth.wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com  ← capabilities/payments/targets/us-east4-prd-k8s/target.yml:7
+  port: 80                                                             ← capabilities/payments/apps/my-app/app.yml:4
+  replicas: 2                                                          ← capabilities/payments/apps/my-app/app.yml:5
+  resources.cpu: 500m                                                  ← capabilities/payments/apps/my-app/app.yml:40
+  resources.memory: 512Mi                                              ← capabilities/payments/apps/my-app/app.yml:41
+  deployWith: argocd                                                   ← global default
+  env.APP_ENV: true                                                    ← capabilities/payments/apps/my-app/app.yml:7
+  env.APP_SECRET: secret:acme-proj1/my-app-secret                      ← capabilities/payments/apps/my-app/app.yml:8
+owners my-app
+  codeOwners: [team1]                 ← capabilities/payments/owners.yml:1
+  promoters.prod: [doug@example.com]  ← capabilities/payments/owners.yml:6
+  viewers: [bob@example.com]          ← capabilities/payments/owners.yml:7
+  breakGlass: [carol@example.com]     ← capabilities/payments/owners.yml:8

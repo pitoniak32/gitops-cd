@@ -1,0 +1,28 @@
+my-app  dev  dc1-dev-k8s  K8S
+  artifact: ghcr.io/pitoniak32/nginx                                 ← capabilities/payments/apps/my-app/app.yml:1
+  config.environment: dev                                            ← capabilities/payments/targets/dc1-dev-k8s/target.yml:4
+  config.environmentType: dev                                        ← capabilities/payments/targets/dc1-dev-k8s/target.yml:5
+  config.platform: K8S                                               ← capabilities/payments/targets/dc1-dev-k8s/target.yml:9
+  config.cluster: dc1                                                ← capabilities/payments/targets/dc1-dev-k8s/target.yml:2
+  config.namespace: payments-onprem-dev                              ← capabilities/payments/targets/dc1-dev-k8s/target.yml:3
+  config.billing: dev                                                ← capabilities/payments/targets/dc1-dev-k8s/target.yml:8
+  config.auth.wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com  ← capabilities/payments/targets/dc1-dev-k8s/target.yml:7
+  port: 80                                                           ← capabilities/payments/apps/my-app/app.yml:4
+  replicas: 3                                                        ← capabilities/payments/apps/my-app/app.yml:20
+  resources.cpu: 250m                                                ← capabilities/payments/apps/my-app/app.yml:22
+  resources.memory: 256Mi                                            ← capabilities/payments/apps/my-app/app.yml:23
+  deployWith: argocd                                                 ← global default
+  envFrom.launchdarkly: true                                         ← capabilities/payments/apps/my-app/app.yml:11
+  env.LD_SDK_KEY: secret:acme-dev-onprem/launchdarkly-sdk-key        ← capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:1
+  env.LD_RELAY_URL: https://ld-relay.onprem-dev.example.com          ← capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:2
+  env.APP_SECRET: secret:acme-proj1/my-app-secret                    ← capabilities/payments/apps/my-app/app.yml:8
+  env.STAGE_ENV: false                                               ← capabilities/payments/apps/my-app/app.yml:13
+  env.APP_ENV: false                                                 ← capabilities/payments/apps/my-app/app.yml:19
+owners my-app
+  codeOwners: [team1]                    ← capabilities/payments/owners.yml:1
+  promoters.dev: [doug@example.com]      ← capabilities/payments/owners.yml:3
+  promoters.staging: [doug@example.com]  ← capabilities/payments/owners.yml:4
+  promoters.perf: [doug@example.com]     ← capabilities/payments/owners.yml:5
+  promoters.prod: [doug@example.com]     ← capabilities/payments/owners.yml:6
+  viewers: [bob@example.com]             ← capabilities/payments/owners.yml:7
+  breakGlass: [carol@example.com]        ← capabilities/payments/owners.yml:8

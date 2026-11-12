@@ -163,7 +163,7 @@ var platforms = []platform{
 		fields: []string{"gcpProject", "region"}, pipeline: []string{"gcpProject", "region"},
 		pinFile: "./out/service.yaml", pinKey: "spec.template.spec.containers.0.image",
 		deployWith: "gha", workflowFile: "cloud-run.yaml",
-		defaults: layer{replicas: intp(0), port: intp(8080), cpu: "1", memory: "512Mi", note: "platform default (CLOUD_RUN)"},
+		defaults: layer{replicas: intp(0), port: intp(8080), cpu: "1", memory: "512Mi"},
 	},
 	// ADR 0021
 	{

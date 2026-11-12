@@ -1,0 +1,802 @@
+{
+  "deploys": [
+    {
+      "app": "my-app",
+      "stage": "dev",
+      "target": "dc1-dev-k8s",
+      "platform": "K8S",
+      "values": [
+        {
+          "path": "artifact",
+          "value": "ghcr.io/pitoniak32/nginx",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 1
+        },
+        {
+          "path": "config.environment",
+          "value": "dev",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/target.yml",
+          "line": 4
+        },
+        {
+          "path": "config.environmentType",
+          "value": "dev",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/target.yml",
+          "line": 5
+        },
+        {
+          "path": "config.platform",
+          "value": "K8S",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/target.yml",
+          "line": 9
+        },
+        {
+          "path": "config.cluster",
+          "value": "dc1",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/target.yml",
+          "line": 2
+        },
+        {
+          "path": "config.namespace",
+          "value": "payments-onprem-dev",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/target.yml",
+          "line": 3
+        },
+        {
+          "path": "config.billing",
+          "value": "dev",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/target.yml",
+          "line": 8
+        },
+        {
+          "path": "config.auth.wifEmail",
+          "value": "team1-dev@team1-dev.iam.gserviceaccount.com",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/target.yml",
+          "line": 7
+        },
+        {
+          "path": "port",
+          "value": 80,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 4
+        },
+        {
+          "path": "replicas",
+          "value": 3,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 20
+        },
+        {
+          "path": "resources.cpu",
+          "value": "250m",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 22
+        },
+        {
+          "path": "resources.memory",
+          "value": "256Mi",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 23
+        },
+        {
+          "path": "deployWith",
+          "value": "argocd",
+          "note": "global default"
+        },
+        {
+          "path": "envFrom.launchdarkly",
+          "value": true,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 11
+        },
+        {
+          "path": "env.LD_SDK_KEY",
+          "value": "secret:acme-dev-onprem/launchdarkly-sdk-key",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml",
+          "line": 1
+        },
+        {
+          "path": "env.LD_RELAY_URL",
+          "value": "https://ld-relay.onprem-dev.example.com",
+          "file": "capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml",
+          "line": 2
+        },
+        {
+          "path": "env.APP_SECRET",
+          "value": "secret:acme-proj1/my-app-secret",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 8
+        },
+        {
+          "path": "env.STAGE_ENV",
+          "value": "false",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 13
+        },
+        {
+          "path": "env.APP_ENV",
+          "value": "false",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "app": "my-app",
+      "stage": "dev",
+      "target": "us-east4-dev-k8s",
+      "platform": "K8S",
+      "values": [
+        {
+          "path": "artifact",
+          "value": "ghcr.io/pitoniak32/nginx",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 1
+        },
+        {
+          "path": "config.environment",
+          "value": "dev",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/target.yml",
+          "line": 4
+        },
+        {
+          "path": "config.environmentType",
+          "value": "dev",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/target.yml",
+          "line": 5
+        },
+        {
+          "path": "config.platform",
+          "value": "K8S",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/target.yml",
+          "line": 9
+        },
+        {
+          "path": "config.cluster",
+          "value": "us-east4",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/target.yml",
+          "line": 2
+        },
+        {
+          "path": "config.namespace",
+          "value": "payments-us-dev",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/target.yml",
+          "line": 3
+        },
+        {
+          "path": "config.billing",
+          "value": "dev",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/target.yml",
+          "line": 8
+        },
+        {
+          "path": "config.auth.wifEmail",
+          "value": "team1-dev@team1-dev.iam.gserviceaccount.com",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/target.yml",
+          "line": 7
+        },
+        {
+          "path": "port",
+          "value": 80,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 4
+        },
+        {
+          "path": "replicas",
+          "value": 1,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 14
+        },
+        {
+          "path": "resources.cpu",
+          "value": "100m",
+          "note": "global default"
+        },
+        {
+          "path": "resources.memory",
+          "value": "128Mi",
+          "note": "global default"
+        },
+        {
+          "path": "deployWith",
+          "value": "argocd",
+          "note": "global default"
+        },
+        {
+          "path": "envFrom.launchdarkly",
+          "value": true,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 11
+        },
+        {
+          "path": "env.LD_SDK_KEY",
+          "value": "secret:acme-dev-us/launchdarkly-sdk-key",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml",
+          "line": 1
+        },
+        {
+          "path": "env.LD_RELAY_URL",
+          "value": "https://ld-relay.us-dev.example.com",
+          "file": "capabilities/payments/targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml",
+          "line": 2
+        },
+        {
+          "path": "env.APP_ENV",
+          "value": "true",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 7
+        },
+        {
+          "path": "env.APP_SECRET",
+          "value": "secret:acme-proj1/my-app-secret",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 8
+        },
+        {
+          "path": "env.STAGE_ENV",
+          "value": "false",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "app": "my-app",
+      "stage": "staging",
+      "target": "dc1-npr-k8s",
+      "platform": "K8S",
+      "values": [
+        {
+          "path": "artifact",
+          "value": "ghcr.io/pitoniak32/nginx",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 1
+        },
+        {
+          "path": "config.environment",
+          "value": "staging",
+          "file": "capabilities/payments/targets/dc1-npr-k8s/target.yml",
+          "line": 4
+        },
+        {
+          "path": "config.environmentType",
+          "value": "npr",
+          "file": "capabilities/payments/targets/dc1-npr-k8s/target.yml",
+          "line": 5
+        },
+        {
+          "path": "config.platform",
+          "value": "K8S",
+          "file": "capabilities/payments/targets/dc1-npr-k8s/target.yml",
+          "line": 9
+        },
+        {
+          "path": "config.cluster",
+          "value": "dc1",
+          "file": "capabilities/payments/targets/dc1-npr-k8s/target.yml",
+          "line": 2
+        },
+        {
+          "path": "config.namespace",
+          "value": "payments-onprem-stg",
+          "file": "capabilities/payments/targets/dc1-npr-k8s/target.yml",
+          "line": 3
+        },
+        {
+          "path": "config.billing",
+          "value": "nonprod",
+          "file": "capabilities/payments/targets/dc1-npr-k8s/target.yml",
+          "line": 8
+        },
+        {
+          "path": "config.auth.wifEmail",
+          "value": "team1-staging@team1-staging.iam.gserviceaccount.com",
+          "file": "capabilities/payments/targets/dc1-npr-k8s/target.yml",
+          "line": 7
+        },
+        {
+          "path": "port",
+          "value": 80,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 4
+        },
+        {
+          "path": "replicas",
+          "value": 2,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 5
+        },
+        {
+          "path": "resources.cpu",
+          "value": "100m",
+          "note": "global default"
+        },
+        {
+          "path": "resources.memory",
+          "value": "128Mi",
+          "note": "global default"
+        },
+        {
+          "path": "deployWith",
+          "value": "gha",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 30
+        },
+        {
+          "path": "workflow.repo",
+          "value": "acme/deploys",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 32
+        },
+        {
+          "path": "workflow.file",
+          "value": "onprem.yml",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 33
+        },
+        {
+          "path": "workflow.ref",
+          "value": "v1",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 34
+        },
+        {
+          "path": "env.APP_ENV",
+          "value": "true",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 7
+        },
+        {
+          "path": "env.APP_SECRET",
+          "value": "secret:acme-proj2/my-app-secret@3",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "app": "my-app",
+      "stage": "staging",
+      "target": "us-east4-npr-k8s",
+      "platform": "K8S",
+      "values": [
+        {
+          "path": "artifact",
+          "value": "ghcr.io/pitoniak32/nginx",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 1
+        },
+        {
+          "path": "config.environment",
+          "value": "staging",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s/target.yml",
+          "line": 4
+        },
+        {
+          "path": "config.environmentType",
+          "value": "npr",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s/target.yml",
+          "line": 5
+        },
+        {
+          "path": "config.platform",
+          "value": "K8S",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s/target.yml",
+          "line": 9
+        },
+        {
+          "path": "config.cluster",
+          "value": "us-east4",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s/target.yml",
+          "line": 2
+        },
+        {
+          "path": "config.namespace",
+          "value": "payments-us-stg",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s/target.yml",
+          "line": 3
+        },
+        {
+          "path": "config.billing",
+          "value": "nonprod",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s/target.yml",
+          "line": 8
+        },
+        {
+          "path": "config.auth.wifEmail",
+          "value": "team1-staging@team1-staging.iam.gserviceaccount.com",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s/target.yml",
+          "line": 7
+        },
+        {
+          "path": "port",
+          "value": 80,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 4
+        },
+        {
+          "path": "replicas",
+          "value": 2,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 5
+        },
+        {
+          "path": "resources.cpu",
+          "value": "100m",
+          "note": "global default"
+        },
+        {
+          "path": "resources.memory",
+          "value": "128Mi",
+          "note": "global default"
+        },
+        {
+          "path": "deployWith",
+          "value": "argocd",
+          "note": "global default"
+        },
+        {
+          "path": "env.APP_ENV",
+          "value": "true",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 7
+        },
+        {
+          "path": "env.APP_SECRET",
+          "value": "secret:acme-proj1/my-app-secret",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "app": "my-app",
+      "stage": "perf",
+      "target": "us-east4-npr-k8s-perf",
+      "platform": "K8S",
+      "values": [
+        {
+          "path": "artifact",
+          "value": "ghcr.io/pitoniak32/nginx",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 1
+        },
+        {
+          "path": "config.environment",
+          "value": "perf",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s-perf/target.yml",
+          "line": 5
+        },
+        {
+          "path": "config.environmentType",
+          "value": "npr",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s-perf/target.yml",
+          "line": 6
+        },
+        {
+          "path": "config.platform",
+          "value": "K8S",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s-perf/target.yml",
+          "line": 10
+        },
+        {
+          "path": "config.cluster",
+          "value": "us-east4",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s-perf/target.yml",
+          "line": 3
+        },
+        {
+          "path": "config.namespace",
+          "value": "payments-us-perf",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s-perf/target.yml",
+          "line": 4
+        },
+        {
+          "path": "config.billing",
+          "value": "nonprod",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s-perf/target.yml",
+          "line": 9
+        },
+        {
+          "path": "config.auth.wifEmail",
+          "value": "team1-perf@team1-perf.iam.gserviceaccount.com",
+          "file": "capabilities/payments/targets/us-east4-npr-k8s-perf/target.yml",
+          "line": 8
+        },
+        {
+          "path": "port",
+          "value": 80,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 4
+        },
+        {
+          "path": "replicas",
+          "value": 2,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 5
+        },
+        {
+          "path": "resources.cpu",
+          "value": "100m",
+          "note": "global default"
+        },
+        {
+          "path": "resources.memory",
+          "value": "128Mi",
+          "note": "global default"
+        },
+        {
+          "path": "deployWith",
+          "value": "argocd",
+          "note": "global default"
+        },
+        {
+          "path": "env.APP_ENV",
+          "value": "true",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 7
+        },
+        {
+          "path": "env.APP_SECRET",
+          "value": "secret:acme-proj1/my-app-secret",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "app": "my-app",
+      "stage": "prod",
+      "target": "dc1-prd-k8s",
+      "platform": "K8S",
+      "values": [
+        {
+          "path": "artifact",
+          "value": "ghcr.io/pitoniak32/nginx",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 1
+        },
+        {
+          "path": "config.environment",
+          "value": "prod",
+          "file": "capabilities/payments/targets/dc1-prd-k8s/target.yml",
+          "line": 4
+        },
+        {
+          "path": "config.environmentType",
+          "value": "prd",
+          "file": "capabilities/payments/targets/dc1-prd-k8s/target.yml",
+          "line": 5
+        },
+        {
+          "path": "config.platform",
+          "value": "K8S",
+          "file": "capabilities/payments/targets/dc1-prd-k8s/target.yml",
+          "line": 9
+        },
+        {
+          "path": "config.cluster",
+          "value": "dc1",
+          "file": "capabilities/payments/targets/dc1-prd-k8s/target.yml",
+          "line": 2
+        },
+        {
+          "path": "config.namespace",
+          "value": "payments-onprem-prod",
+          "file": "capabilities/payments/targets/dc1-prd-k8s/target.yml",
+          "line": 3
+        },
+        {
+          "path": "config.billing",
+          "value": "prod",
+          "file": "capabilities/payments/targets/dc1-prd-k8s/target.yml",
+          "line": 8
+        },
+        {
+          "path": "config.auth.wifEmail",
+          "value": "team1-prod@team1-prod.iam.gserviceaccount.com",
+          "file": "capabilities/payments/targets/dc1-prd-k8s/target.yml",
+          "line": 7
+        },
+        {
+          "path": "port",
+          "value": 80,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 4
+        },
+        {
+          "path": "replicas",
+          "value": 2,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 5
+        },
+        {
+          "path": "resources.cpu",
+          "value": "500m",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 40
+        },
+        {
+          "path": "resources.memory",
+          "value": "512Mi",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 41
+        },
+        {
+          "path": "deployWith",
+          "value": "argocd",
+          "note": "global default"
+        },
+        {
+          "path": "env.APP_ENV",
+          "value": "true",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 7
+        },
+        {
+          "path": "env.APP_SECRET",
+          "value": "secret:acme-proj1/my-app-secret",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "app": "my-app",
+      "stage": "prod",
+      "target": "us-east4-prd-k8s",
+      "platform": "K8S",
+      "values": [
+        {
+          "path": "artifact",
+          "value": "ghcr.io/pitoniak32/nginx",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 1
+        },
+        {
+          "path": "config.environment",
+          "value": "prod",
+          "file": "capabilities/payments/targets/us-east4-prd-k8s/target.yml",
+          "line": 4
+        },
+        {
+          "path": "config.environmentType",
+          "value": "prd",
+          "file": "capabilities/payments/targets/us-east4-prd-k8s/target.yml",
+          "line": 5
+        },
+        {
+          "path": "config.platform",
+          "value": "K8S",
+          "file": "capabilities/payments/targets/us-east4-prd-k8s/target.yml",
+          "line": 9
+        },
+        {
+          "path": "config.cluster",
+          "value": "us-east4",
+          "file": "capabilities/payments/targets/us-east4-prd-k8s/target.yml",
+          "line": 2
+        },
+        {
+          "path": "config.namespace",
+          "value": "payments-us-prod",
+          "file": "capabilities/payments/targets/us-east4-prd-k8s/target.yml",
+          "line": 3
+        },
+        {
+          "path": "config.billing",
+          "value": "prod",
+          "file": "capabilities/payments/targets/us-east4-prd-k8s/target.yml",
+          "line": 8
+        },
+        {
+          "path": "config.auth.wifEmail",
+          "value": "team1-prod@team1-prod.iam.gserviceaccount.com",
+          "file": "capabilities/payments/targets/us-east4-prd-k8s/target.yml",
+          "line": 7
+        },
+        {
+          "path": "port",
+          "value": 80,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 4
+        },
+        {
+          "path": "replicas",
+          "value": 2,
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 5
+        },
+        {
+          "path": "resources.cpu",
+          "value": "500m",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 40
+        },
+        {
+          "path": "resources.memory",
+          "value": "512Mi",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 41
+        },
+        {
+          "path": "deployWith",
+          "value": "argocd",
+          "note": "global default"
+        },
+        {
+          "path": "env.APP_ENV",
+          "value": "true",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 7
+        },
+        {
+          "path": "env.APP_SECRET",
+          "value": "secret:acme-proj1/my-app-secret",
+          "file": "capabilities/payments/apps/my-app/app.yml",
+          "line": 8
+        }
+      ]
+    }
+  ],
+  "owners": {
+    "my-app": [
+      {
+        "path": "codeOwners",
+        "value": [
+          "team1"
+        ],
+        "file": "capabilities/payments/owners.yml",
+        "line": 1
+      },
+      {
+        "path": "promoters.dev",
+        "value": [
+          "doug@example.com"
+        ],
+        "file": "capabilities/payments/owners.yml",
+        "line": 3
+      },
+      {
+        "path": "promoters.staging",
+        "value": [
+          "doug@example.com"
+        ],
+        "file": "capabilities/payments/owners.yml",
+        "line": 4
+      },
+      {
+        "path": "promoters.perf",
+        "value": [
+          "doug@example.com"
+        ],
+        "file": "capabilities/payments/owners.yml",
+        "line": 5
+      },
+      {
+        "path": "promoters.prod",
+        "value": [
+          "doug@example.com"
+        ],
+        "file": "capabilities/payments/owners.yml",
+        "line": 6
+      },
+      {
+        "path": "viewers",
+        "value": [
+          "bob@example.com"
+        ],
+        "file": "capabilities/payments/owners.yml",
+        "line": 7
+      },
+      {
+        "path": "breakGlass",
+        "value": [
+          "carol@example.com"
+        ],
+        "file": "capabilities/payments/owners.yml",
+        "line": 8
+      }
+    ]
+  }
+}
