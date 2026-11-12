@@ -3,6 +3,7 @@ package capability
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -34,6 +35,9 @@ type field struct {
 	required bool
 	// message when missing (default "required")
 	missing string
+	desc    string // one line for users, shown by the schema docs
+	// target config fields: the platforms that take it (nil = every platform)
+	platforms []string
 }
 
 func (s *schema) wrong(def string) string {
@@ -166,7 +170,7 @@ var (
 	// teams/<team>.yml: a GitHub team, used only for CODEOWNERS (code review). UI access is by email
 	// (owners.yml), never by IdP groups (ADR 0011).
 	teamS = &schema{kind: "map", fields: []field{
-		{name: "githubTeam", required: true, s: strRe(`^[a-z0-9-]+/[a-z0-9._-]+$`, "expected <org>/<team>, e.g. acme/payments-core")},
+		{name: "githubTeam", required: true, desc: "GitHub team, <org>/<team>, used for CODEOWNERS", s: strRe(`^[a-z0-9-]+/[a-z0-9._-]+$`, "expected <org>/<team>, e.g. acme/payments-core")},
 	}}
 
 	// Plain value, or a Secret Manager ref: secret:<gcp-project>/<secret>[@<version>]
@@ -177,41 +181,112 @@ var (
 
 	// Settings that can be set at app, stage, or target level. Most specific wins; env is merged per key.
 	layerFields = []field{
-		{name: "replicas", s: &schema{kind: "int", min: 0, max: 100}},
-		{name: "env", s: envVarsS},
+		{name: "replicas", desc: "number of replicas, 0 to 100", s: &schema{kind: "int", min: 0, max: 100}},
+		{name: "env", desc: "environment variables, KEY: value; a value may be secret:<gcp-project>/<secret>[@<version>]; merged per key", s: envVarsS},
 		// targets/<t>/environment-variables/<name>.yml of each deployed target
-		{name: "envFrom", s: &schema{kind: "list", elem: nameS}},
-		{name: "resources", s: &schema{kind: "map", fields: []field{
-			{name: "cpu", s: strRe(`^[0-9]+m?$`, "")},
-			{name: "memory", s: strRe(`^[0-9]+(Mi|Gi)$`, "")},
+		{name: "envFrom", desc: "names of the target's environment-variables files to include", s: &schema{kind: "list", elem: nameS}},
+		{name: "resources", desc: "container resource requests", s: &schema{kind: "map", fields: []field{
+			{name: "cpu", desc: "CPU, whole cores or millicores (100m)", s: strRe(`^[0-9]+m?$`, "")},
+			{name: "memory", desc: "memory in Mi or Gi (128Mi)", s: strRe(`^[0-9]+(Mi|Gi)$`, "")},
 		}}},
 		// argocd (default) syncs the target's Argo CD app; gha dispatches `workflow` (ADR 0020)
-		{name: "deployWith", s: &schema{kind: "str", enum: []string{"argocd", "gha"}, msg: "expected argocd or gha"}},
-		{name: "workflow", s: &schema{kind: "map", fields: []field{
-			{name: "repo", s: strRe(ghRepoRx, "expected <owner>/<name>")},
-			{name: "file", s: strRe(`^[A-Za-z0-9_.-]+\.ya?ml$`, "expected a .yml or .yaml file name")},
-			{name: "ref", s: &schema{kind: "str", re: re(`.`), msg: "expected a non-empty git ref"}},
+		{name: "deployWith", desc: "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow", s: &schema{kind: "str", enum: []string{"argocd", "gha"}, msg: "expected argocd or gha"}},
+		{name: "workflow", desc: "GitHub Actions workflow dispatched when deployWith is gha", s: &schema{kind: "map", fields: []field{
+			{name: "repo", desc: "workflow repository, <owner>/<name>", s: strRe(ghRepoRx, "expected <owner>/<name>")},
+			{name: "file", desc: "workflow file name, .yml or .yaml", s: strRe(`^[A-Za-z0-9_.-]+\.ya?ml$`, "expected a .yml or .yaml file name")},
+			{name: "ref", desc: "git ref the workflow runs on", s: &schema{kind: "str", re: re(`.`), msg: "expected a non-empty git ref"}},
 		}}},
 	}
 	layerS      = &schema{kind: "map", fields: layerFields}
 	stageLayerS = &schema{kind: "map", fields: append(append([]field{}, layerFields...),
-		field{name: "targets", s: &schema{kind: "dict", elem: layerS}})}
+		field{name: "targets", desc: "targets this stage deploys to, by target name; settings here override the stage's and app's", s: &schema{kind: "dict", elem: layerS}})}
 
 	// apps/<name>/app.yml
 	appS = &schema{kind: "map", fields: append(append([]field{}, layerFields...),
 		// exactly one of image (K8s app) or module (terraform app, ADR 0021): a repository, no tag or digest
-		field{name: "image", s: ociRepoS},
-		field{name: "imageConstraint", s: nonEmpty},
-		field{name: "module", s: ociRepoS},
-		field{name: "moduleConstraint", s: nonEmpty},
-		field{name: "port", s: &schema{kind: "int", min: 1, max: 65535}},
+		field{name: "image", desc: "container image repository, no tag or digest (K8s and Cloud Run apps; set this or module)", s: ociRepoS},
+		field{name: "imageConstraint", desc: "SemVer constraint for the image tags to deploy", s: nonEmpty},
+		field{name: "module", desc: "terraform module OCI repository, no tag or digest (terraform apps; set this or image)", s: ociRepoS},
+		field{name: "moduleConstraint", desc: "SemVer constraint for the module versions to deploy", s: nonEmpty},
+		field{name: "port", desc: "container port, 1 to 65535", s: &schema{kind: "int", min: 1, max: 65535}},
 		// GitHub repo of the app's code; platform pre-deploy checks are dispatched there (ADR 0028)
-		field{name: "sourceRepo", required: true, s: strRe(ghRepoRx, "expected <owner>/<name>")},
-		field{name: "stages", s: &schema{kind: "dict", elem: stageLayerS}},
+		field{name: "sourceRepo", required: true, desc: "GitHub repository of the app's code, <owner>/<name>; pre-deploy checks run there", s: strRe(ghRepoRx, "expected <owner>/<name>")},
+		field{name: "stages", desc: "stages the app deploys through, by stage name, each with its targets", s: &schema{kind: "dict", elem: stageLayerS}},
 	)}
 
 	backendS = &schema{kind: "map", fields: []field{
-		{name: "bucket", required: true, s: strRe(`^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$`, "expected a GCS bucket name")},
-		{name: "prefix", s: strRe(`^[A-Za-z0-9._/-]+$`, "expected a GCS object prefix")},
+		{name: "bucket", required: true, desc: "GCS bucket holding terraform state", s: strRe(`^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$`, "expected a GCS bucket name")},
+		{name: "prefix", desc: "GCS object prefix for the state", s: strRe(`^[A-Za-z0-9._/-]+$`, "expected a GCS object prefix")},
 	}}
 )
+
+// field returns the named field of a map schema, or nil.
+func (s *schema) field(name string) *field {
+	for i := range s.fields {
+		if s.fields[i].name == name {
+			return &s.fields[i]
+		}
+	}
+	return nil
+}
+
+// stageSchema is stages/<name>.yml; stages: the capability's stage names.
+func stageSchema(stages []string) *schema {
+	return &schema{kind: "map", fields: []field{
+		{name: "dependsOn", desc: "stages that must be verified before this one", s: &schema{kind: "list", elem: &schema{kind: "str", enum: stages, msg: allowed("stage", stages)}}},
+		// promote automatically once upstream stages are verified
+		{name: "autoPromote", desc: "promote automatically once upstream stages are verified", s: &schema{kind: "bool"}},
+		// Kargo UI color for all of this stage's Kargo Stages; default picked per stage
+		{name: "color", desc: "Kargo UI color for this stage's Kargo Stages; default picked per stage", s: &schema{kind: "str", enum: kargoColors, msg: allowed("color", kargoColors)}},
+	}}
+}
+
+// targetSchema is targets/<name>/target.yml: the file is just `config`, whose fields are the common
+// ones (platforms nil) and each platform's (platforms: those that take it). validator.target checks
+// them per platform.
+func targetSchema(cfg Config) *schema {
+	gcp := cfg.GcpRegions
+	clusters := cfg.clusterNames()
+	on := func(field string) []string {
+		var out []string
+		for _, p := range platforms {
+			if has(p.fields, field) {
+				out = append(out, p.name)
+			}
+		}
+		sort.Strings(out)
+		return out
+	}
+	return &schema{kind: "map", fields: []field{{name: "config", required: true, desc: "where a stage deploys; reusable across apps", s: &schema{kind: "map", fields: []field{
+		{name: "platform", desc: "K8S (default), TERRAFORM or CLOUD_RUN", s: &schema{kind: "str", enum: platformNames(""), msg: "expected K8S, TERRAFORM or CLOUD_RUN"}},
+		// free name (namespaces, labels); the type drives policy
+		{name: "environment", required: true, desc: "environment name, free-form (namespaces, labels)", s: nameS},
+		{name: "environmentType", required: true, missing: "expected dev, npr or prd", desc: "dev, npr or prd; drives policy (replicas, pre-deploy checks, cluster choice)", s: &schema{kind: "str", enum: EnvironmentTypes, msg: "expected dev, npr or prd"}},
+		{name: "auth", required: true, desc: "workload identity used to deploy", s: &schema{kind: "map", fields: []field{
+			{name: "wifEmail", required: true, desc: "service account email of the workload identity", s: strRe(`^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$`, "")},
+		}}},
+		{name: "billing", required: true, desc: "billing label for the target's cost", s: strRe(`^[a-z0-9-]+$`, "")},
+		{name: "cluster", platforms: on("cluster"), desc: "name of the platform's cluster to deploy to; must accept the environment type", s: &schema{kind: "str", enum: clusters, msg: allowed("cluster", clusters)}},
+		{name: "namespace", platforms: on("namespace"), desc: "Kubernetes namespace", s: strRe(`^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$`, "")},
+		{name: "region", platforms: on("region"), desc: "GCP region", s: &schema{kind: "str", enum: gcp, msg: allowed("region", gcp)}},
+		{name: "gcpProject", platforms: on("gcpProject"), desc: "GCP project id", s: strRe(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`, "expected a GCP project id")},
+		{name: "backend", platforms: on("backend"), desc: "terraform state backend", s: backendS},
+	}}}}}
+}
+
+// ownersSchema is capabilities/<cap>/owners.yml; teams: names in teams/, stages: the capability's.
+func ownersSchema(teams, stages []string) *schema {
+	teamsS := &schema{kind: "list", elem: &schema{kind: "str", enum: teams, msg: allowed("team", teams)}}
+	promoters := &schema{kind: "dict", elem: emails}
+	return &schema{kind: "map", fields: []field{
+		{name: "codeOwners", required: true, desc: "teams in teams/ that approve code changes (CODEOWNERS)", s: teamsS},
+		{name: "promoters", required: true, desc: "per stage name (a stage of this capability), emails that may promote into it and approve its Freight", s: promoters},
+		{name: "viewers", desc: "emails with read-only access in Kargo and Argo CD", s: emails},
+		{name: "breakGlass", desc: "emails that may approve Freight that skipped upstream verification", s: emails},
+		{name: "apps", desc: "per app name (an app of this capability) overrides; each field set replaces the capability's", s: &schema{kind: "dict", elem: &schema{kind: "map", fields: []field{
+			{name: "codeOwners", desc: "teams in teams/ that approve this app's code changes", s: teamsS},
+			{name: "promoters", desc: "per stage name, emails that may promote this app into it; replaces the capability's for that stage", s: promoters},
+			{name: "viewers", desc: "emails with read-only access to this app", s: emails},
+		}}}},
+	}}
+}

@@ -70,13 +70,7 @@ func (v *validator) stage(r reporter, f *file) {
 	if !nameRx.MatchString(f.name()) {
 		r.at(nil, nil, badName)
 	}
-	r.check(&schema{kind: "map", fields: []field{
-		{name: "dependsOn", s: &schema{kind: "list", elem: &schema{kind: "str", enum: v.stages, msg: allowed("stage", v.stages)}}},
-		// promote automatically once upstream stages are verified
-		{name: "autoPromote", s: &schema{kind: "bool"}},
-		// Kargo UI color for all of this stage's Kargo Stages; default picked per stage
-		{name: "color", s: &schema{kind: "str", enum: kargoColors, msg: allowed("color", kargoColors)}},
-	}}, nil, f.doc, nil)
+	r.check(stageSchema(v.stages), nil, f.doc, nil)
 }
 
 // targets/<name>/target.yml: where a stage deploys. Reusable across apps.
@@ -109,13 +103,7 @@ func (v *validator) target(r reporter, f *file) {
 	}
 	cp := []string{"config"}
 	gcp := v.cfg.GcpRegions
-	fieldS := map[string]*schema{
-		"cluster":    {kind: "str", enum: v.cfg.clusterNames(), msg: allowed("cluster", v.cfg.clusterNames())},
-		"namespace":  strRe(`^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$`, ""),
-		"region":     {kind: "str", enum: gcp, msg: allowed("region", gcp)},
-		"gcpProject": strRe(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`, "expected a GCP project id"),
-		"backend":    backendS,
-	}
+	cfgS := targetSchema(v.cfg).field("config").s
 	// message when the platform requires the field and the file lacks it
 	missing := func(f, pn string) string {
 		switch f {
@@ -128,16 +116,6 @@ func (v *validator) target(r reporter, f *file) {
 		}
 		return "required"
 	}
-	common := map[string]field{
-		"platform": {s: &schema{kind: "str", enum: platformNames(""), msg: "expected K8S, TERRAFORM or CLOUD_RUN"}},
-		// free name (namespaces, labels); the type drives policy
-		"environment":     {required: true, s: nameS},
-		"environmentType": {required: true, missing: "expected dev, npr or prd", s: &schema{kind: "str", enum: EnvironmentTypes, msg: "expected dev, npr or prd"}},
-		"auth": {required: true, s: &schema{kind: "map", fields: []field{
-			{name: "wifEmail", required: true, s: strRe(`^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$`, "")},
-		}}},
-		"billing": {required: true, s: strRe(`^[a-z0-9-]+$`, "")},
-	}
 	pn := "K8S"
 	if n := get(c, "platform"); n != nil {
 		pn = str(n)
@@ -145,16 +123,17 @@ func (v *validator) target(r reporter, f *file) {
 	p := platformByName(pn) // nil: unknown platform, reported on the field
 	for _, kv := range pairs(c) {
 		path := join(cp, kv.k)
+		f := cfgS.field(kv.k)
 		switch {
-		case common[kv.k].s != nil:
-			r.check(common[kv.k].s, kv.key, kv.v, path)
+		case f != nil && f.platforms == nil:
+			r.check(f.s, kv.key, kv.v, path)
 		case kv.k == "terraform":
 			r.at(kv.key, path, "moved: use config.gcpProject / config.backend")
-		case fieldS[kv.k] == nil:
+		case f == nil:
 			r.at(kv.key, path, "field not allowed")
 		case p == nil:
 		case has(p.fields, kv.k):
-			r.check(fieldS[kv.k], kv.key, kv.v, path)
+			r.check(f.s, kv.key, kv.v, path)
 		default:
 			// a field the platform doesn't take carries just this line, whatever its value
 			note := ""
@@ -164,13 +143,13 @@ func (v *validator) target(r reporter, f *file) {
 			r.at(kv.key, path, kv.k+" not allowed on a "+pn+" target"+note)
 		}
 	}
-	for _, n := range []string{"environment", "environmentType", "auth", "billing"} {
-		if get(c, n) == nil {
-			m := common[n].missing
+	for _, f := range cfgS.fields {
+		if f.required && get(c, f.name) == nil {
+			m := f.missing
 			if m == "" {
 				m = "required"
 			}
-			r.at(ck, join(cp, n), m)
+			r.at(ck, join(cp, f.name), m)
 		}
 	}
 	if p == nil {
@@ -292,7 +271,7 @@ func (v *validator) owners(r reporter, f *file) {
 		r.at(nil, nil, "expected a map")
 		return
 	}
-	teamS := &schema{kind: "list", elem: &schema{kind: "str", enum: v.teams, msg: allowed("team", v.teams)}}
+	teamS := ownersSchema(v.teams, v.stages).field("codeOwners").s
 	// a list of what: at least one unless optional, no repeats
 	list := func(n *yaml.Node, key *yaml.Node, path []string, s *schema, what string, optional bool) {
 		r.check(s, key, n, path)
