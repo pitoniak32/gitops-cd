@@ -105,8 +105,8 @@ func FormatFiles(files map[string]string) string {
 	return sb.String()
 }
 
-// FormatSelectedDiff prints, per path (sorted), the unified diff when old and new differ, else the
-// full current file under its header. Files in neither map print nothing.
+// FormatSelectedDiff prints, per path (sorted), the unified diff of the files that differ between old
+// and now; unchanged files print nothing.
 func FormatSelectedDiff(old, now map[string]string) string {
 	set := map[string]bool{}
 	for p := range old {
@@ -124,7 +124,6 @@ func FormatSelectedDiff(old, now map[string]string) string {
 	for _, p := range paths {
 		o, n := old[p], now[p]
 		if o == n {
-			sb.WriteString(FormatFiles(map[string]string{p: n}))
 			continue
 		}
 		sb.WriteString(Unified([]FileDiff{{p, o, n}}))

@@ -1,27 +1,25 @@
 package render
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
 )
 
-var (
-	fromRe = regexp.MustCompile(`^--- (a/rendered/|/dev/null)`)
-	toRe   = regexp.MustCompile(`^\+\+\+ (b/rendered/|/dev/null)`)
-)
+var hunkRe = regexp.MustCompile(`^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@`)
 
 // ColorDiff paints finished Unified / FormatSelectedDiff / FormatFiles text: file headers (`# rendered/`
-// lines and ---/+++ pairs) bold, then + green and - red until the next header, so full-file content
-// under a `# rendered/` header stays plain.
+// lines and ---/+++ pairs) bold, @@ cyan, + green, - red. Hunk line counts decide where a hunk ends,
+// so YAML `---` separators and full-file content outside hunks stay plain.
 func ColorDiff(text string, p color.P) string {
 	if !p.On || text == "" {
 		return text
 	}
 	ls := strings.SplitAfter(text, "\n")
 	var b strings.Builder
-	inDiff := false
+	oldN, newN := 0, 0
 	// paint colors the line but not its newline
 	paint := func(f func(string) string, l string) {
 		body := strings.TrimSuffix(l, "\n")
@@ -29,24 +27,46 @@ func ColorDiff(text string, p color.P) string {
 	}
 	for i := 0; i < len(ls); i++ {
 		l := ls[i]
+		if oldN > 0 || newN > 0 {
+			switch {
+			case strings.HasPrefix(l, "+"):
+				newN--
+				paint(p.Green, l)
+			case strings.HasPrefix(l, "-"):
+				oldN--
+				paint(p.Red, l)
+			default:
+				oldN--
+				newN--
+				b.WriteString(l)
+			}
+			continue
+		}
 		switch {
-		case fromRe.MatchString(l) && i+1 < len(ls) && toRe.MatchString(ls[i+1]):
+		case strings.HasPrefix(l, "--- ") && i+1 < len(ls) && strings.HasPrefix(ls[i+1], "+++ "):
 			paint(p.Bold, l)
 			paint(p.Bold, ls[i+1])
 			i++
-			inDiff = true
 		case strings.HasPrefix(l, "# rendered/"):
 			paint(p.Bold, l)
-			inDiff = false
-		case inDiff && strings.HasPrefix(l, "+"):
-			paint(p.Green, l)
-		case inDiff && strings.HasPrefix(l, "-"):
-			paint(p.Red, l)
+		case hunkRe.MatchString(l):
+			m := hunkRe.FindStringSubmatch(l)
+			oldN, newN = hunkLen(m[1]), hunkLen(m[2])
+			paint(p.Cyan, l)
 		default:
 			b.WriteString(l)
 		}
 	}
 	return b.String()
+}
+
+func hunkLen(s string) int {
+	if s == "" {
+		return 1
+	}
+	var n int
+	fmt.Sscan(s, &n)
+	return n
 }
 
 var statRe = regexp.MustCompile(`(\+\d+) (-\d+)$`)

@@ -14,7 +14,7 @@ Run `gcd` from repo root (`mise run cli` builds `.bin/gcd`). Teams write YAML on
 3. **Edit** the YAML at the narrowest layer that matches the request (below).
 4. **Lint until clean**: `gcd lint <cap>` (`--format json` for machine-readable diags). If `gcd show` errors, run `gcd lint <cap>` first. Output is `file:line:col: message`; fix each, re-run.
 5. **Review rendered effect**: `gcd diff --stat`, then `gcd diff --capability <cap>` for detail. Default base: jj `@-` (parent of the working copy), git `HEAD`. Once committed the default diff is empty: use `--base @--`/`trunk()` (jj) or `HEAD~1`/`main` (git). Both sides use the current gcd, so it shows input changes only.
-   "Effective"/"new" manifest = rendered output: `gcd show <cap>/<app> [--stage s] [--target t] --diff` (diff where changed, full manifest where not; `--base` as above). Add `--include-platform` only if asked about Argo CD/Kargo.
+   "Effective"/"new" manifest = rendered output: `gcd show <cap>/<app> [--stage s] [--target t] --diff` (diff of changed files only, empty = no change; `--rendered` for the full manifest; `--base` as above). Add `--include-platform` only if asked about Argo CD/Kargo.
 6. **Owners or `teams/` changed**: `mise run codeowners`, commit the regenerated `.github/CODEOWNERS`.
 
 ## Narrowest layer

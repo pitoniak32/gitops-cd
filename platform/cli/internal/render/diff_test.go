@@ -127,8 +127,8 @@ func TestStat(t *testing.T) {
 
 func TestUnifiedAddedRemoved(t *testing.T) {
 	got := Unified([]FileDiff{{Path: "a.yaml", New: "x\ny"}, {Path: "b.yaml", Old: "p\nq\n"}})
-	want := "--- /dev/null\n+++ b/rendered/a.yaml\n+x\n+y\n" +
-		"--- a/rendered/b.yaml\n+++ /dev/null\n-p\n-q\n"
+	want := "--- /dev/null\n+++ b/rendered/a.yaml\n@@ -0,0 +1,2 @@\n+x\n+y\n" +
+		"--- a/rendered/b.yaml\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-p\n-q\n"
 	if got != want {
 		t.Errorf("got:\n%q\nwant:\n%q", got, want)
 	}

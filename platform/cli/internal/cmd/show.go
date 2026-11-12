@@ -28,7 +28,7 @@ Narrow with <cap>/<app>, --stage, --target. The capability must lint clean. --js
 --rendered prints the rendered manifests of the selected deploys instead (apps/<cap>/<app>/<stage>/<target>/*),
 each under a "# rendered/<path>" line. --include-platform adds their Argo CD params and Kargo Stage.
 --diff does the same against --base (jj revset, default @-; git rev, default HEAD): changed files as a
-unified diff, unchanged files in full. --diff needs --root (default this repo) to be a jj or git repo;
+unified diff; unchanged files print nothing. --diff needs --root (default this repo) to be a jj or git repo;
 selection is validated against the working tree, so a deploy removed there is not shown.
 Nothing is written to rendered/. --json, --sources, --rendered and --diff exclude each other.`,
 			Args: cobra.ExactArgs(1),
@@ -108,7 +108,7 @@ Nothing is written to rendered/. --json, --sources, --rendered and --diff exclud
 }
 
 // showRendered renders capName in memory and returns the selected deploys' files (or, with diff,
-// their diff against base; unchanged files in full).
+// their diff against base; unchanged files omitted).
 func showRendered(root, capName string, res capability.ShowResult, platform, diff bool, base string) (string, error) {
 	picks := make([]render.Pick, 0, len(res.Deploys))
 	for _, d := range res.Deploys {

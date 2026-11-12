@@ -191,9 +191,9 @@ func TestShowDiff(t *testing.T) {
 			if !strings.Contains(out, "+++ b/rendered/apps/payments/my-app/dev/us-east4-dev-k8s/deployment.yaml") || !strings.Contains(out, "+  replicas: 5") {
 				t.Errorf("want a deployment diff hunk:\n%s", out)
 			}
-			// unchanged files print in full under a header, with no hunk
-			if !strings.Contains(out, "# rendered/apps/payments/my-app/dev/dc1-dev-k8s/deployment.yaml\n") || strings.Contains(out, "b/rendered/apps/payments/my-app/dev/dc1-dev-k8s") {
-				t.Errorf("want full unchanged files:\n%s", out)
+			// unchanged files print nothing
+			if strings.Contains(out, "dc1-dev-k8s") || strings.Contains(out, "# rendered/") {
+				t.Errorf("unchanged files present:\n%s", out)
 			}
 			if strings.Contains(out, "search") || strings.Contains(out, "my-app/prod") {
 				t.Errorf("unselected deploys present:\n%s", out)
