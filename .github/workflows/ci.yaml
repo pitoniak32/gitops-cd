@@ -85,7 +85,9 @@ jobs:
             git fetch -q origin rendered && git worktree add -q --detach "$rb" FETCH_HEAD
           elif [[ $? == 2 ]]; then git worktree add -q --orphan -b rendered "$rb"
           else exit 1; fi
-          mkdir -p "$rb/rendered" && rsync -a --delete rendered/ "$rb/rendered/"
+          # --checksum: the worktree is checked out within a second of the render, so a same-size change
+          # (e.g. kargo-payments:my-app-x -> kargo-payments-my-app:x) passes rsync's size+mtime check unseen
+          mkdir -p "$rb/rendered" && rsync -a --checksum --delete rendered/ "$rb/rendered/"
           git -C "$rb" add -A
           git -C "$rb" diff --cached --stat
           # -U8: 8 lines of context per change; capped below GitHub's 65536-char comment limit
