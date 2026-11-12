@@ -23,6 +23,7 @@ Setup tasks call `.bin/gcd` (`mise run cli` builds it; tasks depend on it). Lint
 - `mise run regions`: regenerate region-derived config from the cluster registry in `capability/config.go` (`platform/cluster/regions`, Keycloak `argocd-<r>` clients, Kargo `api.argocd.urls`); CI checks drift.
 - `mise run kargo-restore [cap…]`: after a cluster rebuild, restore each target Stage's current Freight from its `env/*` branch head (idempotent; `docs/operations.md`).
 - `gcd lint [cap…] [--changed [--base <rev>]] [--all]` (gcd itself, on PATH via mise; no mise task): full validation → `file:line:col: message`; capabilities in parallel; `--changed` (PR CI) = only what changes since the merge-base can affect (`lint.Changed`); `--all` overrides any narrowing (lint + render). In GitHub Actions with no scope flags, gcd picks scope from the event (PR → `--changed` vs base, label `lint-all` → all; else all) and prints `::error` annotations (`ghactions`).
+- `gcd schema [kind] [--json]`: allowed fields per kind (owners, stage, app, target, env-vars) with type, enum, description, fixture example. `gcd show <cap>[/<app>] [--stage s] [--target t] [--json]`: effective merged values with `← file:line` source. `gcd diff [--base <revset>] [--stat] [--capability c…]`: rendered diff of working tree vs base (default `@-`, `trunk()` = whole PR). `gcd lint --format text|json|github|auto`. All take `--root` (sandbox: `platform/render/testdata/root`).
 - `gcd render [out] [--capability c…] [--platform] [--all]`: render all capabilities + regenerate CODEOWNERS.
 - `mise run test` = `test-cli` (gofmt + `go vet` + `go test ./...` in `platform/cli`: renderer golden, CODEOWNERS, lint cases, render assertions; `UPDATE=1` accepts golden) + `test-tf` (`platform/tests/tf-module-push.sh`).
 - CI, one workflow per component: `config.yaml` (every PR/main push: build gcd, lint, CODEOWNERS, render, diff comment, push branch `rendered`), `cli.yaml` (only on `platform/cli`, renderer fixtures, appsets/bootstrap/infrastructure/cluster, `.mise.toml` changes: `test-cli` + regions drift), `tf-module.yaml` (tf-module-push script/example). Shared setup: `.github/actions/setup-go`. A new test reading another path: add it to `cli.yaml` `paths`.
@@ -60,6 +61,10 @@ Local markdown under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
 ### Triage labels
 
 Default five roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) as `Status:` lines. See `docs/agents/triage-labels.md`.
+
+### Capability config
+
+Editing `capabilities/` or `teams/`: `.claude/skills/capability-config/SKILL.md`.
 
 ### Domain docs
 
