@@ -271,7 +271,7 @@ func TestClusterTypes(t *testing.T) {
 	if !narrowed {
 		t.Fatal("cluster-types case: no dc1 cluster to narrow")
 	}
-	d, err := CapabilityWith(cfg, r, "payments")
+	d, err := Run(cfg, r, Scope{Caps: []string{"payments"}}, nil)
 	must(t, err)
 	var lines []string
 	for _, x := range d {

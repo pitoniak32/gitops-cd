@@ -8,20 +8,22 @@ import (
 )
 
 func init() {
-	register(&cobra.Command{
-		Use:   "down",
-		Short: "Delete demo clusters (hub + regions)",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			root, err := repo.Root()
-			if err != nil {
-				return err
-			}
-			rs, err := regions.List(root)
-			if err != nil {
-				return err
-			}
-			return cluster.Down(cmd.Context(), root, rs, cmd.ErrOrStderr())
-		},
+	register(func() *cobra.Command {
+		return &cobra.Command{
+			Use:   "down",
+			Short: "Delete demo clusters (hub + regions)",
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				root, err := repo.Root()
+				if err != nil {
+					return err
+				}
+				rs, err := regions.List(root)
+				if err != nil {
+					return err
+				}
+				return cluster.Down(cmd.Context(), root, rs, cmd.ErrOrStderr())
+			},
+		}
 	})
 }

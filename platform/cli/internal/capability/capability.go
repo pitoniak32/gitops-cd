@@ -3,9 +3,10 @@ package capability
 import "os"
 
 // Render validates one capability under root and returns its rendered files, keyed by path under
-// rendered/. Problems in the capability's YAML come back as an Error (the diagnostics).
-func Render(cfg Config, root, capName string) (map[string]string, error) {
-	m, diags, err := loadModel(cfg, root, capName)
+// rendered/. Problems in the capability's YAML come back as an Error (the diagnostics). teams: from
+// LoadTeams, shared across capabilities (nil: read here); their own problems are Teams.Lint's.
+func Render(cfg Config, root, capName string, teams *Teams) (map[string]string, error) {
+	m, diags, err := loadModel(cfg, root, capName, teams)
 	if err != nil {
 		return nil, err
 	}
@@ -15,15 +16,15 @@ func Render(cfg Config, root, capName string) (map[string]string, error) {
 	return m.files(), nil
 }
 
-// Lint validates one capability under root. The error is for I/O only.
-func Lint(cfg Config, root, capName string) ([]Diag, error) {
-	_, diags, err := loadModel(cfg, root, capName)
+// Lint validates one capability under root (not the team files: Teams.Lint). The error is for I/O only.
+func Lint(cfg Config, root, capName string, teams *Teams) ([]Diag, error) {
+	_, diags, err := loadModel(cfg, root, capName, teams)
 	return diags, err
 }
 
 // loadModel reads and validates a capability. Diagnostics come in two rounds: what is wrong with the files
 // as written, and only once those are clean, what shows in the values derived from them.
-func loadModel(cfg Config, root, capName string) (*model, []Diag, error) {
+func loadModel(cfg Config, root, capName string, teams *Teams) (*model, []Diag, error) {
 	if r := os.Getenv("GITOPS_REPO"); r != "" {
 		cfg.RepoURL = r
 	}
@@ -41,7 +42,13 @@ func loadModel(cfg Config, root, capName string) (*model, []Diag, error) {
 	if err := checkDir(root, capName); err != nil {
 		return nil, nil, err
 	}
-	in, diags, err := load(root, capName)
+	if teams == nil {
+		var err error
+		if teams, err = LoadTeams(root); err != nil {
+			return nil, nil, err
+		}
+	}
+	in, diags, err := load(root, capName, teams)
 	if err != nil {
 		return nil, nil, err
 	}

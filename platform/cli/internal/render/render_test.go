@@ -1,12 +1,16 @@
 package render
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/progress"
 )
 
 const renderDir = "../../../render"
@@ -276,7 +280,7 @@ func TestAll(t *testing.T) {
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
 	out := t.TempDir()
-	if err := All(root, out, io.Discard); err != nil {
+	if err := All(root, out, io.Discard, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(out, "README.md")); err != nil {
@@ -293,7 +297,7 @@ func TestAllReportsEveryBrokenCapability(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	err := All(root, t.TempDir(), io.Discard)
+	err := All(root, t.TempDir(), io.Discard, nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -352,6 +356,25 @@ func TestFragmentsAndSelectedReportEveryBrokenCapability(t *testing.T) {
 			t.Errorf("%s: want both messages:\n%s", name, msg)
 		}
 	}
-	check("Fragments", Fragments(root, t.TempDir(), io.Discard))
-	check("Selected", Selected(root, []string{"payments", "search"}, t.TempDir(), io.Discard))
+	check("Fragments", Fragments(root, t.TempDir(), io.Discard, nil))
+	check("Selected", Selected(root, []string{"payments", "search"}, t.TempDir(), io.Discard, nil))
+}
+
+// With progress, the phases replace the per-capability lines on w.
+func TestAllProgressPhases(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	copyTree(t, abs(t, "testdata/root"), root)
+	var w, bar bytes.Buffer
+	if err := All(root, t.TempDir(), &w, progress.New(&bar)); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(w.String(), "rendered payments") {
+		t.Errorf("per-capability lines with progress on: %q", w.String())
+	}
+	for _, ph := range []string{`✓ capabilities +2/2 `, `✓ platform files +1/1 `, `✓ unique names +1/1 `, `✓ CODEOWNERS +1/1 `} {
+		if !regexp.MustCompile(ph).MatchString(bar.String()) {
+			t.Errorf("missing phase %q in %q", ph, bar.String())
+		}
+	}
 }

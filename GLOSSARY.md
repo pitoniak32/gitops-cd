@@ -147,4 +147,4 @@ _Avoid_: image repo (`image`), config repo (this repo)
 ### Validation
 
 **Lint**:
-The full validation (`gcd lint`, package `capability`) over a capability's files (+ `teams/`) (`mise run lint`), run by CI and reported as `file:line:col` errors.
+The full validation (`gcd lint`, package `capability`) over a capability's files (+ `teams/`), run by CI and reported as `file:line:col` errors.

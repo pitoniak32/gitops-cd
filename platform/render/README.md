@@ -14,8 +14,8 @@ promotion pipeline (ADR 0030). Teams never edit either.
 | `capability/kargo.go`, `output.go` | Kargo Project/ProjectConfig/Warehouse/Stages/RBAC, Argo CD params + AppProjects, k8s / Cloud Run / terraform files, CODEOWNERS fragment |
 | `capability/platformfiles.go` | **platform-level** `ClusterPromotionTask`s (ADR 0027), region files, `mise run regions` config |
 | `emit` | ordered maps → YAML/JSON in the committed formatting |
-| `gcd render` / `gcd codeowners` (`internal/render`) | `mise run render` / `codeowners`: validate + write the files, CODEOWNERS |
-| `gcd lint` (`internal/lint`) | `mise run lint`: full validation as `file:line:col: message` (editors, CI annotations) |
+| `gcd render` / `gcd codeowners` (`internal/render`) | validate + write the files / CODEOWNERS (`mise run codeowners`) |
+| `gcd lint` (`internal/lint`) | full validation as `file:line:col: message`, or `::error` annotations in GitHub Actions |
 | `testdata/` | fixture capabilities (`root/`) + golden output |
 
 ## Capability input (paths under the repo root)
@@ -67,8 +67,17 @@ workflow vars on the step) before `promote`: dispatch `file` to the app's `sourc
 commit and artifact, wait for success (`timeout`, max 2h); anything else fails the Promotion before the push.
 
 ## Feedback
-`mise run lint` (`gcd lint [cap…]`, `--root` for another tree; also CI, as PR annotations): validates each
+`gcd lint [cap…]` (`--root` for another tree; `.bin/gcd`, on PATH via mise, built by `mise run cli`): validates each
 capability's files (+ `teams/`) as `file:line:col: message`, pointing at the offending key or list item.
+Capabilities run in parallel; `teams/` is read and checked once. `--changed [--base <rev>]` (PR CI) lints
+only what the changes since the merge-base can affect (`--all` overrides it, and named capabilities; PR
+label `lint-all` does that in CI). In GitHub Actions, with no scope flags, gcd picks the scope from the event
+(PR: `--changed` against the base branch; otherwise everything) and writes `::error` annotations (`--format`): changed capabilities; for a changed team file,
+`teams/` + the capabilities whose `owners.yml` names it; everything when `platform/cli/` changed. Kargo
+project and Application names that would collide across capabilities are checked over all of them every
+run (`capability.CheckNames`). `gcd render` builds capabilities in parallel too. Both show a progress
+bar per phase (`internal/progress`) when stderr is a terminal, never in CI
+or pipes; `--no-progress` turns them off.
 There is no editor schema (ADR 0030). Two rounds: the files as written (structure, names, per-platform
 fields, owners), then, once those are clean, what only shows in derived values (merged replicas vs policy,
 envFrom, prod autoPromote, stage cycles, generated name lengths).

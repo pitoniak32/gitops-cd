@@ -11,7 +11,7 @@ Now:
 
 - `config.go`: platform-owned config (cluster registry, replica floors, pre-deploy checks, the `platforms` table). `load.go`: the one table of input file routes. `schema.go` + `validate.go`: per-file and cross-file rules, each a located `Diag`. `model.go`: the layer merge and owners. `graph.go`: the Kargo graph. `kargo.go` / `output.go` / `platformfiles.go`: outputs. `internal/emit` writes ordered YAML/JSON.
 - Lint runs in two rounds: the files as written, then, once those are clean, what only shows in derived values.
-- **No editor schemas**: hand-maintained JSON Schema next to the Go rules would be a second source of truth. `mise run lint` is the feedback loop.
+- **No editor schemas**: hand-maintained JSON Schema next to the Go rules would be a second source of truth. `gcd lint` is the feedback loop.
 
 ## Considered Options
 

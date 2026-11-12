@@ -3,10 +3,11 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-var subcommands []*cobra.Command
+var subcommands []func() *cobra.Command
 
-// register adds a subcommand to the root (called from init in each command file).
-func register(c *cobra.Command) { subcommands = append(subcommands, c) }
+// register adds a subcommand constructor (called from init in each command file). NewRoot calls it, so
+// every root gets fresh commands and flag variables (tests execute several roots in one process).
+func register(f func() *cobra.Command) { subcommands = append(subcommands, f) }
 
 // NewRoot builds the gcd root command.
 func NewRoot() *cobra.Command {
@@ -17,6 +18,8 @@ func NewRoot() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: false,
 	}
-	root.AddCommand(subcommands...)
+	for _, f := range subcommands {
+		root.AddCommand(f())
+	}
 	return root
 }

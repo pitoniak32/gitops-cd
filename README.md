@@ -82,8 +82,8 @@ platform/                     platform team only; app teams never edit
 
 ## Editing
 
-Plain YAML, no editor schema: `mise run lint` (also in CI, as PR annotations) reports every problem as
-`file:line:col: message`. See `capabilities/payments/apps/my-app/app.yml` for an example of every field.
+Plain YAML, no editor schema: `gcd lint` (also in CI, as PR annotations) reports every problem as
+`file:line:col: message`. `gcd lint --changed` checks only what your branch (and uncommitted work) can affect. See `capabilities/payments/apps/my-app/app.yml` for an example of every field.
 
 ## Ownership
 

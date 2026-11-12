@@ -71,49 +71,106 @@ func (in *inputs) names(kind string) []string {
 
 var yamlErrLine = regexp.MustCompile(`line (\d+)`)
 
-// load reads the capability's files. A YAML syntax error is a diagnostic at the error's line.
-func load(root, capName string) (*inputs, []Diag, error) {
-	in := &inputs{cap: capName, files: map[string][]*file{}}
+// load reads the capability's files; teams come from teams (read once for every capability). A YAML
+// syntax error is a diagnostic at the error's line.
+func load(root, capName string, teams *Teams) (*inputs, []Diag, error) {
+	in := &inputs{cap: capName, files: map[string][]*file{"team": teams.files}}
 	var diags []Diag
 	for _, r := range routes {
-		pattern := strings.Split(strings.ReplaceAll(r.file, "{cap}", capName), "/")
-		m, _ := filepath.Glob(filepath.Join(root, filepath.Join(pattern...)+".y*ml"))
-		for _, p := range m {
-			rel, err := filepath.Rel(root, p)
-			ext := filepath.Ext(p)
-			if err != nil || (ext != ".yml" && ext != ".yaml") {
-				continue
-			}
-			rel = filepath.ToSlash(rel)
-			f := &file{kind: r.kind, path: rel}
-			for i, seg := range strings.Split(strings.TrimSuffix(rel, ext), "/") {
-				if pattern[i] == "*" {
-					f.names = append(f.names, seg)
-				}
-			}
-			b, err := os.ReadFile(p)
-			if err != nil {
-				return nil, nil, err
-			}
-			var doc yaml.Node
-			if err := yaml.Unmarshal(b, &doc); err != nil {
-				line := 1
-				if mm := yamlErrLine.FindStringSubmatch(err.Error()); mm != nil {
-					line, _ = strconv.Atoi(mm[1])
-				}
-				diags = append(diags, Diag{File: rel, Line: line, Col: 1, Msg: strings.TrimPrefix(err.Error(), "yaml: ")})
-				continue
-			}
-			if doc.Kind == yaml.DocumentNode && len(doc.Content) > 0 {
-				f.doc = doc.Content[0]
-			} else {
-				// empty file: an empty mapping at the top
-				f.doc = &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Line: 1, Column: 1}
-			}
-			in.files[r.kind] = append(in.files[r.kind], f)
+		if r.kind == "team" {
+			continue
 		}
+		fs, d, err := readRoute(root, r, capName)
+		if err != nil {
+			return nil, nil, err
+		}
+		in.files[r.kind] = append(in.files[r.kind], fs...)
+		diags = append(diags, d...)
 	}
 	return in, diags, nil
+}
+
+// readRoute reads every file matching one route.
+func readRoute(root string, r route, capName string) ([]*file, []Diag, error) {
+	var out []*file
+	var diags []Diag
+	pattern := strings.Split(strings.ReplaceAll(r.file, "{cap}", capName), "/")
+	m, _ := filepath.Glob(filepath.Join(root, filepath.Join(pattern...)+".y*ml"))
+	for _, p := range m {
+		rel, err := filepath.Rel(root, p)
+		ext := filepath.Ext(p)
+		if err != nil || (ext != ".yml" && ext != ".yaml") {
+			continue
+		}
+		rel = filepath.ToSlash(rel)
+		f := &file{kind: r.kind, path: rel}
+		for i, seg := range strings.Split(strings.TrimSuffix(rel, ext), "/") {
+			if pattern[i] == "*" {
+				f.names = append(f.names, seg)
+			}
+		}
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return nil, nil, err
+		}
+		doc, d := parse(rel, b)
+		if d != nil {
+			diags = append(diags, *d)
+			continue
+		}
+		f.doc = doc
+		out = append(out, f)
+	}
+	return out, diags, nil
+}
+
+// parse is a file's top node (an empty mapping for an empty file), or its syntax error as a diagnostic.
+func parse(rel string, b []byte) (*yaml.Node, *Diag) {
+	var doc yaml.Node
+	if err := yaml.Unmarshal(b, &doc); err != nil {
+		line := 1
+		if mm := yamlErrLine.FindStringSubmatch(err.Error()); mm != nil {
+			line, _ = strconv.Atoi(mm[1])
+		}
+		return nil, &Diag{File: rel, Line: line, Col: 1, Msg: strings.TrimPrefix(err.Error(), "yaml: ")}
+	}
+	if doc.Kind == yaml.DocumentNode && len(doc.Content) > 0 {
+		return doc.Content[0], nil
+	}
+	return &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Line: 1, Column: 1}, nil
+}
+
+// Teams are the teams/ files, read once and shared (read-only) by every capability.
+type Teams struct {
+	files  []*file
+	syntax []Diag
+}
+
+// LoadTeams reads teams/ under root.
+func LoadTeams(root string) (*Teams, error) {
+	for _, r := range routes {
+		if r.kind == "team" {
+			fs, d, err := readRoute(root, r, "")
+			if err != nil {
+				return nil, err
+			}
+			return &Teams{files: fs, syntax: d}, nil
+		}
+	}
+	return &Teams{}, nil
+}
+
+// Lint validates the team files themselves; capabilities only check the names they reference.
+func (t *Teams) Lint() []Diag {
+	diags := append([]Diag{}, t.syntax...)
+	for _, f := range t.files {
+		r := reporter{f, &diags}
+		if !nameRx.MatchString(f.name()) {
+			r.at(nil, nil, badName)
+		}
+		r.check(teamS, nil, f.doc, nil)
+	}
+	return SortDedupe(diags)
 }
 
 // ErrNoCapability is returned for a capability without a directory.

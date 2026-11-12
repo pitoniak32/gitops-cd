@@ -3,5 +3,5 @@
 .terraform/
 .terraform.lock.hcl
 
-# generated; lives on the rendered branch (ADR 0002). `mise run render` writes it locally.
+# generated; lives on the rendered branch (ADR 0002). `gcd render` writes it locally.
 /rendered/

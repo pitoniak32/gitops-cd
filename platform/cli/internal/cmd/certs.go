@@ -9,20 +9,22 @@ import (
 )
 
 func init() {
-	register(&cobra.Command{
-		Use:   "certs",
-		Short: "Browser-trusted TLS for *.localhost UIs: mkcert CA in macOS keychain + traefik default cert",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			root, err := repo.Root()
-			if err != nil {
-				return err
-			}
-			hub, err := kube.ForContext(dns.HubContext)
-			if err != nil {
-				return err
-			}
-			return certs.Run(cmd.Context(), root, hub, certs.ExecRunner, cmd.ErrOrStderr())
-		},
+	register(func() *cobra.Command {
+		return &cobra.Command{
+			Use:   "certs",
+			Short: "Browser-trusted TLS for *.localhost UIs: mkcert CA in macOS keychain + traefik default cert",
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				root, err := repo.Root()
+				if err != nil {
+					return err
+				}
+				hub, err := kube.ForContext(dns.HubContext)
+				if err != nil {
+					return err
+				}
+				return certs.Run(cmd.Context(), root, hub, certs.ExecRunner, cmd.ErrOrStderr())
+			},
+		}
 	})
 }

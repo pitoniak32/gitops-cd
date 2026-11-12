@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Validate capabilities (+ teams/) with the full rules: <file>:<line>:<col>: <message>"
-#MISE depends=["cli"]
-#USAGE arg "[caps]..." help="capabilities to lint (default: all)"
-# Sorted, deduped (teams/ errors show up once per capability); exit 1 on any diagnostic.
-exec "$MISE_PROJECT_ROOT/.bin/gcd" lint "$@"

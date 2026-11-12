@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Render every capability into rendered/ (or out dir) and regenerate .github/CODEOWNERS"
-#MISE depends=["cli"]
-#USAGE arg "[out]" help="output dir (default: rendered)"
-# CI runs this on every push to main and commits the result to the rendered branch (ADR 0002); locally it
-# writes the gitignored rendered/ for inspection.
-exec "$MISE_PROJECT_ROOT/.bin/gcd" render "$@"

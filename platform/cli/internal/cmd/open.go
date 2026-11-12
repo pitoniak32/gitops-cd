@@ -20,33 +20,35 @@ func openURLs(rs []string) []string {
 }
 
 func init() {
-	var printOnly bool
-	c := &cobra.Command{
-		Use:   "open",
-		Short: "Open every UI in the browser",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			root, err := repo.Root()
-			if err != nil {
-				return err
-			}
-			rs, err := regions.List(root)
-			if err != nil {
-				return err
-			}
-			for _, u := range openURLs(rs) {
-				fmt.Fprintln(cmd.OutOrStdout(), u)
-				if !printOnly {
-					oc := exec.Command("open", u)
-					oc.Stderr = os.Stderr
-					if err := oc.Run(); err != nil {
-						return fmt.Errorf("open %s: %w", u, err)
+	register(func() *cobra.Command {
+		var printOnly bool
+		c := &cobra.Command{
+			Use:   "open",
+			Short: "Open every UI in the browser",
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				root, err := repo.Root()
+				if err != nil {
+					return err
+				}
+				rs, err := regions.List(root)
+				if err != nil {
+					return err
+				}
+				for _, u := range openURLs(rs) {
+					fmt.Fprintln(cmd.OutOrStdout(), u)
+					if !printOnly {
+						oc := exec.Command("open", u)
+						oc.Stderr = os.Stderr
+						if err := oc.Run(); err != nil {
+							return fmt.Errorf("open %s: %w", u, err)
+						}
 					}
 				}
-			}
-			return nil
-		},
-	}
-	c.Flags().BoolVar(&printOnly, "print", false, "only print the URLs")
-	register(c)
+				return nil
+			},
+		}
+		c.Flags().BoolVar(&printOnly, "print", false, "only print the URLs")
+		return c
+	})
 }

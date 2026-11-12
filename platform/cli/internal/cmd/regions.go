@@ -7,20 +7,22 @@ import (
 )
 
 func init() {
-	register(&cobra.Command{
-		Use:   "regions",
-		Short: "Regenerate region-derived committed config from the cluster registry",
-		Args:  cobra.NoArgs,
-		RunE: func(*cobra.Command, []string) error {
-			root, err := repo.Root()
-			if err != nil {
-				return err
-			}
-			cfg, err := regions.Load(root)
-			if err != nil {
-				return err
-			}
-			return regions.Write(root, cfg)
-		},
+	register(func() *cobra.Command {
+		return &cobra.Command{
+			Use:   "regions",
+			Short: "Regenerate region-derived committed config from the cluster registry",
+			Args:  cobra.NoArgs,
+			RunE: func(*cobra.Command, []string) error {
+				root, err := repo.Root()
+				if err != nil {
+					return err
+				}
+				cfg, err := regions.Load(root)
+				if err != nil {
+					return err
+				}
+				return regions.Write(root, cfg)
+			},
+		}
 	})
 }

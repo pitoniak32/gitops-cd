@@ -17,7 +17,7 @@ func TestGolden(t *testing.T) {
 	golden, _ := filepath.Abs(testdata + "/golden")
 	got := map[string]string{}
 	for _, c := range []string{"payments", "search"} {
-		files, err := Render(Default(), root, c)
+		files, err := Render(Default(), root, c, nil)
 		if err != nil {
 			t.Fatalf("%s:\n%v", c, err)
 		}

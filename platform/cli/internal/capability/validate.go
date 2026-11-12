@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// validate checks every input file on its own and against the others. It reads the YAML as written
+// validate checks every capability input file on its own and against the others (team files: Teams.Lint). It reads the YAML as written
 // (no defaults, nothing derived), so each rule runs whatever else is wrong.
 func validate(cfg Config, in *inputs) []Diag {
 	var diags []Diag
@@ -16,13 +16,6 @@ func validate(cfg Config, in *inputs) []Diag {
 	v := &validator{cfg: cfg, in: in,
 		stages: in.names("stage"), targets: in.names("target"), apps: in.names("app"), teams: in.names("team")}
 
-	for _, f := range in.of("team") {
-		r := rep(f)
-		if !nameRx.MatchString(f.name()) {
-			r.at(nil, nil, badName)
-		}
-		r.check(teamS, nil, f.doc, nil)
-	}
 	for _, f := range in.of("stage") {
 		v.stage(rep(f), f)
 	}

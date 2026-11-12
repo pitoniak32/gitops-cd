@@ -39,7 +39,7 @@ func TestPreDeployCheckSchema(t *testing.T) {
 	// a bad check in the platform config fails every render
 	cfg := capability.Default()
 	cfg.PreDeploy["prd"] = []capability.Check{{File: "c.sh"}}
-	if _, err := capability.Render(cfg, abs(t, "testdata/root"), "payments"); err == nil {
+	if _, err := capability.Render(cfg, abs(t, "testdata/root"), "payments", nil); err == nil {
 		t.Error("render with an invalid pre-deploy check: want error")
 	}
 }

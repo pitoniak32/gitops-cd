@@ -17,34 +17,36 @@ import (
 const kargoURL = "https://kargo.localhost"
 
 func init() {
-	register(&cobra.Command{
-		Use:   "up",
-		Short: "Fresh demo cluster: tear down existing, create, install infrastructure + rendered capabilities",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx := cmd.Context()
-			root, err := repo.Root()
-			if err != nil {
-				return err
-			}
-			rs, err := regions.List(root)
-			if err != nil {
-				return err
-			}
-			log := cmd.ErrOrStderr()
-			if err := cluster.Up(ctx, root, rs, log); err != nil {
-				return err
-			}
-			if err := infra.Run(ctx, root, log); err != nil {
-				return err
-			}
-			// wait for traefik to pick up the ingressroute
-			if err := waitServing(ctx, kargoURL+"/", 120*time.Second); err != nil {
-				return err
-			}
-			fmt.Fprintln(cmd.OutOrStdout(), "ready: "+kargoURL)
-			return nil
-		},
+	register(func() *cobra.Command {
+		return &cobra.Command{
+			Use:   "up",
+			Short: "Fresh demo cluster: tear down existing, create, install infrastructure + rendered capabilities",
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				ctx := cmd.Context()
+				root, err := repo.Root()
+				if err != nil {
+					return err
+				}
+				rs, err := regions.List(root)
+				if err != nil {
+					return err
+				}
+				log := cmd.ErrOrStderr()
+				if err := cluster.Up(ctx, root, rs, log); err != nil {
+					return err
+				}
+				if err := infra.Run(ctx, root, log); err != nil {
+					return err
+				}
+				// wait for traefik to pick up the ingressroute
+				if err := waitServing(ctx, kargoURL+"/", 120*time.Second); err != nil {
+					return err
+				}
+				fmt.Fprintln(cmd.OutOrStdout(), "ready: "+kargoURL)
+				return nil
+			},
+		}
 	})
 }
 

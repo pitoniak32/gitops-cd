@@ -7,16 +7,18 @@ import (
 )
 
 func init() {
-	register(&cobra.Command{
-		Use:   "infra",
-		Short: "Bootstrap Argo CD + root app of ApplicationSets on hub and regions, wait for add-ons in order (idempotent)",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			root, err := repo.Root()
-			if err != nil {
-				return err
-			}
-			return infra.Run(cmd.Context(), root, cmd.ErrOrStderr())
-		},
+	register(func() *cobra.Command {
+		return &cobra.Command{
+			Use:   "infra",
+			Short: "Bootstrap Argo CD + root app of ApplicationSets on hub and regions, wait for add-ons in order (idempotent)",
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				root, err := repo.Root()
+				if err != nil {
+					return err
+				}
+				return infra.Run(cmd.Context(), root, cmd.ErrOrStderr())
+			},
+		}
 	})
 }

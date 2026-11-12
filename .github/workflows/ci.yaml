@@ -4,6 +4,8 @@
 name: ci
 on:
   pull_request:
+    # labeled/unlabeled: the lint-all label switches PR lint to everything
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main]
   # re-run the main render by hand (`gh workflow run ci --ref main`), e.g. when a push run gets stuck queued
@@ -54,10 +56,10 @@ jobs:
       - name: region-derived config up to date (cluster registry)
         run: mise run regions && git diff --exit-code platform/cluster/regions platform/infrastructure/keycloak platform/infrastructure/kargo/values.yaml
 
-      - name: lint all capabilities (annotates file:line)
-        run: |
-          set -o pipefail
-          mise run lint | sed -E 's/^([^:]+):([0-9]+):([0-9]+): (.*)$/::error file=\1,line=\2,col=\3::\4/'
+      # gcd picks the scope from the event (PR: what changed, label lint-all: everything; main: everything)
+      # and prints ::error annotations (`gcd lint --help`); .bin/gcd was built by the test task
+      - name: lint
+        run: .bin/gcd lint
 
       # PRs fail; on main only warn, so a stale CODEOWNERS (two PRs that each passed) never blocks the render
       - name: CODEOWNERS up to date
@@ -69,7 +71,7 @@ jobs:
           [[ "$lvl" == warning ]]
 
       - name: render
-        run: mise run render   # writes rendered/ (gitignored on main)
+        run: .bin/gcd render   # writes rendered/ (gitignored on main)
 
       # worktree of the rendered branch (empty orphan before the first render) with the fresh render in it
       - name: rendered diff

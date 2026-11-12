@@ -73,7 +73,7 @@ func sharedOut(t *testing.T) string {
 }
 
 func renderShared(t *testing.T, dir string) error {
-	if err := Selected(abs(t, "testdata/root"), []string{"payments", "search"}, dir, io.Discard); err != nil {
+	if err := Selected(abs(t, "testdata/root"), []string{"payments", "search"}, dir, io.Discard, nil); err != nil {
 		return err
 	}
 	return Platform(repoRoot(t), dir)

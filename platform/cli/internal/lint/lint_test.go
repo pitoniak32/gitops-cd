@@ -56,7 +56,7 @@ func TestLintYamlExtension(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(st, "dev.yaml"), []byte("# comment\n\ncolor: puce\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	d, err := Capability(r, "payments")
+	d, err := All(r, []string{"payments"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestDiagString(t *testing.T) {
 func TestAllSortsAndDedupes(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	// a teams/ error is reported once per capability; All dedupes it
+	// a teams/ error is reported once, however many capabilities
 	if err := os.WriteFile(filepath.Join(r, "teams/team1.yml"), []byte("githubTeam: Bad_Name\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
