@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/render"
 	"gopkg.in/yaml.v3"
 )
 
@@ -78,7 +79,7 @@ func TestShowYAMLParses(t *testing.T) {
 		t.Error("--sources changed the data")
 	}
 	app := plain["my-app"].(map[string]any)
-	dev := app["stages"].(map[string]any)["dev"].(map[string]any)["dc1-dev-k8s"].(map[string]any)
+	dev := app["dev"].(map[string]any)["dc1-dev-k8s"].(map[string]any)
 	if dev["replicas"] != 3 || dev["image"] == nil {
 		t.Errorf("dev/dc1-dev-k8s: %v", dev)
 	}
@@ -144,11 +145,17 @@ func TestShowFlagConflicts(t *testing.T) {
 }
 
 // vcsRepo copies the fixture into a fresh repo of kind ("git" or "jj"), commits it, and returns its root.
-func vcsRepo(t *testing.T, kind string) string {
+func vcsRepo(t *testing.T, kind string) string { return vcsRepoWith(t, kind, nil) }
+
+// vcsRepoWith is vcsRepo; prepare (if set) runs on the copied fixture before the base commit.
+func vcsRepoWith(t *testing.T, kind string, prepare func(root string)) string {
 	t.Helper()
 	root := t.TempDir()
 	if err := os.CopyFS(root, os.DirFS(fixtureRoot)); err != nil {
 		t.Fatal(err)
+	}
+	if prepare != nil {
+		prepare(root)
 	}
 	run := func(name string, args ...string) {
 		t.Helper()
@@ -298,5 +305,102 @@ func TestShowDiffBaseCount(t *testing.T) {
 	root := vcsRepo(t, "jj")
 	if _, _, err := runShow(t, root, "--diff", "--base", "all()"); err == nil || !strings.Contains(err.Error(), "want exactly 1") {
 		t.Errorf("got %v", err)
+	}
+}
+
+// writeRendered writes everything gcd render would put under root/rendered.
+func writeRendered(t *testing.T, root string) {
+	t.Helper()
+	files, err := render.AllFiles(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for p, c := range files {
+		f := filepath.Join(root, "rendered", filepath.FromSlash(p))
+		if err := os.MkdirAll(filepath.Dir(f), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(f, []byte(c), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// --against: fresh render vs the rendered/ tree committed at a rev.
+func TestShowDiffAgainst(t *testing.T) {
+	for _, kind := range []string{"git", "jj"} {
+		t.Run(kind, func(t *testing.T) {
+			root := vcsRepoWith(t, kind, func(r string) { writeRendered(t, r) })
+			rev := "HEAD"
+			if kind == "jj" {
+				rev = "@-"
+			}
+			// the working tree edit (replicas 1 -> 5) is the only change
+			out, errOut, err := runShow(t, root, "--diff", "--against", rev)
+			if err != nil {
+				t.Fatalf("%v\n%s", err, errOut)
+			}
+			if !strings.Contains(out, "+++ b/rendered/apps/payments/my-app/dev/us-east4-dev-k8s/deployment.yaml") || !strings.Contains(out, "+  replicas: 5") {
+				t.Errorf("want my-app diff:\n%s", out)
+			}
+			if strings.Contains(out, "README") || strings.Contains(out, "rendered/apps/search") {
+				t.Errorf("unchanged files present:\n%s", out)
+			}
+			stat, _, err := runShow(t, root, "--diff", "--against", rev, "--stat")
+			if err != nil || !strings.Contains(stat, "us-east4-dev-k8s/deployment.yaml | +1 -1") || strings.Contains(stat, "@@") {
+				t.Errorf("stat: %v\n%s", err, stat)
+			}
+			// with a capability, filtered to the selected deploys
+			out, _, err = runShow(t, root, "payments/my-app", "--stage", "prod", "--diff", "--against", rev)
+			if err != nil || out != "" {
+				t.Errorf("unselected stage: %v %q", err, out)
+			}
+			out, _, err = runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--against", rev, "--stat")
+			if err != nil || !strings.Contains(out, "us-east4-dev-k8s/deployment.yaml | +1 -1") {
+				t.Errorf("cap stat: %v %q", err, out)
+			}
+			// revert the edit: empty
+			p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
+			b, _ := os.ReadFile(p)
+			if err := os.WriteFile(p, []byte(strings.Replace(string(b), "    replicas: 5\n", "    replicas: 1\n", 1)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if out, _, err := runShow(t, root, "--diff", "--against", rev); err != nil || out != "" {
+				t.Errorf("unchanged: err=%v out=%q", err, out)
+			}
+			// a file only at the rev is a deletion
+			if err := os.RemoveAll(filepath.Join(root, "capabilities/search")); err != nil {
+				t.Fatal(err)
+			}
+			out, _, err = runShow(t, root, "--diff", "--against", rev, "--stat")
+			if err != nil || !strings.Contains(out, "apps/search/") {
+				t.Errorf("deleted capability: %v\n%s", err, out)
+			}
+		})
+	}
+}
+
+// A rev without rendered/ is empty: everything is added.
+func TestShowDiffAgainstNoRendered(t *testing.T) {
+	root := vcsRepo(t, "git")
+	out, _, err := runShow(t, root, "--diff", "--against", "HEAD", "--stat")
+	if err != nil || !strings.Contains(out, "README.md | +") || !strings.Contains(out, "apps/payments/my-app/") {
+		t.Errorf("%v\n%s", err, out)
+	}
+	if strings.Contains(out, " -0\n") == false {
+		t.Errorf("want additions only:\n%s", out)
+	}
+}
+
+func TestShowDiffAgainstFlags(t *testing.T) {
+	root := vcsRepo(t, "git")
+	for _, args := range [][]string{
+		{"--diff", "--against", "HEAD", "--base", "HEAD"},
+		{"payments", "--against", "HEAD"},
+		{"--diff", "--against", "nope"},
+	} {
+		if out, _, err := runShow(t, root, args...); err == nil || out != "" {
+			t.Errorf("%v: want error, got %v %q", args, err, out)
+		}
 	}
 }

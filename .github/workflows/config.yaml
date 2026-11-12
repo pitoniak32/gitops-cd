@@ -59,13 +59,16 @@ jobs:
         run: .bin/gcd render   # writes rendered/ (gitignored on main)
 
       # worktree of the rendered branch (empty orphan before the first render) with the fresh render in it
+      # (the commit step below needs it); the PR comment body comes from gcd: fresh render vs the branch's tree
       - name: rendered diff
         id: diff
         run: |
           rb="$RUNNER_TEMP/rendered-branch"
+          against=""
           # missing branch (first render): orphan; any other git error fails the run
           if git ls-remote --exit-code --heads origin rendered >/dev/null; then
             git fetch -q origin rendered && git worktree add -q --detach "$rb" FETCH_HEAD
+            against=FETCH_HEAD
           elif [[ $? == 2 ]]; then git worktree add -q --orphan -b rendered "$rb"
           else exit 1; fi
           # --checksum: the worktree is checked out within a second of the render, so a same-size change
@@ -73,11 +76,17 @@ jobs:
           mkdir -p "$rb/rendered" && rsync -a --checksum --delete rendered/ "$rb/rendered/"
           git -C "$rb" add -A
           git -C "$rb" diff --cached --stat
-          # -U8: 8 lines of context per change; capped below GitHub's 65536-char comment limit
+          # gcd runs in the checkout (plain git, no .jj), where FETCH_HEAD is the fetched rendered branch.
+          # No rendered branch yet (first render): there is no rev to compare with, so just say so.
+          # The diff is capped at 55000 chars, under GitHub's 65536-char comment limit with the stat block.
           { echo 'body<<EOF'
             echo '### Rendered manifest diff (vs the rendered branch)'
-            if git -C "$rb" diff --cached --quiet; then echo '_no changes_'; else
-              echo '```diff'; git -C "$rb" diff --cached -U8 | head -c 60000; echo '```'; fi
+            if [[ -z "$against" ]]; then echo '_first render_'
+            elif [[ -z "$(.bin/gcd show --diff --against "$against" --stat --color never)" ]]; then echo '_no changes_'
+            else
+              echo '```text'; .bin/gcd show --diff --against "$against" --stat --color never; echo '```'
+              echo '```diff'; .bin/gcd show --diff --against "$against" --color never | head -c 55000; echo; echo '```'
+            fi
             echo EOF; } >> "$GITHUB_OUTPUT"
 
       - name: comment on PR

@@ -19,8 +19,8 @@ type FileDiff struct {
 	Old, New string
 }
 
-// readFiles maps slash paths under root/dir to contents (missing dir: empty).
-func readFiles(root, dir string) (map[string]string, error) {
+// ReadFiles maps slash paths under root/dir to contents (missing dir: empty).
+func ReadFiles(root, dir string) (map[string]string, error) {
 	m := map[string]string{}
 	err := filepath.WalkDir(filepath.Join(root, dir), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -49,11 +49,11 @@ func ChangedCaps(baseRoot, root string) ([]string, error) {
 	set := map[string]bool{}
 	teams := false
 	for _, dir := range []string{"capabilities", "teams"} {
-		a, err := readFiles(baseRoot, dir)
+		a, err := ReadFiles(baseRoot, dir)
 		if err != nil {
 			return nil, err
 		}
-		b, err := readFiles(root, dir)
+		b, err := ReadFiles(root, dir)
 		if err != nil {
 			return nil, err
 		}
