@@ -1,57 +1,56 @@
 [34mmy-app[0m:
   [34mowners[0m:
-    [34mcodeOwners[0m: [team1]                                            [2m# owners.yml:1[0m
+    [34mcodeOwners[0m: [team1]                                          [2m# owners.yml:1[0m
     [34mpromoters[0m:
-      [34mdev[0m: [doug@example.com]                                      [2m# owners.yml:3[0m
-    [34mviewers[0m: [bob@example.com]                                     [2m# owners.yml:7[0m
-    [34mbreakGlass[0m: [carol@example.com]                                [2m# owners.yml:8[0m
-  [34mstages[0m:
-    [34mdev[0m:
-      [34mdc1-dev-k8s[0m:
-        [34mimage[0m: ghcr.io/pitoniak32/nginx                            [2m# apps/my-app/app.yml:1[0m
-        [34menvironment[0m: dev                                           [2m# targets/dc1-dev-k8s/target.yml:4[0m
-        [34menvironmentType[0m: dev                                       [2m# targets/dc1-dev-k8s/target.yml:5[0m
-        [34mplatform[0m: K8S                                              [2m# targets/dc1-dev-k8s/target.yml:9[0m
-        [34mcluster[0m: dc1                                               [2m# targets/dc1-dev-k8s/target.yml:2[0m
-        [34mnamespace[0m: payments-onprem-dev                             [2m# targets/dc1-dev-k8s/target.yml:3[0m
-        [34mbilling[0m: dev                                               [2m# targets/dc1-dev-k8s/target.yml:8[0m
-        [34mauth[0m:
-          [34mwifEmail[0m: team1-dev@team1-dev.iam.gserviceaccount.com    [2m# targets/dc1-dev-k8s/target.yml:7[0m
-        [34mport[0m: 80                                                   [2m# apps/my-app/app.yml:4[0m
-        [34mreplicas[0m: 3                                                [2m# apps/my-app/app.yml:20[0m
-        [34mresources[0m:
-          [34mcpu[0m: 250m                                                [2m# apps/my-app/app.yml:22[0m
-          [34mmemory[0m: 256Mi                                            [2m# apps/my-app/app.yml:23[0m
-        [34mdeployWith[0m: argocd                                         [2m# global default[0m
-        [34menvFrom[0m:
-          - launchdarkly                                           [2m# apps/my-app/app.yml:11[0m
-        [34menv[0m:
-          [34mLD_SDK_KEY[0m: secret:acme-dev-onprem/launchdarkly-sdk-key  [2m# targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:1[0m
-          [34mLD_RELAY_URL[0m: https://ld-relay.onprem-dev.example.com    [2m# targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:2[0m
-          [34mAPP_SECRET[0m: secret:acme-proj1/my-app-secret              [2m# apps/my-app/app.yml:8[0m
-          [34mSTAGE_ENV[0m: "false"                                       [2m# apps/my-app/app.yml:13[0m
-          [34mAPP_ENV[0m: "false"                                         [2m# apps/my-app/app.yml:19[0m
-      [34mus-east4-dev-k8s[0m:
-        [34mimage[0m: ghcr.io/pitoniak32/nginx                            [2m# apps/my-app/app.yml:1[0m
-        [34menvironment[0m: dev                                           [2m# targets/us-east4-dev-k8s/target.yml:4[0m
-        [34menvironmentType[0m: dev                                       [2m# targets/us-east4-dev-k8s/target.yml:5[0m
-        [34mplatform[0m: K8S                                              [2m# targets/us-east4-dev-k8s/target.yml:9[0m
-        [34mcluster[0m: us-east4                                          [2m# targets/us-east4-dev-k8s/target.yml:2[0m
-        [34mnamespace[0m: payments-us-dev                                 [2m# targets/us-east4-dev-k8s/target.yml:3[0m
-        [34mbilling[0m: dev                                               [2m# targets/us-east4-dev-k8s/target.yml:8[0m
-        [34mauth[0m:
-          [34mwifEmail[0m: team1-dev@team1-dev.iam.gserviceaccount.com    [2m# targets/us-east4-dev-k8s/target.yml:7[0m
-        [34mport[0m: 80                                                   [2m# apps/my-app/app.yml:4[0m
-        [34mreplicas[0m: 1                                                [2m# apps/my-app/app.yml:14[0m
-        [34mresources[0m:
-          [34mcpu[0m: 100m                                                [2m# global default[0m
-          [34mmemory[0m: 128Mi                                            [2m# global default[0m
-        [34mdeployWith[0m: argocd                                         [2m# global default[0m
-        [34menvFrom[0m:
-          - launchdarkly                                           [2m# apps/my-app/app.yml:11[0m
-        [34menv[0m:
-          [34mLD_SDK_KEY[0m: secret:acme-dev-us/launchdarkly-sdk-key      [2m# targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml:1[0m
-          [34mLD_RELAY_URL[0m: https://ld-relay.us-dev.example.com        [2m# targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml:2[0m
-          [34mAPP_ENV[0m: "true"                                          [2m# apps/my-app/app.yml:7[0m
-          [34mAPP_SECRET[0m: secret:acme-proj1/my-app-secret              [2m# apps/my-app/app.yml:8[0m
-          [34mSTAGE_ENV[0m: "false"                                       [2m# apps/my-app/app.yml:13[0m
+      [34mdev[0m: [doug@example.com]                                    [2m# owners.yml:3[0m
+    [34mviewers[0m: [bob@example.com]                                   [2m# owners.yml:7[0m
+    [34mbreakGlass[0m: [carol@example.com]                              [2m# owners.yml:8[0m
+  [34mdev[0m:
+    [34mdc1-dev-k8s[0m:
+      [34mimage[0m: ghcr.io/pitoniak32/nginx                            [2m# apps/my-app/app.yml:1[0m
+      [34menvironment[0m: dev                                           [2m# targets/dc1-dev-k8s/target.yml:4[0m
+      [34menvironmentType[0m: dev                                       [2m# targets/dc1-dev-k8s/target.yml:5[0m
+      [34mplatform[0m: K8S                                              [2m# targets/dc1-dev-k8s/target.yml:9[0m
+      [34mcluster[0m: dc1                                               [2m# targets/dc1-dev-k8s/target.yml:2[0m
+      [34mnamespace[0m: payments-onprem-dev                             [2m# targets/dc1-dev-k8s/target.yml:3[0m
+      [34mbilling[0m: dev                                               [2m# targets/dc1-dev-k8s/target.yml:8[0m
+      [34mauth[0m:
+        [34mwifEmail[0m: team1-dev@team1-dev.iam.gserviceaccount.com    [2m# targets/dc1-dev-k8s/target.yml:7[0m
+      [34mport[0m: 80                                                   [2m# apps/my-app/app.yml:4[0m
+      [34mreplicas[0m: 3                                                [2m# apps/my-app/app.yml:20[0m
+      [34mresources[0m:
+        [34mcpu[0m: 250m                                                [2m# apps/my-app/app.yml:22[0m
+        [34mmemory[0m: 256Mi                                            [2m# apps/my-app/app.yml:23[0m
+      [34mdeployWith[0m: argocd                                         [2m# global default[0m
+      [34menvFrom[0m:
+        - launchdarkly                                           [2m# apps/my-app/app.yml:11[0m
+      [34menv[0m:
+        [34mLD_SDK_KEY[0m: secret:acme-dev-onprem/launchdarkly-sdk-key  [2m# targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:1[0m
+        [34mLD_RELAY_URL[0m: https://ld-relay.onprem-dev.example.com    [2m# targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:2[0m
+        [34mAPP_SECRET[0m: secret:acme-proj1/my-app-secret              [2m# apps/my-app/app.yml:8[0m
+        [34mSTAGE_ENV[0m: "false"                                       [2m# apps/my-app/app.yml:13[0m
+        [34mAPP_ENV[0m: "false"                                         [2m# apps/my-app/app.yml:19[0m
+    [34mus-east4-dev-k8s[0m:
+      [34mimage[0m: ghcr.io/pitoniak32/nginx                            [2m# apps/my-app/app.yml:1[0m
+      [34menvironment[0m: dev                                           [2m# targets/us-east4-dev-k8s/target.yml:4[0m
+      [34menvironmentType[0m: dev                                       [2m# targets/us-east4-dev-k8s/target.yml:5[0m
+      [34mplatform[0m: K8S                                              [2m# targets/us-east4-dev-k8s/target.yml:9[0m
+      [34mcluster[0m: us-east4                                          [2m# targets/us-east4-dev-k8s/target.yml:2[0m
+      [34mnamespace[0m: payments-us-dev                                 [2m# targets/us-east4-dev-k8s/target.yml:3[0m
+      [34mbilling[0m: dev                                               [2m# targets/us-east4-dev-k8s/target.yml:8[0m
+      [34mauth[0m:
+        [34mwifEmail[0m: team1-dev@team1-dev.iam.gserviceaccount.com    [2m# targets/us-east4-dev-k8s/target.yml:7[0m
+      [34mport[0m: 80                                                   [2m# apps/my-app/app.yml:4[0m
+      [34mreplicas[0m: 1                                                [2m# apps/my-app/app.yml:14[0m
+      [34mresources[0m:
+        [34mcpu[0m: 100m                                                [2m# global default[0m
+        [34mmemory[0m: 128Mi                                            [2m# global default[0m
+      [34mdeployWith[0m: argocd                                         [2m# global default[0m
+      [34menvFrom[0m:
+        - launchdarkly                                           [2m# apps/my-app/app.yml:11[0m
+      [34menv[0m:
+        [34mLD_SDK_KEY[0m: secret:acme-dev-us/launchdarkly-sdk-key      [2m# targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml:1[0m
+        [34mLD_RELAY_URL[0m: https://ld-relay.us-dev.example.com        [2m# targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml:2[0m
+        [34mAPP_ENV[0m: "true"                                          [2m# apps/my-app/app.yml:7[0m
+        [34mAPP_SECRET[0m: secret:acme-proj1/my-app-secret              [2m# apps/my-app/app.yml:8[0m
+        [34mSTAGE_ENV[0m: "false"                                       [2m# apps/my-app/app.yml:13[0m

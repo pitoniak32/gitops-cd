@@ -10,7 +10,6 @@ import (
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/cluster"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/infra"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/regions"
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +23,7 @@ func init() {
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				ctx := cmd.Context()
-				root, err := repo.Root()
+				root, err := resolveRoot(cmd)
 				if err != nil {
 					return err
 				}

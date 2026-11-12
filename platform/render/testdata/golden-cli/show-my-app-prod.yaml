@@ -5,43 +5,42 @@ my-app:
       prod: [doug@example.com]
     viewers: [bob@example.com]
     breakGlass: [carol@example.com]
-  stages:
-    prod:
-      dc1-prd-k8s:
-        image: ghcr.io/pitoniak32/nginx
-        environment: prod
-        environmentType: prd
-        platform: K8S
-        cluster: dc1
-        namespace: payments-onprem-prod
-        billing: prod
-        auth:
-          wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
-        port: 80
-        replicas: 2
-        resources:
-          cpu: 500m
-          memory: 512Mi
-        deployWith: argocd
-        env:
-          APP_ENV: "true"
-          APP_SECRET: secret:acme-proj1/my-app-secret
-      us-east4-prd-k8s:
-        image: ghcr.io/pitoniak32/nginx
-        environment: prod
-        environmentType: prd
-        platform: K8S
-        cluster: us-east4
-        namespace: payments-us-prod
-        billing: prod
-        auth:
-          wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
-        port: 80
-        replicas: 2
-        resources:
-          cpu: 500m
-          memory: 512Mi
-        deployWith: argocd
-        env:
-          APP_ENV: "true"
-          APP_SECRET: secret:acme-proj1/my-app-secret
+  prod:
+    dc1-prd-k8s:
+      image: ghcr.io/pitoniak32/nginx
+      environment: prod
+      environmentType: prd
+      platform: K8S
+      cluster: dc1
+      namespace: payments-onprem-prod
+      billing: prod
+      auth:
+        wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
+      port: 80
+      replicas: 2
+      resources:
+        cpu: 500m
+        memory: 512Mi
+      deployWith: argocd
+      env:
+        APP_ENV: "true"
+        APP_SECRET: secret:acme-proj1/my-app-secret
+    us-east4-prd-k8s:
+      image: ghcr.io/pitoniak32/nginx
+      environment: prod
+      environmentType: prd
+      platform: K8S
+      cluster: us-east4
+      namespace: payments-us-prod
+      billing: prod
+      auth:
+        wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com
+      port: 80
+      replicas: 2
+      resources:
+        cpu: 500m
+        memory: 512Mi
+      deployWith: argocd
+      env:
+        APP_ENV: "true"
+        APP_SECRET: secret:acme-proj1/my-app-secret

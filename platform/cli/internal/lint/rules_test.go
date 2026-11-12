@@ -121,6 +121,18 @@ func TestInvalidDirNames(t *testing.T) {
 	}
 }
 
+// "owners" is reserved as a stage name (collides with the owners key in gcd show output)
+func TestReservedStageName(t *testing.T) {
+	t.Parallel()
+	r := fixture(t)
+	c := filepath.Join(r, payments, "stages")
+	must(t, os.Rename(filepath.Join(c, "perf.yml"), filepath.Join(c, "owners.yml")))
+	got := lintOut(t, r)
+	if !matches(t, got, `^capabilities/payments/stages/owners\.yml:[0-9]+:[0-9]+: stage name "owners" is reserved`) {
+		t.Errorf("reserved stage name not rejected:\n%s", got)
+	}
+}
+
 // test.sh: "target/stage name collision ok", "target <stage>-done collision ok"
 func TestTargetStageNameCollision(t *testing.T) {
 	t.Parallel()

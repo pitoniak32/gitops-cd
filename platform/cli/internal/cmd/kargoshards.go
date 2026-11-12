@@ -5,7 +5,6 @@ import (
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kargo"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/regions"
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +15,7 @@ func init() {
 			Short: "Kargo controller shard per region: hub identity, token handoff, regional controller (idempotent)",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
-				root, err := repo.Root()
+				root, err := resolveRoot(cmd)
 				if err != nil {
 					return err
 				}

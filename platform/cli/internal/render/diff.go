@@ -19,8 +19,8 @@ type FileDiff struct {
 	Old, New string
 }
 
-// readFiles maps slash paths under root/dir to contents (missing dir: empty).
-func readFiles(root, dir string) (map[string]string, error) {
+// ReadFiles maps slash paths under root/dir to contents (missing dir: empty).
+func ReadFiles(root, dir string) (map[string]string, error) {
 	m := map[string]string{}
 	err := filepath.WalkDir(filepath.Join(root, dir), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -49,11 +49,11 @@ func ChangedCaps(baseRoot, root string) ([]string, error) {
 	set := map[string]bool{}
 	teams := false
 	for _, dir := range []string{"capabilities", "teams"} {
-		a, err := readFiles(baseRoot, dir)
+		a, err := ReadFiles(baseRoot, dir)
 		if err != nil {
 			return nil, err
 		}
-		b, err := readFiles(root, dir)
+		b, err := ReadFiles(root, dir)
 		if err != nil {
 			return nil, err
 		}
@@ -90,8 +90,9 @@ func ChangedCaps(baseRoot, root string) ([]string, error) {
 	return out, nil
 }
 
-// renderSide renders capName from root in memory; a missing capability dir yields no files.
-func renderSide(cfg capability.Config, root, capName string) (map[string]string, error) {
+// RenderCap renders capName from root in memory (rendered/-relative path -> content); a capability
+// absent from root yields no files.
+func RenderCap(cfg capability.Config, root, capName string) (map[string]string, error) {
 	if st, err := os.Stat(filepath.Join(root, "capabilities", capName)); err != nil || !st.IsDir() {
 		return nil, nil
 	}
@@ -107,11 +108,11 @@ func renderSide(cfg capability.Config, root, capName string) (map[string]string,
 func Diff(cfg capability.Config, baseRoot, root string, caps []string) ([]FileDiff, error) {
 	var out []FileDiff
 	for _, c := range caps {
-		now, err := renderSide(cfg, root, c)
+		now, err := RenderCap(cfg, root, c)
 		if err != nil {
 			return nil, err
 		}
-		was, err := renderSide(cfg, baseRoot, c)
+		was, err := RenderCap(cfg, baseRoot, c)
 		if err != nil {
 			return nil, fmt.Errorf("base: %w", err)
 		}

@@ -4,7 +4,6 @@ import (
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/dns"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kargo"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +13,7 @@ func init() {
 			Use:   "kargo-restore [cap...]",
 			Short: "Restore Kargo's record of what runs where after a cluster rebuild, from the env/* branches (idempotent)",
 			RunE: func(cmd *cobra.Command, caps []string) error {
-				root, err := repo.Root()
+				root, err := resolveRoot(cmd)
 				if err != nil {
 					return err
 				}

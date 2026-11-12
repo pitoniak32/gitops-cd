@@ -4,7 +4,6 @@ import (
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/certs"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/dns"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +14,7 @@ func init() {
 			Short: "Browser-trusted TLS for *.localhost UIs: mkcert CA in macOS keychain + traefik default cert",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
-				root, err := repo.Root()
+				root, err := resolveRoot(cmd)
 				if err != nil {
 					return err
 				}

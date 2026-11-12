@@ -70,6 +70,9 @@ func (v *validator) stage(r reporter, f *file) {
 	if !nameRx.MatchString(f.name()) {
 		r.at(nil, nil, badName)
 	}
+	if f.name() == "owners" {
+		r.at(nil, nil, `stage name "owners" is reserved (it is a key of gcd show output next to the stages)`)
+	}
 	r.check(stageSchema(v.stages), nil, f.doc, nil)
 }
 

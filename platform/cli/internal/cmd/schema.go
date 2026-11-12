@@ -7,13 +7,11 @@ import (
 	"strings"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	register(func() *cobra.Command {
-		var rootDir string
 		var asJSON, sources bool
 		c := &cobra.Command{
 			Use:   "schema [kind]",
@@ -24,13 +22,8 @@ and description. -s/--sources adds a fixture example per field (fixture: ` + cap
 Give a kind to print only that one. --json prints the full schema as JSON.`,
 			Args: cobra.MaximumNArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				root := rootDir
-				var err error
-				if root == "" {
-					if root, err = repo.Root(); err != nil {
-						return err
-					}
-				} else if root, err = filepath.Abs(root); err != nil {
+				root, err := resolveRoot(cmd)
+				if err != nil {
 					return err
 				}
 				pt, err := painter(cmd)
@@ -72,7 +65,6 @@ Give a kind to print only that one. --json prints the full schema as JSON.`,
 				return err
 			},
 		}
-		c.Flags().StringVar(&rootDir, "root", "", "repo root, where the fixture examples are read (default: this repo)")
 		c.Flags().BoolVar(&asJSON, "json", false, "JSON instead of YAML")
 		c.Flags().BoolVarP(&sources, "sources", "s", false, "add a fixture example to each field comment")
 		return c

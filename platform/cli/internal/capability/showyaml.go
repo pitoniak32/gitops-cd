@@ -110,7 +110,7 @@ func (n *ynode) write(y *yamlLines, indent int, sources bool) {
 	}
 }
 
-// YAML renders r for people as YAML: per app its owners, then stages.<stage>.<target> with the
+// YAML renders r for people as YAML: per app its owners, then <stage>.<target> with the
 // effective values (keys and source comments painted by p). sources appends each value's origin (file:line or note) as a comment.
 func (r ShowResult) YAML(sources bool, p color.P) string {
 	var order []string
@@ -130,9 +130,8 @@ func (r ShowResult) YAML(sources bool, p color.P) string {
 				o.put("", v)
 			}
 		}
-		st := root.kid("stages")
 		for _, d := range byApp[app] {
-			t := st.kid(d.Stage).kid(d.Target)
+			t := root.kid(d.Stage).kid(d.Target)
 			art := d.artifact
 			if art == "" {
 				art = "image"

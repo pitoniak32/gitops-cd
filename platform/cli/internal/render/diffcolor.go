@@ -10,7 +10,7 @@ import (
 
 var hunkRe = regexp.MustCompile(`^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@`)
 
-// ColorDiff paints finished Unified / FormatSelectedDiff / FormatFiles text: file headers (`# rendered/`
+// ColorDiff paints finished Unified / FormatFiles text: file headers (`# rendered/`
 // lines and ---/+++ pairs) bold, @@ cyan, + green, - red. Hunk line counts decide where a hunk ends,
 // so YAML `---` separators and full-file content outside hunks stay plain.
 func ColorDiff(text string, p color.P) string {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
@@ -21,15 +20,16 @@ var getenv = os.Getenv
 
 func init() {
 	register(func() *cobra.Command {
-		var rootDir, base, format string
+		var base, format string
 		var changed, everything, noProgress, asJSON bool
 		c := &cobra.Command{
 			Use:   "lint [caps...]",
 			Short: "Validate capabilities (+ teams/) with the full rules: <file>:<line>:<col>: <message>",
 			Long: `Validate capabilities in parallel. Default: every capability and teams/.
 
---changed lints only what the changes since the merge-base with --base (default origin/main, else main)
-can affect, including uncommitted and untracked files: changed capabilities; for a changed teams/ file,
+--changed lints only what the changes since the branch fork point can affect (--base: jj revset or git rev
+to fork from, via fork_point(base | @) in jj and merge-base in git; default: trunk() in jj, origin/main
+else main in git), including uncommitted and untracked files: changed capabilities; for a changed teams/ file,
 teams/ and the capabilities whose owners.yml names it; everything when platform/cli changed. Names that
 would collide across capabilities (Kargo projects, Applications) are checked over all capabilities
 every time.
@@ -40,13 +40,8 @@ In GitHub Actions (GITHUB_ACTIONS=true), with none of those given: a pull_reques
 origin/<base branch>, or everything when the PR has the label "` + ghactions.LintAllLabel + `"; any other event
 lints everything. Diagnostics are then ::error annotations (--format auto).`,
 			RunE: func(cmd *cobra.Command, args []string) error {
-				root := rootDir
-				var err error
-				if root == "" {
-					if root, err = repo.Root(); err != nil {
-						return err
-					}
-				} else if root, err = filepath.Abs(root); err != nil {
+				root, err := resolveRoot(cmd)
+				if err != nil {
 					return err
 				}
 				gh, err := ghactions.Detect(getenv)
@@ -89,10 +84,15 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 				case !changed && base != "":
 					return errors.New("--base needs --changed")
 				case changed:
-					files, mb, err := repo.Changed(root, base)
+					id, err := repo.ResolveForkBase(root, base)
 					if err != nil {
 						return err
 					}
+					files, err := repo.ChangedFiles(root, id)
+					if err != nil {
+						return err
+					}
+					mb := id
 					var all bool
 					s, all = lint.Changed(root, files)
 					what := strings.Join(s.Caps, ", ")
@@ -123,17 +123,7 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 					}
 					fmt.Fprintln(cmd.OutOrStdout(), string(b))
 				default:
-					for _, d := range diags {
-						if github {
-							msg := d.Msg
-							if d.Label != "" {
-								msg = d.Label + ": " + msg
-							}
-							fmt.Fprintln(cmd.OutOrStdout(), ghactions.Error(d.File, d.Line, d.Col, msg))
-							continue
-						}
-						fmt.Fprintln(cmd.OutOrStdout(), d)
-					}
+					printDiags(cmd.OutOrStdout(), diags, github)
 				}
 				if err != nil {
 					return err
@@ -145,10 +135,9 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 				return nil
 			},
 		}
-		c.Flags().StringVar(&rootDir, "root", "", "repo root (default: this repo)")
 		c.Flags().BoolVar(&everything, "all", false, "lint everything; overrides --changed, --base and named capabilities")
 		c.Flags().BoolVar(&changed, "changed", false, "lint only what changed since the merge-base with --base")
-		c.Flags().StringVar(&base, "base", "", "git revision to diff against with --changed (default: origin/main, else main)")
+		c.Flags().StringVar(&base, "base", "", baseHelp)
 		c.Flags().StringVar(&format, "format", "auto", "diagnostics as text (file:line:col: message), github (::error annotations) or json (array of diagnostics); auto: github in GitHub Actions")
 		c.Flags().BoolVar(&noProgress, "no-progress", false, "no progress bars (they show only when stderr is a terminal)")
 		return c

@@ -1,162 +1,161 @@
 my-app:
   owners:
-    codeOwners: [team1]                                                  # owners.yml:1
+    codeOwners: [team1]                                                # owners.yml:1
     promoters:
-      dev: [doug@example.com]                                            # owners.yml:3
-      staging: [doug@example.com]                                        # owners.yml:4
-      perf: [doug@example.com]                                           # owners.yml:5
-      prod: [doug@example.com]                                           # owners.yml:6
-    viewers: [bob@example.com]                                           # owners.yml:7
-    breakGlass: [carol@example.com]                                      # owners.yml:8
-  stages:
-    dev:
-      dc1-dev-k8s:
-        image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
-        environment: dev                                                 # targets/dc1-dev-k8s/target.yml:4
-        environmentType: dev                                             # targets/dc1-dev-k8s/target.yml:5
-        platform: K8S                                                    # targets/dc1-dev-k8s/target.yml:9
-        cluster: dc1                                                     # targets/dc1-dev-k8s/target.yml:2
-        namespace: payments-onprem-dev                                   # targets/dc1-dev-k8s/target.yml:3
-        billing: dev                                                     # targets/dc1-dev-k8s/target.yml:8
-        auth:
-          wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com          # targets/dc1-dev-k8s/target.yml:7
-        port: 80                                                         # apps/my-app/app.yml:4
-        replicas: 3                                                      # apps/my-app/app.yml:20
-        resources:
-          cpu: 250m                                                      # apps/my-app/app.yml:22
-          memory: 256Mi                                                  # apps/my-app/app.yml:23
-        deployWith: argocd                                               # global default
-        envFrom:
-          - launchdarkly                                                 # apps/my-app/app.yml:11
-        env:
-          LD_SDK_KEY: secret:acme-dev-onprem/launchdarkly-sdk-key        # targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:1
-          LD_RELAY_URL: https://ld-relay.onprem-dev.example.com          # targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:2
-          APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
-          STAGE_ENV: "false"                                             # apps/my-app/app.yml:13
-          APP_ENV: "false"                                               # apps/my-app/app.yml:19
-      us-east4-dev-k8s:
-        image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
-        environment: dev                                                 # targets/us-east4-dev-k8s/target.yml:4
-        environmentType: dev                                             # targets/us-east4-dev-k8s/target.yml:5
-        platform: K8S                                                    # targets/us-east4-dev-k8s/target.yml:9
-        cluster: us-east4                                                # targets/us-east4-dev-k8s/target.yml:2
-        namespace: payments-us-dev                                       # targets/us-east4-dev-k8s/target.yml:3
-        billing: dev                                                     # targets/us-east4-dev-k8s/target.yml:8
-        auth:
-          wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com          # targets/us-east4-dev-k8s/target.yml:7
-        port: 80                                                         # apps/my-app/app.yml:4
-        replicas: 1                                                      # apps/my-app/app.yml:14
-        resources:
-          cpu: 100m                                                      # global default
-          memory: 128Mi                                                  # global default
-        deployWith: argocd                                               # global default
-        envFrom:
-          - launchdarkly                                                 # apps/my-app/app.yml:11
-        env:
-          LD_SDK_KEY: secret:acme-dev-us/launchdarkly-sdk-key            # targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml:1
-          LD_RELAY_URL: https://ld-relay.us-dev.example.com              # targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml:2
-          APP_ENV: "true"                                                # apps/my-app/app.yml:7
-          APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
-          STAGE_ENV: "false"                                             # apps/my-app/app.yml:13
-    staging:
-      dc1-npr-k8s:
-        image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
-        environment: staging                                             # targets/dc1-npr-k8s/target.yml:4
-        environmentType: npr                                             # targets/dc1-npr-k8s/target.yml:5
-        platform: K8S                                                    # targets/dc1-npr-k8s/target.yml:9
-        cluster: dc1                                                     # targets/dc1-npr-k8s/target.yml:2
-        namespace: payments-onprem-stg                                   # targets/dc1-npr-k8s/target.yml:3
-        billing: nonprod                                                 # targets/dc1-npr-k8s/target.yml:8
-        auth:
-          wifEmail: team1-staging@team1-staging.iam.gserviceaccount.com  # targets/dc1-npr-k8s/target.yml:7
-        port: 80                                                         # apps/my-app/app.yml:4
-        replicas: 2                                                      # apps/my-app/app.yml:5
-        resources:
-          cpu: 100m                                                      # global default
-          memory: 128Mi                                                  # global default
-        deployWith: gha                                                  # apps/my-app/app.yml:30
-        workflow:
-          repo: acme/deploys                                             # apps/my-app/app.yml:32
-          file: onprem.yml                                               # apps/my-app/app.yml:33
-          ref: v1                                                        # apps/my-app/app.yml:34
-        env:
-          APP_ENV: "true"                                                # apps/my-app/app.yml:7
-          APP_SECRET: secret:acme-proj2/my-app-secret@3                  # apps/my-app/app.yml:29
-      us-east4-npr-k8s:
-        image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
-        environment: staging                                             # targets/us-east4-npr-k8s/target.yml:4
-        environmentType: npr                                             # targets/us-east4-npr-k8s/target.yml:5
-        platform: K8S                                                    # targets/us-east4-npr-k8s/target.yml:9
-        cluster: us-east4                                                # targets/us-east4-npr-k8s/target.yml:2
-        namespace: payments-us-stg                                       # targets/us-east4-npr-k8s/target.yml:3
-        billing: nonprod                                                 # targets/us-east4-npr-k8s/target.yml:8
-        auth:
-          wifEmail: team1-staging@team1-staging.iam.gserviceaccount.com  # targets/us-east4-npr-k8s/target.yml:7
-        port: 80                                                         # apps/my-app/app.yml:4
-        replicas: 2                                                      # apps/my-app/app.yml:5
-        resources:
-          cpu: 100m                                                      # global default
-          memory: 128Mi                                                  # global default
-        deployWith: argocd                                               # global default
-        env:
-          APP_ENV: "true"                                                # apps/my-app/app.yml:7
-          APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
-    perf:
-      us-east4-npr-k8s-perf:
-        image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
-        environment: perf                                                # targets/us-east4-npr-k8s-perf/target.yml:5
-        environmentType: npr                                             # targets/us-east4-npr-k8s-perf/target.yml:6
-        platform: K8S                                                    # targets/us-east4-npr-k8s-perf/target.yml:10
-        cluster: us-east4                                                # targets/us-east4-npr-k8s-perf/target.yml:3
-        namespace: payments-us-perf                                      # targets/us-east4-npr-k8s-perf/target.yml:4
-        billing: nonprod                                                 # targets/us-east4-npr-k8s-perf/target.yml:9
-        auth:
-          wifEmail: team1-perf@team1-perf.iam.gserviceaccount.com        # targets/us-east4-npr-k8s-perf/target.yml:8
-        port: 80                                                         # apps/my-app/app.yml:4
-        replicas: 2                                                      # apps/my-app/app.yml:5
-        resources:
-          cpu: 100m                                                      # global default
-          memory: 128Mi                                                  # global default
-        deployWith: argocd                                               # global default
-        env:
-          APP_ENV: "true"                                                # apps/my-app/app.yml:7
-          APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
-    prod:
-      dc1-prd-k8s:
-        image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
-        environment: prod                                                # targets/dc1-prd-k8s/target.yml:4
-        environmentType: prd                                             # targets/dc1-prd-k8s/target.yml:5
-        platform: K8S                                                    # targets/dc1-prd-k8s/target.yml:9
-        cluster: dc1                                                     # targets/dc1-prd-k8s/target.yml:2
-        namespace: payments-onprem-prod                                  # targets/dc1-prd-k8s/target.yml:3
-        billing: prod                                                    # targets/dc1-prd-k8s/target.yml:8
-        auth:
-          wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com        # targets/dc1-prd-k8s/target.yml:7
-        port: 80                                                         # apps/my-app/app.yml:4
-        replicas: 2                                                      # apps/my-app/app.yml:5
-        resources:
-          cpu: 500m                                                      # apps/my-app/app.yml:40
-          memory: 512Mi                                                  # apps/my-app/app.yml:41
-        deployWith: argocd                                               # global default
-        env:
-          APP_ENV: "true"                                                # apps/my-app/app.yml:7
-          APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
-      us-east4-prd-k8s:
-        image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
-        environment: prod                                                # targets/us-east4-prd-k8s/target.yml:4
-        environmentType: prd                                             # targets/us-east4-prd-k8s/target.yml:5
-        platform: K8S                                                    # targets/us-east4-prd-k8s/target.yml:9
-        cluster: us-east4                                                # targets/us-east4-prd-k8s/target.yml:2
-        namespace: payments-us-prod                                      # targets/us-east4-prd-k8s/target.yml:3
-        billing: prod                                                    # targets/us-east4-prd-k8s/target.yml:8
-        auth:
-          wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com        # targets/us-east4-prd-k8s/target.yml:7
-        port: 80                                                         # apps/my-app/app.yml:4
-        replicas: 2                                                      # apps/my-app/app.yml:5
-        resources:
-          cpu: 500m                                                      # apps/my-app/app.yml:40
-          memory: 512Mi                                                  # apps/my-app/app.yml:41
-        deployWith: argocd                                               # global default
-        env:
-          APP_ENV: "true"                                                # apps/my-app/app.yml:7
-          APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
+      dev: [doug@example.com]                                          # owners.yml:3
+      staging: [doug@example.com]                                      # owners.yml:4
+      perf: [doug@example.com]                                         # owners.yml:5
+      prod: [doug@example.com]                                         # owners.yml:6
+    viewers: [bob@example.com]                                         # owners.yml:7
+    breakGlass: [carol@example.com]                                    # owners.yml:8
+  dev:
+    dc1-dev-k8s:
+      image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
+      environment: dev                                                 # targets/dc1-dev-k8s/target.yml:4
+      environmentType: dev                                             # targets/dc1-dev-k8s/target.yml:5
+      platform: K8S                                                    # targets/dc1-dev-k8s/target.yml:9
+      cluster: dc1                                                     # targets/dc1-dev-k8s/target.yml:2
+      namespace: payments-onprem-dev                                   # targets/dc1-dev-k8s/target.yml:3
+      billing: dev                                                     # targets/dc1-dev-k8s/target.yml:8
+      auth:
+        wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com          # targets/dc1-dev-k8s/target.yml:7
+      port: 80                                                         # apps/my-app/app.yml:4
+      replicas: 3                                                      # apps/my-app/app.yml:20
+      resources:
+        cpu: 250m                                                      # apps/my-app/app.yml:22
+        memory: 256Mi                                                  # apps/my-app/app.yml:23
+      deployWith: argocd                                               # global default
+      envFrom:
+        - launchdarkly                                                 # apps/my-app/app.yml:11
+      env:
+        LD_SDK_KEY: secret:acme-dev-onprem/launchdarkly-sdk-key        # targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:1
+        LD_RELAY_URL: https://ld-relay.onprem-dev.example.com          # targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:2
+        APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
+        STAGE_ENV: "false"                                             # apps/my-app/app.yml:13
+        APP_ENV: "false"                                               # apps/my-app/app.yml:19
+    us-east4-dev-k8s:
+      image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
+      environment: dev                                                 # targets/us-east4-dev-k8s/target.yml:4
+      environmentType: dev                                             # targets/us-east4-dev-k8s/target.yml:5
+      platform: K8S                                                    # targets/us-east4-dev-k8s/target.yml:9
+      cluster: us-east4                                                # targets/us-east4-dev-k8s/target.yml:2
+      namespace: payments-us-dev                                       # targets/us-east4-dev-k8s/target.yml:3
+      billing: dev                                                     # targets/us-east4-dev-k8s/target.yml:8
+      auth:
+        wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com          # targets/us-east4-dev-k8s/target.yml:7
+      port: 80                                                         # apps/my-app/app.yml:4
+      replicas: 1                                                      # apps/my-app/app.yml:14
+      resources:
+        cpu: 100m                                                      # global default
+        memory: 128Mi                                                  # global default
+      deployWith: argocd                                               # global default
+      envFrom:
+        - launchdarkly                                                 # apps/my-app/app.yml:11
+      env:
+        LD_SDK_KEY: secret:acme-dev-us/launchdarkly-sdk-key            # targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml:1
+        LD_RELAY_URL: https://ld-relay.us-dev.example.com              # targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml:2
+        APP_ENV: "true"                                                # apps/my-app/app.yml:7
+        APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
+        STAGE_ENV: "false"                                             # apps/my-app/app.yml:13
+  staging:
+    dc1-npr-k8s:
+      image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
+      environment: staging                                             # targets/dc1-npr-k8s/target.yml:4
+      environmentType: npr                                             # targets/dc1-npr-k8s/target.yml:5
+      platform: K8S                                                    # targets/dc1-npr-k8s/target.yml:9
+      cluster: dc1                                                     # targets/dc1-npr-k8s/target.yml:2
+      namespace: payments-onprem-stg                                   # targets/dc1-npr-k8s/target.yml:3
+      billing: nonprod                                                 # targets/dc1-npr-k8s/target.yml:8
+      auth:
+        wifEmail: team1-staging@team1-staging.iam.gserviceaccount.com  # targets/dc1-npr-k8s/target.yml:7
+      port: 80                                                         # apps/my-app/app.yml:4
+      replicas: 2                                                      # apps/my-app/app.yml:5
+      resources:
+        cpu: 100m                                                      # global default
+        memory: 128Mi                                                  # global default
+      deployWith: gha                                                  # apps/my-app/app.yml:30
+      workflow:
+        repo: acme/deploys                                             # apps/my-app/app.yml:32
+        file: onprem.yml                                               # apps/my-app/app.yml:33
+        ref: v1                                                        # apps/my-app/app.yml:34
+      env:
+        APP_ENV: "true"                                                # apps/my-app/app.yml:7
+        APP_SECRET: secret:acme-proj2/my-app-secret@3                  # apps/my-app/app.yml:29
+    us-east4-npr-k8s:
+      image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
+      environment: staging                                             # targets/us-east4-npr-k8s/target.yml:4
+      environmentType: npr                                             # targets/us-east4-npr-k8s/target.yml:5
+      platform: K8S                                                    # targets/us-east4-npr-k8s/target.yml:9
+      cluster: us-east4                                                # targets/us-east4-npr-k8s/target.yml:2
+      namespace: payments-us-stg                                       # targets/us-east4-npr-k8s/target.yml:3
+      billing: nonprod                                                 # targets/us-east4-npr-k8s/target.yml:8
+      auth:
+        wifEmail: team1-staging@team1-staging.iam.gserviceaccount.com  # targets/us-east4-npr-k8s/target.yml:7
+      port: 80                                                         # apps/my-app/app.yml:4
+      replicas: 2                                                      # apps/my-app/app.yml:5
+      resources:
+        cpu: 100m                                                      # global default
+        memory: 128Mi                                                  # global default
+      deployWith: argocd                                               # global default
+      env:
+        APP_ENV: "true"                                                # apps/my-app/app.yml:7
+        APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
+  perf:
+    us-east4-npr-k8s-perf:
+      image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
+      environment: perf                                                # targets/us-east4-npr-k8s-perf/target.yml:5
+      environmentType: npr                                             # targets/us-east4-npr-k8s-perf/target.yml:6
+      platform: K8S                                                    # targets/us-east4-npr-k8s-perf/target.yml:10
+      cluster: us-east4                                                # targets/us-east4-npr-k8s-perf/target.yml:3
+      namespace: payments-us-perf                                      # targets/us-east4-npr-k8s-perf/target.yml:4
+      billing: nonprod                                                 # targets/us-east4-npr-k8s-perf/target.yml:9
+      auth:
+        wifEmail: team1-perf@team1-perf.iam.gserviceaccount.com        # targets/us-east4-npr-k8s-perf/target.yml:8
+      port: 80                                                         # apps/my-app/app.yml:4
+      replicas: 2                                                      # apps/my-app/app.yml:5
+      resources:
+        cpu: 100m                                                      # global default
+        memory: 128Mi                                                  # global default
+      deployWith: argocd                                               # global default
+      env:
+        APP_ENV: "true"                                                # apps/my-app/app.yml:7
+        APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
+  prod:
+    dc1-prd-k8s:
+      image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
+      environment: prod                                                # targets/dc1-prd-k8s/target.yml:4
+      environmentType: prd                                             # targets/dc1-prd-k8s/target.yml:5
+      platform: K8S                                                    # targets/dc1-prd-k8s/target.yml:9
+      cluster: dc1                                                     # targets/dc1-prd-k8s/target.yml:2
+      namespace: payments-onprem-prod                                  # targets/dc1-prd-k8s/target.yml:3
+      billing: prod                                                    # targets/dc1-prd-k8s/target.yml:8
+      auth:
+        wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com        # targets/dc1-prd-k8s/target.yml:7
+      port: 80                                                         # apps/my-app/app.yml:4
+      replicas: 2                                                      # apps/my-app/app.yml:5
+      resources:
+        cpu: 500m                                                      # apps/my-app/app.yml:40
+        memory: 512Mi                                                  # apps/my-app/app.yml:41
+      deployWith: argocd                                               # global default
+      env:
+        APP_ENV: "true"                                                # apps/my-app/app.yml:7
+        APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
+    us-east4-prd-k8s:
+      image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
+      environment: prod                                                # targets/us-east4-prd-k8s/target.yml:4
+      environmentType: prd                                             # targets/us-east4-prd-k8s/target.yml:5
+      platform: K8S                                                    # targets/us-east4-prd-k8s/target.yml:9
+      cluster: us-east4                                                # targets/us-east4-prd-k8s/target.yml:2
+      namespace: payments-us-prod                                      # targets/us-east4-prd-k8s/target.yml:3
+      billing: prod                                                    # targets/us-east4-prd-k8s/target.yml:8
+      auth:
+        wifEmail: team1-prod@team1-prod.iam.gserviceaccount.com        # targets/us-east4-prd-k8s/target.yml:7
+      port: 80                                                         # apps/my-app/app.yml:4
+      replicas: 2                                                      # apps/my-app/app.yml:5
+      resources:
+        cpu: 500m                                                      # apps/my-app/app.yml:40
+        memory: 512Mi                                                  # apps/my-app/app.yml:41
+      deployWith: argocd                                               # global default
+      env:
+        APP_ENV: "true"                                                # apps/my-app/app.yml:7
+        APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8

@@ -140,6 +140,39 @@ func All(root, out string, w io.Writer, prog *progress.Tracker) error {
 	return os.WriteFile(filepath.Join(out, "README.md"), b, 0o644)
 }
 
+// AllFiles is what All writes under out, in memory (rendered/-relative path -> content): every
+// capability, the platform files and the README. CODEOWNERS (outside rendered/) is not included.
+func AllFiles(root string) (map[string]string, error) {
+	teams, err := capability.LoadTeams(root)
+	if err != nil {
+		return nil, err
+	}
+	if d := teams.Lint(); len(d) > 0 {
+		return nil, fmt.Errorf("teams:\n%w", capability.Error(d))
+	}
+	out := capability.PlatformFiles(capability.Default())
+	var errs []error
+	for _, n := range capability.Names(root) {
+		files, err := capability.Render(capability.Default(), root, n, teams)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s:\n%w", n, Wrap(err)))
+			continue
+		}
+		for p, c := range files {
+			out[p] = c
+		}
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+	b, err := readme(root)
+	if err != nil {
+		return nil, err
+	}
+	out["README.md"] = string(b)
+	return out, nil
+}
+
 // step runs f as a one-step phase of prog.
 func step(prog *progress.Tracker, name string, f func() error) error {
 	p := prog.Start(name, 1)
@@ -175,7 +208,7 @@ func Selected(root string, names []string, out string, w io.Writer, prog *progre
 	}
 	var errs []error
 	if d := teams.Lint(); len(d) > 0 {
-		errs = append(errs, fmt.Errorf("teams:\n%s", capability.Error(d)))
+		errs = append(errs, fmt.Errorf("teams:\n%w", capability.Error(d)))
 	}
 	capErrs := make([]error, len(names))
 	p := prog.Start("capabilities", len(names))
@@ -184,7 +217,7 @@ func Selected(root string, names []string, out string, w io.Writer, prog *progre
 	for i, n := range names {
 		g.Go(func() error {
 			if _, err := capabilityWith(root, n, out, teams); err != nil {
-				capErrs[i] = fmt.Errorf("%s:\n%s", n, Wrap(err))
+				capErrs[i] = fmt.Errorf("%s:\n%w", n, Wrap(err))
 			}
 			p.Step(n)
 			return nil // every capability runs; errors are joined below

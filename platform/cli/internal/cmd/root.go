@@ -2,7 +2,10 @@
 package cmd
 
 import (
+	"path/filepath"
+
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +25,7 @@ func NewRoot() *cobra.Command {
 		SilenceErrors: false,
 	}
 	root.PersistentFlags().String("color", "auto", "color human output: auto (terminal and no NO_COLOR), always, never")
+	root.PersistentFlags().String("root", "", "repo root (default: this repo); sandbox: platform/render/testdata/root")
 	for _, f := range subcommands {
 		root.AddCommand(f())
 	}
@@ -33,3 +37,14 @@ func painter(cmd *cobra.Command) (color.P, error) {
 	mode, _ := cmd.Flags().GetString("color")
 	return color.Detect(mode, cmd.OutOrStdout())
 }
+
+// resolveRoot is the root --root flag as an absolute path, else the repo root.
+func resolveRoot(cmd *cobra.Command) (string, error) {
+	if r, _ := cmd.Flags().GetString("root"); r != "" {
+		return filepath.Abs(r)
+	}
+	return repo.Root()
+}
+
+// baseHelp describes --base (lint --changed, show --diff): the default is the branch fork point.
+const baseHelp = "jj revset (exactly one commit) or git rev; default: where this branch left trunk (jj: fork_point(trunk() | @); git: merge-base of HEAD and origin/main, else main)"
