@@ -11,10 +11,11 @@ import (
 // Diag is one diagnostic: <file>:<line>:<col>: [<label>: ]<message>, file relative to the repo root.
 // Label is the dotted path of the offending value inside the file.
 type Diag struct {
-	File      string
-	Line, Col int
-	Label     string
-	Msg       string
+	File  string `json:"file"`
+	Line  int    `json:"line"`
+	Col   int    `json:"col"`
+	Label string `json:"label,omitempty"`
+	Msg   string `json:"msg"`
 }
 
 func (d Diag) String() string {

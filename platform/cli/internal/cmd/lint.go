@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -21,7 +22,7 @@ var getenv = os.Getenv
 func init() {
 	register(func() *cobra.Command {
 		var rootDir, base, format string
-		var changed, everything, noProgress bool
+		var changed, everything, noProgress, asJSON bool
 		c := &cobra.Command{
 			Use:   "lint [caps...]",
 			Short: "Validate capabilities (+ teams/) with the full rules: <file>:<line>:<col>: <message>",
@@ -59,8 +60,10 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 				case "github":
 					github = true
 				case "text":
+				case "json":
+					asJSON = true
 				default:
-					return fmt.Errorf("--format: want auto, text or github, got %q", format)
+					return fmt.Errorf("--format: want auto, text, github or json, got %q", format)
 				}
 				note := func(f string, a ...any) { fmt.Fprintf(cmd.ErrOrStderr(), "lint: "+f+"\n", a...) }
 
@@ -109,16 +112,28 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 				}
 				// print what was located before any error that couldn't be (it must not hide them)
 				diags, err := lint.Run(capability.Default(), root, s, progress.Auto(stderrFile(cmd), noProgress))
-				for _, d := range diags {
-					if github {
-						msg := d.Msg
-						if d.Label != "" {
-							msg = d.Label + ": " + msg
-						}
-						fmt.Fprintln(cmd.OutOrStdout(), ghactions.Error(d.File, d.Line, d.Col, msg))
-						continue
+				switch {
+				case asJSON:
+					if diags == nil {
+						diags = []capability.Diag{}
 					}
-					fmt.Fprintln(cmd.OutOrStdout(), d)
+					b, merr := json.MarshalIndent(diags, "", "  ")
+					if merr != nil {
+						return merr
+					}
+					fmt.Fprintln(cmd.OutOrStdout(), string(b))
+				default:
+					for _, d := range diags {
+						if github {
+							msg := d.Msg
+							if d.Label != "" {
+								msg = d.Label + ": " + msg
+							}
+							fmt.Fprintln(cmd.OutOrStdout(), ghactions.Error(d.File, d.Line, d.Col, msg))
+							continue
+						}
+						fmt.Fprintln(cmd.OutOrStdout(), d)
+					}
 				}
 				if err != nil {
 					return err
@@ -134,7 +149,7 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 		c.Flags().BoolVar(&everything, "all", false, "lint everything; overrides --changed, --base and named capabilities")
 		c.Flags().BoolVar(&changed, "changed", false, "lint only what changed since the merge-base with --base")
 		c.Flags().StringVar(&base, "base", "", "git revision to diff against with --changed (default: origin/main, else main)")
-		c.Flags().StringVar(&format, "format", "auto", "diagnostics as text (file:line:col: message) or github (::error annotations); auto: github in GitHub Actions")
+		c.Flags().StringVar(&format, "format", "auto", "diagnostics as text (file:line:col: message), github (::error annotations) or json (array of diagnostics); auto: github in GitHub Actions")
 		c.Flags().BoolVar(&noProgress, "no-progress", false, "no progress bars (they show only when stderr is a terminal)")
 		return c
 	})
