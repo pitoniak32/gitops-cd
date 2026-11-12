@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -48,4 +49,36 @@ func reportErr(cmd *cobra.Command, err error, what string) error {
 	}
 	printDiags(cmd.ErrOrStderr(), diags, gh)
 	return fmt.Errorf("%s: %d problem(s); fix them first (gcd lint)", what, len(diags))
+}
+
+// diagFormat parses --format (auto, text, github, json); auto is github when inGitHub.
+func diagFormat(format string, inGitHub bool) (github, asJSON bool, err error) {
+	switch format {
+	case "auto":
+		return inGitHub, false, nil
+	case "github":
+		return true, false, nil
+	case "text":
+		return false, false, nil
+	case "json":
+		return false, true, nil
+	}
+	return false, false, fmt.Errorf("--format: want auto, text, github or json, got %q", format)
+}
+
+// writeDiags writes diags as a JSON array ([] for none) or one per line (printDiags).
+func writeDiags(w io.Writer, diags []capability.Diag, github, asJSON bool) error {
+	if !asJSON {
+		printDiags(w, diags, github)
+		return nil
+	}
+	if diags == nil {
+		diags = []capability.Diag{}
+	}
+	b, err := json.MarshalIndent(diags, "", "  ")
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(w, string(b))
+	return err
 }

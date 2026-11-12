@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -21,7 +20,7 @@ var getenv = os.Getenv
 func init() {
 	register(func() *cobra.Command {
 		var base, format string
-		var changed, everything, noProgress, asJSON bool
+		var changed, everything, noProgress bool
 		c := &cobra.Command{
 			Use:   "lint [caps...]",
 			Short: "Validate capabilities (+ teams/) with the full rules: <file>:<line>:<col>: <message>",
@@ -48,17 +47,9 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 				if err != nil {
 					return err
 				}
-				github := false
-				switch format {
-				case "auto":
-					github = gh != nil
-				case "github":
-					github = true
-				case "text":
-				case "json":
-					asJSON = true
-				default:
-					return fmt.Errorf("--format: want auto, text, github or json, got %q", format)
+				github, asJSON, err := diagFormat(format, gh != nil)
+				if err != nil {
+					return err
 				}
 				note := func(f string, a ...any) { fmt.Fprintf(cmd.ErrOrStderr(), "lint: "+f+"\n", a...) }
 
@@ -112,18 +103,8 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 				}
 				// print what was located before any error that couldn't be (it must not hide them)
 				diags, err := lint.Run(capability.Default(), root, s, progress.Auto(stderrFile(cmd), noProgress))
-				switch {
-				case asJSON:
-					if diags == nil {
-						diags = []capability.Diag{}
-					}
-					b, merr := json.MarshalIndent(diags, "", "  ")
-					if merr != nil {
-						return merr
-					}
-					fmt.Fprintln(cmd.OutOrStdout(), string(b))
-				default:
-					printDiags(cmd.OutOrStdout(), diags, github)
+				if werr := writeDiags(cmd.OutOrStdout(), diags, github, asJSON); werr != nil {
+					return werr
 				}
 				if err != nil {
 					return err

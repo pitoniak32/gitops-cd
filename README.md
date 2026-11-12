@@ -130,4 +130,5 @@ from `.github/CODEOWNERS.tmpl` + `owners.yml` by `mise run codeowners`; commit i
 - **Secrets on kind**: the kind clusters (`us-east4`, `dc1`) have no secret store, so `secret:` env values are validated but not rendered.
 
 What Argo CD reconciles from git vs what needs `mise run infra` / `up`: `docs/sync-boundaries.md`. Runbooks (break-glass, resetting Kargo state): `docs/operations.md`.
+Docs index (app-team guide, field reference): `docs/README.md`.
 Rendering details and merge rules: `platform/render/README.md`. Decisions: `docs/adr/`. Gotchas: `docs/gotchas.md`.

@@ -19,7 +19,7 @@
         "name": "promoters",
         "type": "dict",
         "required": true,
-        "desc": "per stage name (a stage of this capability), emails that may promote into it and approve its Freight",
+        "desc": "per stage name (a stage of this capability), emails that may promote into it",
         "example": "platform/render/testdata/root/capabilities/payments/owners.yml:2",
         "elem": {
           "type": "list",
