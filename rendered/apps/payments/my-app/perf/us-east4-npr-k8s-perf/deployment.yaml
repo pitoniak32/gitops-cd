@@ -33,7 +33,7 @@ spec:
         - env:
             - name: APP_ENV
               value: "true"
-            - name: NEW_VAR
+            - name: NEW_VARIABLE
               value: testing
             - name: DIFFERENT_SECRET
               value: /test@3

@@ -37,7 +37,7 @@ spec:
               value: dev
             - name: APP_ENV
               value: "true"
-            - name: NEW_VAR
+            - name: NEW_VARIABLE
               value: testing
             - name: STAGE_ENV
               value: "false"

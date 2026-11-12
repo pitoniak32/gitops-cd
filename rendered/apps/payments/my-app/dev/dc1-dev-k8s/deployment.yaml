@@ -13,7 +13,7 @@ metadata:
   name: my-app
   namespace: payments-onprem-dev
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: my-app
@@ -33,7 +33,9 @@ spec:
         - env:
             - name: LD_RELAY_URL
               value: https://ld-relay.onprem-dev.example.com
-            - name: NEW_VAR
+            - name: SDK_CONFIG_EXAMPLE
+              value: changeme
+            - name: NEW_VARIABLE
               value: testing
             - name: STAGE_ENV
               value: "false"
