@@ -66,9 +66,10 @@ func TestSchemaMarkdown(t *testing.T) {
 func TestSchemaMarkdownEscapes(t *testing.T) {
 	docs := []SchemaDoc{{Kind: "k", File: "f.yml", Desc: "d", Fields: []FieldDoc{
 		{Name: "x", Type: "str", Desc: "a|b\nc", Pattern: "x|y"},
+		{Name: "y", Type: "str", Desc: "repo, <owner>/<name>"},
 	}}}
 	p := SchemaMarkdown(docs)["k.md"]
-	for _, want := range []string{`a\|b c`, "`x\\|y`"} {
+	for _, want := range []string{`a\|b c`, "`x\\|y`", "repo, &lt;owner&gt;/&lt;name&gt;"} {
 		if !strings.Contains(p, want) {
 			t.Errorf("lacks %q:\n%s", want, p)
 		}
