@@ -24,8 +24,8 @@ import (
 const GuideDir = "docs/guide"
 
 var (
-	openRx   = regexp.MustCompile("^```(\\w+)(.*)$")
-	closeRx  = regexp.MustCompile("^```\\s*$")
+	openRx   = regexp.MustCompile("^( *)```(\\w+)(.*)$")
+	closeRx  = regexp.MustCompile("^ *```\\s*$")
 	pathRx   = regexp.MustCompile(`(?:^|\s)path=(\S+)`)
 	expectRx = regexp.MustCompile(`(?:^|\s)expect="([^"]*)"`)
 	fragRx   = regexp.MustCompile(`(?:^|\s)fragment(?:\s|$)`)
@@ -96,16 +96,16 @@ func parse(page, text string) ([]block, []capability.Diag) {
 		start := i
 		var body strings.Builder
 		for i++; i < len(lines) && !closeRx.MatchString(lines[i]); i++ {
-			body.WriteString(lines[i] + "\n")
+			body.WriteString(strings.TrimPrefix(lines[i], m[1]) + "\n")
 		}
-		if m[1] != "yaml" {
+		if m[2] != "yaml" {
 			continue
 		}
-		b := block{page: page, line: start + 1, body: body.String(), fragment: fragRx.MatchString(m[2])}
-		if pm := pathRx.FindStringSubmatch(m[2]); pm != nil {
+		b := block{page: page, line: start + 1, body: body.String(), fragment: fragRx.MatchString(m[3])}
+		if pm := pathRx.FindStringSubmatch(m[3]); pm != nil {
 			b.path = pm[1]
 		}
-		if em := expectRx.FindStringSubmatch(m[2]); em != nil {
+		if em := expectRx.FindStringSubmatch(m[3]); em != nil {
 			b.expect = em[1]
 		}
 		switch {

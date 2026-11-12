@@ -145,3 +145,11 @@ func TestRepoGuides(t *testing.T) {
 		t.Error(x)
 	}
 }
+
+func TestCheckIndentedFence(t *testing.T) {
+	// a fence inside a list item: still checked, body dedented by the fence's indent
+	page := "- item\n\n  ```yaml path=capabilities/payments/stages/dev.yml\n  bogus: 1\n  ```\n"
+	want(t, check(t, page), "docs/guide/x.md:4:1: bogus: field not allowed")
+	want(t, check(t, "- item\n\n  ```yaml\n  a: 1\n  ```\n"),
+		"docs/guide/x.md:3:1: yaml block needs path=…, expect=… or fragment")
+}
