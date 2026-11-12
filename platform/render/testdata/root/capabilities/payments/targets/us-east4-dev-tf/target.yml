@@ -1,3 +1,4 @@
+# TERRAFORM target: gcpProject/region/backend instead of a cluster; deploys with gha only
 config:
   platform: TERRAFORM
   region: us-east4

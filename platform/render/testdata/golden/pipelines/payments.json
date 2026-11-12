@@ -1,4 +1,31 @@
 {
+  "flagged": {
+    "capability": "payments",
+    "app": "flagged",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "us-east4-dev-k8s": {
+            "cluster": "us-east4",
+            "namespace": "payments-us-dev",
+            "platform": "K8S",
+            "environment": "dev",
+            "environmentType": "dev",
+            "path": "apps/payments/flagged/dev/us-east4-dev-k8s",
+            "deployWith": "gha"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ]
+    ]
+  },
   "infra": {
     "capability": "payments",
     "app": "infra",

@@ -8,16 +8,19 @@ env:
   APP_SECRET: 'secret:acme-proj1/my-app-secret'
 stages:
   dev:
-    envFrom: [launchdarkly]
+    envFrom: [launchdarkly]  # environment-variables files of the target, merged under env
     env:
       STAGE_ENV: 'false'
     replicas: 1
     targets:
       us-east4-dev-k8s: {}
-      dc1-dev-k8s:
+      dc1-dev-k8s:  # target level wins over stage and app level
         env:
           APP_ENV: 'false'
         replicas: 3
+        resources:
+          cpu: 250m
+          memory: 256Mi
   staging:
     targets:
       us-east4-npr-k8s: {}
@@ -33,7 +36,7 @@ stages:
     targets:
       us-east4-npr-k8s-perf: {}
   prod:
-    resources:
+    resources:  # requests; settable at app, stage and target level
       cpu: 500m
       memory: 512Mi
     targets:

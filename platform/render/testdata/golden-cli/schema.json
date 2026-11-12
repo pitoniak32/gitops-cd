@@ -1,0 +1,655 @@
+[
+  {
+    "kind": "owners",
+    "file": "capabilities/{cap}/owners.yml",
+    "desc": "who reviews, promotes and views a capability (one file per capability)",
+    "fields": [
+      {
+        "name": "codeOwners",
+        "type": "list",
+        "required": true,
+        "desc": "teams in teams/ that approve code changes (CODEOWNERS)",
+        "example": "platform/render/testdata/root/capabilities/payments/owners.yml:1",
+        "elem": {
+          "type": "str",
+          "example": "platform/render/testdata/root/capabilities/payments/owners.yml:1"
+        }
+      },
+      {
+        "name": "promoters",
+        "type": "dict",
+        "required": true,
+        "desc": "per stage name (a stage of this capability), emails that may promote into it and approve its Freight",
+        "example": "platform/render/testdata/root/capabilities/payments/owners.yml:2",
+        "elem": {
+          "type": "list",
+          "example": "platform/render/testdata/root/capabilities/payments/owners.yml:3",
+          "elem": {
+            "type": "str",
+            "pattern": "^[a-z0-9._%+-]+@example\\.com$",
+            "example": "platform/render/testdata/root/capabilities/payments/owners.yml:3"
+          }
+        }
+      },
+      {
+        "name": "viewers",
+        "type": "list",
+        "desc": "emails with read-only access in Kargo and Argo CD",
+        "example": "platform/render/testdata/root/capabilities/payments/owners.yml:7",
+        "elem": {
+          "type": "str",
+          "pattern": "^[a-z0-9._%+-]+@example\\.com$",
+          "example": "platform/render/testdata/root/capabilities/payments/owners.yml:7"
+        }
+      },
+      {
+        "name": "breakGlass",
+        "type": "list",
+        "desc": "emails that may approve Freight that skipped upstream verification",
+        "example": "platform/render/testdata/root/capabilities/payments/owners.yml:8",
+        "elem": {
+          "type": "str",
+          "pattern": "^[a-z0-9._%+-]+@example\\.com$",
+          "example": "platform/render/testdata/root/capabilities/payments/owners.yml:8"
+        }
+      },
+      {
+        "name": "apps",
+        "type": "dict",
+        "desc": "per app name (an app of this capability) overrides; each field set replaces the capability's",
+        "example": "platform/render/testdata/root/capabilities/payments/owners.yml:10",
+        "elem": {
+          "type": "map",
+          "example": "platform/render/testdata/root/capabilities/payments/owners.yml:11",
+          "fields": [
+            {
+              "name": "codeOwners",
+              "type": "list",
+              "desc": "teams in teams/ that approve this app's code changes",
+              "example": "platform/render/testdata/root/capabilities/payments/owners.yml:12",
+              "elem": {
+                "type": "str",
+                "example": "platform/render/testdata/root/capabilities/payments/owners.yml:12"
+              }
+            },
+            {
+              "name": "promoters",
+              "type": "dict",
+              "desc": "per stage name, emails that may promote this app into it; replaces the capability's for that stage",
+              "example": "platform/render/testdata/root/capabilities/payments/owners.yml:14",
+              "elem": {
+                "type": "list",
+                "example": "platform/render/testdata/root/capabilities/payments/owners.yml:15",
+                "elem": {
+                  "type": "str",
+                  "pattern": "^[a-z0-9._%+-]+@example\\.com$",
+                  "example": "platform/render/testdata/root/capabilities/payments/owners.yml:15"
+                }
+              }
+            },
+            {
+              "name": "viewers",
+              "type": "list",
+              "desc": "emails with read-only access to this app",
+              "example": "platform/render/testdata/root/capabilities/payments/owners.yml:13",
+              "elem": {
+                "type": "str",
+                "pattern": "^[a-z0-9._%+-]+@example\\.com$",
+                "example": "platform/render/testdata/root/capabilities/payments/owners.yml:13"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "kind": "stage",
+    "file": "capabilities/{cap}/stages/*.yml",
+    "desc": "a stage of the capability's promotion pipeline",
+    "fields": [
+      {
+        "name": "dependsOn",
+        "type": "list",
+        "desc": "stages that must be verified before this one",
+        "example": "platform/render/testdata/root/capabilities/payments/stages/dev.yml:1",
+        "elem": {
+          "type": "str",
+          "example": "platform/render/testdata/root/capabilities/payments/stages/perf.yml:1"
+        }
+      },
+      {
+        "name": "autoPromote",
+        "type": "bool",
+        "desc": "promote automatically once upstream stages are verified",
+        "example": "platform/render/testdata/root/capabilities/payments/stages/dev.yml:2"
+      },
+      {
+        "name": "color",
+        "type": "str",
+        "enum": [
+          "red",
+          "salmon",
+          "orange",
+          "amber",
+          "yellow",
+          "lime",
+          "avocado",
+          "green",
+          "teal",
+          "cyan",
+          "sky",
+          "blue",
+          "indigo",
+          "periwinkle",
+          "violet",
+          "purple",
+          "fuchsia",
+          "pink",
+          "rose",
+          "dragonfruit",
+          "gray"
+        ],
+        "desc": "Kargo UI color for this stage's Kargo Stages; default picked per stage",
+        "example": "platform/render/testdata/root/capabilities/payments/stages/perf.yml:2"
+      }
+    ]
+  },
+  {
+    "kind": "app",
+    "file": "capabilities/{cap}/apps/*/app.yml",
+    "desc": "an app: what it ships and its settings at app, stage and target level",
+    "fields": [
+      {
+        "name": "replicas",
+        "type": "int",
+        "desc": "number of replicas, 0 to 100",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:5"
+      },
+      {
+        "name": "env",
+        "type": "dict",
+        "desc": "environment variables, KEY: value; a value may be secret:\u003cgcp-project\u003e/\u003csecret\u003e[@\u003cversion\u003e]; merged per key",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:4",
+        "elem": {
+          "type": "str",
+          "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:5"
+        }
+      },
+      {
+        "name": "envFrom",
+        "type": "list",
+        "desc": "names of the target's environment-variables files to include",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:4",
+        "elem": {
+          "type": "str",
+          "pattern": "^[a-z][a-z0-9-]{0,39}$",
+          "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:4"
+        }
+      },
+      {
+        "name": "resources",
+        "type": "map",
+        "desc": "container resource requests",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:5",
+        "fields": [
+          {
+            "name": "cpu",
+            "type": "str",
+            "pattern": "^[0-9]+m?$",
+            "desc": "CPU, whole cores or millicores (100m)",
+            "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:6"
+          },
+          {
+            "name": "memory",
+            "type": "str",
+            "pattern": "^[0-9]+(Mi|Gi)$",
+            "desc": "memory in Mi or Gi (128Mi)",
+            "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:7"
+          }
+        ]
+      },
+      {
+        "name": "deployWith",
+        "type": "str",
+        "enum": [
+          "argocd",
+          "gha"
+        ],
+        "desc": "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:8"
+      },
+      {
+        "name": "workflow",
+        "type": "map",
+        "desc": "GitHub Actions workflow dispatched when deployWith is gha",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:9",
+        "fields": [
+          {
+            "name": "repo",
+            "type": "str",
+            "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+            "desc": "workflow repository, \u003cowner\u003e/\u003cname\u003e",
+            "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:10"
+          },
+          {
+            "name": "file",
+            "type": "str",
+            "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$",
+            "desc": "workflow file name, .yml or .yaml",
+            "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:11"
+          },
+          {
+            "name": "ref",
+            "type": "str",
+            "pattern": ".",
+            "desc": "git ref the workflow runs on",
+            "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:7"
+          }
+        ]
+      },
+      {
+        "name": "image",
+        "type": "str",
+        "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$",
+        "desc": "container image repository, no tag or digest (K8s and Cloud Run apps; set this or module)",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:2"
+      },
+      {
+        "name": "imageConstraint",
+        "type": "str",
+        "pattern": ".",
+        "desc": "SemVer constraint for the image tags to deploy",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:3"
+      },
+      {
+        "name": "module",
+        "type": "str",
+        "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$",
+        "desc": "terraform module OCI repository, no tag or digest (terraform apps; set this or image)",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:1"
+      },
+      {
+        "name": "moduleConstraint",
+        "type": "str",
+        "pattern": ".",
+        "desc": "SemVer constraint for the module versions to deploy",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:3"
+      },
+      {
+        "name": "port",
+        "type": "int",
+        "desc": "container port, 1 to 65535",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:4"
+      },
+      {
+        "name": "sourceRepo",
+        "type": "str",
+        "required": true,
+        "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+        "desc": "GitHub repository of the app's code, \u003cowner\u003e/\u003cname\u003e; pre-deploy checks run there",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:3"
+      },
+      {
+        "name": "stages",
+        "type": "dict",
+        "desc": "stages the app deploys through, by stage name, each with its targets",
+        "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:12",
+        "elem": {
+          "type": "map",
+          "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:13",
+          "fields": [
+            {
+              "name": "replicas",
+              "type": "int",
+              "desc": "number of replicas, 0 to 100",
+              "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:14"
+            },
+            {
+              "name": "env",
+              "type": "dict",
+              "desc": "environment variables, KEY: value; a value may be secret:\u003cgcp-project\u003e/\u003csecret\u003e[@\u003cversion\u003e]; merged per key",
+              "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:12",
+              "elem": {
+                "type": "str",
+                "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:13"
+              }
+            },
+            {
+              "name": "envFrom",
+              "type": "list",
+              "desc": "names of the target's environment-variables files to include",
+              "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:11",
+              "elem": {
+                "type": "str",
+                "pattern": "^[a-z][a-z0-9-]{0,39}$",
+                "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:11"
+              }
+            },
+            {
+              "name": "resources",
+              "type": "map",
+              "desc": "container resource requests",
+              "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:39",
+              "fields": [
+                {
+                  "name": "cpu",
+                  "type": "str",
+                  "pattern": "^[0-9]+m?$",
+                  "desc": "CPU, whole cores or millicores (100m)",
+                  "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:40"
+                },
+                {
+                  "name": "memory",
+                  "type": "str",
+                  "pattern": "^[0-9]+(Mi|Gi)$",
+                  "desc": "memory in Mi or Gi (128Mi)",
+                  "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:41"
+                }
+              ]
+            },
+            {
+              "name": "deployWith",
+              "type": "str",
+              "enum": [
+                "argocd",
+                "gha"
+              ],
+              "desc": "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow",
+              "example": "platform/render/testdata/root/capabilities/payments/apps/worker/app.yml:8"
+            },
+            {
+              "name": "workflow",
+              "type": "map",
+              "desc": "GitHub Actions workflow dispatched when deployWith is gha",
+              "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:14",
+              "fields": [
+                {
+                  "name": "repo",
+                  "type": "str",
+                  "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+                  "desc": "workflow repository, \u003cowner\u003e/\u003cname\u003e",
+                  "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:15"
+                },
+                {
+                  "name": "file",
+                  "type": "str",
+                  "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$",
+                  "desc": "workflow file name, .yml or .yaml",
+                  "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:16"
+                },
+                {
+                  "name": "ref",
+                  "type": "str",
+                  "pattern": ".",
+                  "desc": "git ref the workflow runs on",
+                  "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:17"
+                }
+              ]
+            },
+            {
+              "name": "targets",
+              "type": "dict",
+              "desc": "targets this stage deploys to, by target name; settings here override the stage's and app's",
+              "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:18",
+              "elem": {
+                "type": "map",
+                "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:19",
+                "fields": [
+                  {
+                    "name": "replicas",
+                    "type": "int",
+                    "desc": "number of replicas, 0 to 100",
+                    "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:20"
+                  },
+                  {
+                    "name": "env",
+                    "type": "dict",
+                    "desc": "environment variables, KEY: value; a value may be secret:\u003cgcp-project\u003e/\u003csecret\u003e[@\u003cversion\u003e]; merged per key",
+                    "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:16",
+                    "elem": {
+                      "type": "str",
+                      "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:17"
+                    }
+                  },
+                  {
+                    "name": "envFrom",
+                    "type": "list",
+                    "desc": "names of the target's environment-variables files to include",
+                    "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:12",
+                    "elem": {
+                      "type": "str",
+                      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+                      "example": "platform/render/testdata/root/capabilities/payments/apps/infra/app.yml:12"
+                    }
+                  },
+                  {
+                    "name": "resources",
+                    "type": "map",
+                    "desc": "container resource requests",
+                    "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:21",
+                    "fields": [
+                      {
+                        "name": "cpu",
+                        "type": "str",
+                        "pattern": "^[0-9]+m?$",
+                        "desc": "CPU, whole cores or millicores (100m)",
+                        "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:22"
+                      },
+                      {
+                        "name": "memory",
+                        "type": "str",
+                        "pattern": "^[0-9]+(Mi|Gi)$",
+                        "desc": "memory in Mi or Gi (128Mi)",
+                        "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:23"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "deployWith",
+                    "type": "str",
+                    "enum": [
+                      "argocd",
+                      "gha"
+                    ],
+                    "desc": "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow",
+                    "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:30"
+                  },
+                  {
+                    "name": "workflow",
+                    "type": "map",
+                    "desc": "GitHub Actions workflow dispatched when deployWith is gha",
+                    "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:31",
+                    "fields": [
+                      {
+                        "name": "repo",
+                        "type": "str",
+                        "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+                        "desc": "workflow repository, \u003cowner\u003e/\u003cname\u003e",
+                        "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:32"
+                      },
+                      {
+                        "name": "file",
+                        "type": "str",
+                        "pattern": "^[A-Za-z0-9_.-]+\\.ya?ml$",
+                        "desc": "workflow file name, .yml or .yaml",
+                        "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:33"
+                      },
+                      {
+                        "name": "ref",
+                        "type": "str",
+                        "pattern": ".",
+                        "desc": "git ref the workflow runs on",
+                        "example": "platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml:34"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "kind": "target",
+    "file": "capabilities/{cap}/targets/*/target.yml",
+    "desc": "a target: where a stage deploys, reusable across apps",
+    "fields": [
+      {
+        "name": "config",
+        "type": "map",
+        "required": true,
+        "desc": "where a stage deploys; reusable across apps",
+        "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:1",
+        "fields": [
+          {
+            "name": "platform",
+            "type": "str",
+            "enum": [
+              "K8S",
+              "CLOUD_RUN",
+              "TERRAFORM"
+            ],
+            "desc": "K8S (default), TERRAFORM or CLOUD_RUN",
+            "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:9"
+          },
+          {
+            "name": "environment",
+            "type": "str",
+            "required": true,
+            "pattern": "^[a-z][a-z0-9-]{0,39}$",
+            "desc": "environment name, free-form (namespaces, labels)",
+            "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:4"
+          },
+          {
+            "name": "environmentType",
+            "type": "str",
+            "required": true,
+            "enum": [
+              "dev",
+              "npr",
+              "prd"
+            ],
+            "desc": "dev, npr or prd; drives policy (replicas, pre-deploy checks, cluster choice)",
+            "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:5"
+          },
+          {
+            "name": "auth",
+            "type": "map",
+            "required": true,
+            "desc": "workload identity used to deploy",
+            "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:6",
+            "fields": [
+              {
+                "name": "wifEmail",
+                "type": "str",
+                "required": true,
+                "pattern": "^[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com$",
+                "desc": "service account email of the workload identity",
+                "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:7"
+              }
+            ]
+          },
+          {
+            "name": "billing",
+            "type": "str",
+            "required": true,
+            "pattern": "^[a-z0-9-]+$",
+            "desc": "billing label for the target's cost",
+            "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:8"
+          },
+          {
+            "name": "cluster",
+            "type": "str",
+            "enum": [
+              "us-east4",
+              "dc1"
+            ],
+            "desc": "name of the platform's cluster to deploy to; must accept the environment type",
+            "platforms": [
+              "K8S"
+            ],
+            "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:2"
+          },
+          {
+            "name": "namespace",
+            "type": "str",
+            "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$",
+            "desc": "Kubernetes namespace",
+            "platforms": [
+              "K8S"
+            ],
+            "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/target.yml:3"
+          },
+          {
+            "name": "region",
+            "type": "str",
+            "enum": [
+              "us-central1",
+              "us-east1",
+              "us-east4"
+            ],
+            "desc": "GCP region",
+            "platforms": [
+              "CLOUD_RUN",
+              "TERRAFORM"
+            ],
+            "example": "platform/render/testdata/root/capabilities/payments/targets/us-east4-dev-tf/target.yml:4"
+          },
+          {
+            "name": "gcpProject",
+            "type": "str",
+            "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+            "desc": "GCP project id",
+            "platforms": [
+              "CLOUD_RUN",
+              "TERRAFORM"
+            ],
+            "example": "platform/render/testdata/root/capabilities/payments/targets/us-east4-dev-tf/target.yml:10"
+          },
+          {
+            "name": "backend",
+            "type": "map",
+            "desc": "terraform state backend",
+            "platforms": [
+              "TERRAFORM"
+            ],
+            "example": "platform/render/testdata/root/capabilities/payments/targets/us-east4-dev-tf/target.yml:11",
+            "fields": [
+              {
+                "name": "bucket",
+                "type": "str",
+                "required": true,
+                "pattern": "^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$",
+                "desc": "GCS bucket holding terraform state",
+                "example": "platform/render/testdata/root/capabilities/payments/targets/us-east4-dev-tf/target.yml:12"
+              },
+              {
+                "name": "prefix",
+                "type": "str",
+                "pattern": "^[A-Za-z0-9._/-]+$",
+                "desc": "GCS object prefix for the state",
+                "example": "platform/render/testdata/root/capabilities/payments/targets/us-east4-prd-tf/target.yml:12"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "env-vars",
+    "file": "capabilities/{cap}/targets/*/environment-variables/*.yml",
+    "desc": "environment variables shared by apps that opt in with envFrom",
+    "fields": [
+      {
+        "name": "*",
+        "type": "str",
+        "desc": "value of the variable named by the key",
+        "example": "platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:1"
+      }
+    ]
+  }
+]

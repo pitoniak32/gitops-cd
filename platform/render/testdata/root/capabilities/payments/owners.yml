@@ -6,9 +6,11 @@ promoters:
   prod: [doug@example.com]
 viewers: [bob@example.com]
 breakGlass: [carol@example.com]
+# per-app overrides of the lists above
 apps:
   worker:
     codeOwners: [team1, team2]
+    viewers: [bob@example.com, carol@example.com]
     promoters:
       dev: [alice@example.com, doug@example.com]
       prod: [alice@example.com]

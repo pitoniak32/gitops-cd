@@ -1,1 +1,2 @@
 dependsOn: [dev]
+color: teal  # Kargo UI color; default is picked per stage

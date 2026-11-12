@@ -1,3 +1,4 @@
+# CLOUD_RUN target: image apps render a Knative service; deploys with gha only
 config:
   platform: CLOUD_RUN
   environment: staging

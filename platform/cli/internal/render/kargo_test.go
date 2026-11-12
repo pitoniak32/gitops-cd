@@ -112,7 +112,7 @@ func TestKindClusterKargo(t *testing.T) {
 	all := docs(t, filepath.Join(out, "kargo/payments.yaml"))
 	// one project per app (ADR 0029); Argo CD dry-runs all resources first: each project namespace must be
 	// rendered (labeled for Kargo to adopt) ahead of the project's resources
-	if got := strings.Join(names(all, "Project", nil), " "); got != "kargo-payments-infra kargo-payments-my-app kargo-payments-payments kargo-payments-web kargo-payments-worker" {
+	if got := strings.Join(names(all, "Project", nil), " "); got != "kargo-payments-flagged kargo-payments-infra kargo-payments-my-app kargo-payments-payments kargo-payments-web kargo-payments-worker" {
 		t.Errorf("one Kargo project per app: %s", got)
 	}
 	for _, p := range names(all, "Project", nil) {

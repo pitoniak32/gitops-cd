@@ -1,6 +1,202 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: kargo-payments-flagged
+  labels:
+    kargo.akuity.io/project: "true"
+    example.com/capability: payments
+    example.com/app: flagged
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: kargo-payments-flagged
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: kargo-payments-flagged
+  namespace: kargo-payments-flagged
+spec:
+  promotionPolicies:
+    - stageSelector:
+        name: us-east4-dev-k8s
+      autoPromotionEnabled: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: flagged
+  namespace: kargo-payments-flagged
+spec:
+  freightCreationPolicy: Manual
+  subscriptions:
+    - git:
+        repoURL: https://github.com/pitoniak32/gitops-cd
+        branch: rendered
+        includePaths:
+          - regexp:^rendered/apps/payments/flagged/
+    - image:
+        repoURL: ghcr.io/pitoniak32/nginx
+        imageSelectionStrategy: SemVer
+        discoveryLimit: 10
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: us-east4-dev-k8s
+  namespace: kargo-payments-flagged
+  labels:
+    example.com/capability: payments
+    example.com/app: flagged
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: us-east4-dev-k8s
+    example.com/deploy-with: gha
+    example.com/platform: k8s
+  annotations:
+    example.com/break-glass: '["carol@example.com"]'
+    kargo.akuity.io/color: blue
+spec:
+  shard: us-east4
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: flagged
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/flagged/dev/us-east4-dev-k8s/
+        - name: branch
+          value: env/payments/flagged/us-east4-dev-k8s
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: flagged
+        - name: stage
+          value: dev
+        - name: target
+          value: us-east4-dev-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
+        - name: workflowRepo
+          value: pitoniak32/deploys
+        - name: workflowFile
+          value: deploy-dev.yml
+        - name: workflowRef
+          value: v2
+      steps:
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-gha
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promote-dev
+  namespace: kargo-payments-flagged
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["carol@example.com","doug@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: promote-dev
+  namespace: kargo-payments-flagged
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+rules:
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - stages
+    resourceNames:
+      - us-east4-dev-k8s
+    verbs:
+      - promote
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - promotions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kargo.akuity.io
+    resources:
+      - freights
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: promote-dev
+  namespace: kargo-payments-flagged
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: promote-dev
+subjects:
+  - kind: ServiceAccount
+    name: promote-dev
+    namespace: kargo-payments-flagged
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: viewers
+  namespace: kargo-payments-flagged
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","carol@example.com","doug@example.com"]}'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: viewers
+  namespace: kargo-payments-flagged
+  labels:
+    app.kubernetes.io/managed-by: gitops-platform
+  annotations:
+    rbac.kargo.akuity.io/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kargo-viewer
+subjects:
+  - kind: ServiceAccount
+    name: viewers
+    namespace: kargo-payments-flagged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: kargo-payments-infra
   labels:
     kargo.akuity.io/project: "true"
@@ -728,7 +924,7 @@ metadata:
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '["carol@example.com"]'
-    kargo.akuity.io/color: amber
+    kargo.akuity.io/color: teal
 spec:
   shard: us-east4
   requestedFreight:

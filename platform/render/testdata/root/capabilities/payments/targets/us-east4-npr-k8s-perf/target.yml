@@ -1,3 +1,4 @@
+# qualifier suffix (-perf): a second K8S target in the same region and environment type
 config:
   cluster: us-east4
   namespace: payments-us-perf

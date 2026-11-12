@@ -1,0 +1,19 @@
+# dev-only gha app: settings at app level, overridden per stage
+image: ghcr.io/pitoniak32/nginx
+sourceRepo: pitoniak32/gitops-cd
+envFrom: [launchdarkly]
+resources:
+  cpu: 100m
+  memory: 128Mi
+deployWith: gha
+workflow:  # fields default separately: repo, file, ref
+  repo: pitoniak32/deploys
+  file: deploy.yml
+stages:
+  dev:
+    workflow:  # stage level overrides app level
+      repo: pitoniak32/deploys
+      file: deploy-dev.yml
+      ref: v2
+    targets:
+      us-east4-dev-k8s: {}
