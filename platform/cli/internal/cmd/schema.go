@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"path/filepath"
 	"strings"
 
@@ -15,13 +14,14 @@ import (
 func init() {
 	register(func() *cobra.Command {
 		var rootDir string
-		var asJSON bool
+		var asJSON, sources bool
 		c := &cobra.Command{
 			Use:   "schema [kind]",
-			Short: "Describe the capability YAML files: fields, types, rules, and a fixture example of each",
-			Long: `Describe every input file kind (owners, stage, app, target, env-vars) from the schema lint enforces:
-fields, types, required, allowed values, descriptions, and where the test fixture
-(` + capability.FixtureRoot + `) uses each one. Give a kind to print only that one. --json prints the same as JSON.`,
+			Short: "Describe the capability YAML files as annotated YAML skeletons",
+			Long: `Print every input file kind (owners, stage, app, target, env-vars) as a YAML skeleton from the
+schema lint enforces: placeholders for types and allowed values (a|b), comments for required, pattern
+and description. -s/--sources adds a fixture example per field (fixture: ` + capability.FixtureRoot + `).
+Give a kind to print only that one. --json prints the full schema as JSON.`,
 			Args: cobra.MaximumNArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
 				root := rootDir
@@ -64,55 +64,13 @@ fields, types, required, allowed values, descriptions, and where the test fixtur
 					_, err = fmt.Fprintf(out, "%s\n", b)
 					return err
 				}
-				for i, d := range docs {
-					if i > 0 {
-						fmt.Fprintln(out)
-					}
-					fmt.Fprintf(out, "%s  %s  — %s\n", d.Kind, d.File, d.Desc)
-					for _, f := range d.Fields {
-						writeField(out, f, 1)
-					}
-				}
-				return nil
+				_, err = fmt.Fprint(out, capability.SchemaYAML(docs, sources))
+				return err
 			},
 		}
 		c.Flags().StringVar(&rootDir, "root", "", "repo root, where the fixture examples are read (default: this repo)")
-		c.Flags().BoolVar(&asJSON, "json", false, "JSON instead of text")
+		c.Flags().BoolVar(&asJSON, "json", false, "JSON instead of YAML")
+		c.Flags().BoolVarP(&sources, "sources", "s", false, "add a fixture example to each field comment")
 		return c
 	})
-}
-
-// writeField prints f and what's under it, 2 spaces per depth.
-func writeField(w io.Writer, f capability.FieldDoc, depth int) {
-	line := strings.Repeat("  ", depth) + f.Name + "  " + f.Type
-	if f.Required {
-		line += "  required"
-	}
-	switch {
-	case len(f.Enum) > 0:
-		line += "  one of " + strings.Join(f.Enum, "|")
-	case f.Pattern != "":
-		line += "  /" + f.Pattern + "/"
-	}
-	if len(f.Platforms) > 0 {
-		line += "  platforms " + strings.Join(f.Platforms, ",")
-	}
-	if f.Desc != "" {
-		line += "  — " + f.Desc
-	}
-	if f.Example != "" {
-		line += "  (e.g. " + f.Example + ")"
-	}
-	fmt.Fprintln(w, line)
-	for _, c := range f.Fields {
-		writeField(w, c, depth+1)
-	}
-	if f.Elem != nil {
-		e := *f.Elem
-		e.Name = "*"
-		if f.Type == "list" {
-			e.Name = "[]"
-		}
-		writeField(w, e, depth+1)
-	}
 }

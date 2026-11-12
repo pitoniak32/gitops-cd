@@ -41,6 +41,7 @@ type ShowDeploy struct {
 	Target   string  `json:"target"`
 	Platform string  `json:"platform"`
 	Values   []Value `json:"values"`
+	artifact string  // "image" | "module": the key its artifact is shown under
 }
 
 // ShowResult is the effective config of a capability.
@@ -101,7 +102,7 @@ func Show(cfg Config, root, capName string, teams *Teams, f ShowFilter) (ShowRes
 			return ds[i].target < ds[j].target
 		})
 		for _, d := range ds {
-			res.Deploys = append(res.Deploys, ShowDeploy{App: a.name, Stage: d.stage, Target: d.target, Platform: d.tgt.platform.name, Values: deployValues(d)})
+			res.Deploys = append(res.Deploys, ShowDeploy{App: a.name, Stage: d.stage, Target: d.target, Platform: d.tgt.platform.name, Values: deployValues(d), artifact: d.artifact})
 		}
 		if len(ds) > 0 {
 			res.Owners[a.name] = m.ownerValues(a, f.Stage)
@@ -196,45 +197,4 @@ func (m *model) ownerValues(a *appDef, stage string) []Value {
 	add("viewers", o.viewers[an])
 	add("breakGlass", o.breakGlass)
 	return out
-}
-
-func (v Value) text() string {
-	if l, ok := v.Value.([]string); ok {
-		return "[" + strings.Join(l, ", ") + "]"
-	}
-	return fmt.Sprint(v.Value)
-}
-
-// Text renders r for people: a header per deploy, then its values with their sources aligned.
-func (r ShowResult) Text() string {
-	var b strings.Builder
-	block := func(vs []Value) {
-		w := 0
-		for _, v := range vs {
-			if n := len(v.Path) + 2 + len(v.text()); n > w {
-				w = n
-			}
-		}
-		for _, v := range vs {
-			line := v.Path + ": " + v.text()
-			if !v.Source.none() {
-				line += strings.Repeat(" ", w-len(line)) + "  ← " + v.Source.String()
-			}
-			fmt.Fprintf(&b, "  %s\n", line)
-		}
-	}
-	for _, d := range r.Deploys {
-		fmt.Fprintf(&b, "%s  %s  %s  %s\n", d.App, d.Stage, d.Target, d.Platform)
-		block(d.Values)
-	}
-	apps := make([]string, 0, len(r.Owners))
-	for a := range r.Owners {
-		apps = append(apps, a)
-	}
-	sort.Strings(apps)
-	for _, a := range apps {
-		fmt.Fprintf(&b, "owners %s\n", a)
-		block(r.Owners[a])
-	}
-	return b.String()
 }

@@ -1,0 +1,95 @@
+# owners: capabilities/{cap}/owners.yml — who reviews, promotes and views a capability (one file per capability)
+codeOwners:      # required; teams in teams/ that approve code changes (CODEOWNERS)
+  - <str>
+promoters:       # required; per stage name (a stage of this capability), emails that may promote into it and approve its Freight
+  <stage>:
+    - <str>      # /^[a-z0-9._%+-]+@example\.com$/
+viewers:         # emails with read-only access in Kargo and Argo CD
+  - <str>        # /^[a-z0-9._%+-]+@example\.com$/
+breakGlass:      # emails that may approve Freight that skipped upstream verification
+  - <str>        # /^[a-z0-9._%+-]+@example\.com$/
+apps:            # per app name (an app of this capability) overrides; each field set replaces the capability's
+  <app>:
+    codeOwners:  # teams in teams/ that approve this app's code changes
+      - <str>
+    promoters:   # per stage name, emails that may promote this app into it; replaces the capability's for that stage
+      <stage>:
+        - <str>  # /^[a-z0-9._%+-]+@example\.com$/
+    viewers:     # emails with read-only access to this app
+      - <str>    # /^[a-z0-9._%+-]+@example\.com$/
+---
+# stage: capabilities/{cap}/stages/*.yml — a stage of the capability's promotion pipeline
+dependsOn:           # stages that must be verified before this one
+  - <str>
+autoPromote: <bool>  # promote automatically once upstream stages are verified
+color: red|salmon|orange|amber|yellow|lime|avocado|green|teal|cyan|sky|blue|indigo|periwinkle|violet|purple|fuchsia|pink|rose|dragonfruit|gray  # Kargo UI color for this stage's Kargo Stages; default picked per stage
+---
+# app: capabilities/{cap}/apps/*/app.yml — an app: what it ships and its settings at app, stage and target level
+replicas: <int>                 # number of replicas, 0 to 100
+env:                            # environment variables, KEY: value; a value may be secret:<gcp-project>/<secret>[@<version>]; merged per key
+  <KEY>: <str>
+envFrom:                        # names of the target's environment-variables files to include
+  - <str>                       # /^[a-z][a-z0-9-]{0,39}$/
+resources:                      # container resource requests
+  cpu: <str>                    # /^[0-9]+m?$/ — CPU, whole cores or millicores (100m)
+  memory: <str>                 # /^[0-9]+(Mi|Gi)$/ — memory in Mi or Gi (128Mi)
+deployWith: argocd|gha          # argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow
+workflow:                       # GitHub Actions workflow dispatched when deployWith is gha
+  repo: <str>                   # /^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$/ — workflow repository, <owner>/<name>
+  file: <str>                   # /^[A-Za-z0-9_.-]+\.ya?ml$/ — workflow file name, .yml or .yaml
+  ref: <str>                    # /./ — git ref the workflow runs on
+image: <str>                    # /^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$/ — container image repository, no tag or digest (K8s and Cloud Run apps; set this or module)
+imageConstraint: <str>          # /./ — SemVer constraint for the image tags to deploy
+module: <str>                   # /^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$/ — terraform module OCI repository, no tag or digest (terraform apps; set this or image)
+moduleConstraint: <str>         # /./ — SemVer constraint for the module versions to deploy
+port: <int>                     # container port, 1 to 65535
+sourceRepo: <str>               # required; /^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$/ — GitHub repository of the app's code, <owner>/<name>; pre-deploy checks run there
+stages:                         # stages the app deploys through, by stage name, each with its targets
+  <stage>:
+    replicas: <int>             # number of replicas, 0 to 100
+    env:                        # environment variables, KEY: value; a value may be secret:<gcp-project>/<secret>[@<version>]; merged per key
+      <KEY>: <str>
+    envFrom:                    # names of the target's environment-variables files to include
+      - <str>                   # /^[a-z][a-z0-9-]{0,39}$/
+    resources:                  # container resource requests
+      cpu: <str>                # /^[0-9]+m?$/ — CPU, whole cores or millicores (100m)
+      memory: <str>             # /^[0-9]+(Mi|Gi)$/ — memory in Mi or Gi (128Mi)
+    deployWith: argocd|gha      # argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow
+    workflow:                   # GitHub Actions workflow dispatched when deployWith is gha
+      repo: <str>               # /^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$/ — workflow repository, <owner>/<name>
+      file: <str>               # /^[A-Za-z0-9_.-]+\.ya?ml$/ — workflow file name, .yml or .yaml
+      ref: <str>                # /./ — git ref the workflow runs on
+    targets:                    # targets this stage deploys to, by target name; settings here override the stage's and app's
+      <target>:
+        replicas: <int>         # number of replicas, 0 to 100
+        env:                    # environment variables, KEY: value; a value may be secret:<gcp-project>/<secret>[@<version>]; merged per key
+          <KEY>: <str>
+        envFrom:                # names of the target's environment-variables files to include
+          - <str>               # /^[a-z][a-z0-9-]{0,39}$/
+        resources:              # container resource requests
+          cpu: <str>            # /^[0-9]+m?$/ — CPU, whole cores or millicores (100m)
+          memory: <str>         # /^[0-9]+(Mi|Gi)$/ — memory in Mi or Gi (128Mi)
+        deployWith: argocd|gha  # argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow
+        workflow:               # GitHub Actions workflow dispatched when deployWith is gha
+          repo: <str>           # /^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$/ — workflow repository, <owner>/<name>
+          file: <str>           # /^[A-Za-z0-9_.-]+\.ya?ml$/ — workflow file name, .yml or .yaml
+          ref: <str>            # /./ — git ref the workflow runs on
+---
+# target: capabilities/{cap}/targets/*/target.yml — a target: where a stage deploys, reusable across apps
+config:                                  # required; where a stage deploys; reusable across apps
+  platform: K8S|CLOUD_RUN|TERRAFORM      # K8S (default), TERRAFORM or CLOUD_RUN
+  environment: <str>                     # required; /^[a-z][a-z0-9-]{0,39}$/ — environment name, free-form (namespaces, labels)
+  environmentType: dev|npr|prd           # required; dev, npr or prd; drives policy (replicas, pre-deploy checks, cluster choice)
+  auth:                                  # required; workload identity used to deploy
+    wifEmail: <str>                      # required; /^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/ — service account email of the workload identity
+  billing: <str>                         # required; /^[a-z0-9-]+$/ — billing label for the target's cost
+  cluster: us-east4|dc1                  # name of the platform's cluster to deploy to; must accept the environment type (platforms: K8S)
+  namespace: <str>                       # /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/ — Kubernetes namespace (platforms: K8S)
+  region: us-central1|us-east1|us-east4  # GCP region (platforms: CLOUD_RUN, TERRAFORM)
+  gcpProject: <str>                      # /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/ — GCP project id (platforms: CLOUD_RUN, TERRAFORM)
+  backend:                               # terraform state backend (platforms: TERRAFORM)
+    bucket: <str>                        # required; /^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/ — GCS bucket holding terraform state
+    prefix: <str>                        # /^[A-Za-z0-9._/-]+$/ — GCS object prefix for the state
+---
+# env-vars: capabilities/{cap}/targets/*/environment-variables/*.yml — environment variables shared by apps that opt in with envFrom
+<KEY>: <str>  # value of the variable named by the key

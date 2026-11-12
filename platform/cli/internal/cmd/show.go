@@ -15,7 +15,7 @@ import (
 func init() {
 	register(func() *cobra.Command {
 		var rootDir, stage, target string
-		var asJSON bool
+		var asJSON, sources bool
 		c := &cobra.Command{
 			Use:   "show <cap>[/<app>]",
 			Short: "Show a capability's effective config per deploy and the file:line each value comes from",
@@ -54,14 +54,15 @@ Narrow with <cap>/<app>, --stage, --target. The capability must lint clean. --js
 					_, err = fmt.Fprintf(out, "%s\n", b)
 					return err
 				}
-				_, err = fmt.Fprint(out, res.Text())
+				_, err = fmt.Fprint(out, res.YAML(sources))
 				return err
 			},
 		}
 		c.Flags().StringVar(&rootDir, "root", "", "repo root (default: this repo)")
 		c.Flags().StringVar(&stage, "stage", "", "only this stage")
 		c.Flags().StringVar(&target, "target", "", "only this target")
-		c.Flags().BoolVar(&asJSON, "json", false, "JSON instead of text")
+		c.Flags().BoolVar(&asJSON, "json", false, "JSON instead of YAML")
+		c.Flags().BoolVarP(&sources, "sources", "s", false, "comment each value with the file:line (or default) it comes from")
 		return c
 	})
 }

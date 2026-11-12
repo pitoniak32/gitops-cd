@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 const fixtureRoot = "../../../render/testdata/root"
@@ -24,10 +27,11 @@ func runShow(t *testing.T, root string, args ...string) (stdout, stderr string, 
 func TestShowGolden(t *testing.T) {
 	root, _ := filepath.Abs(fixtureRoot)
 	for name, args := range map[string][]string{
-		"show-payments.txt":    {"payments"},
-		"show-my-app-prod.txt": {"payments/my-app", "--stage", "prod"},
-		"show-target.txt":      {"payments", "--target", "dc1-dev-k8s"},
-		"show-my-app.json":     {"payments/my-app", "--json"},
+		"show-payments.yaml":       {"payments"},
+		"show-my-app-prod.yaml":    {"payments/my-app", "--stage", "prod"},
+		"show-my-app-sources.yaml": {"payments/my-app", "--sources"},
+		"show-target.yaml":         {"payments", "--target", "dc1-dev-k8s"},
+		"show-my-app.json":         {"payments/my-app", "--json"},
 	} {
 		got, _, err := runShow(t, root, args...)
 		if err != nil {
@@ -47,6 +51,41 @@ func TestShowGolden(t *testing.T) {
 		if got != string(want) {
 			t.Errorf("%s differs from gcd show output (UPDATE=1 to accept)", p)
 		}
+	}
+}
+
+// The default output parses as YAML with flat values; --sources only adds comments.
+func TestShowYAMLParses(t *testing.T) {
+	root, _ := filepath.Abs(fixtureRoot)
+	var plain, withSrc map[string]any
+	for args, dst := range map[string]*map[string]any{"": &plain, "-s": &withSrc} {
+		a := []string{"payments/my-app"}
+		if args != "" {
+			a = append(a, args)
+		}
+		out, _, err := runShow(t, root, a...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := yaml.Unmarshal([]byte(out), dst); err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+	}
+	if !reflect.DeepEqual(plain, withSrc) {
+		t.Error("--sources changed the data")
+	}
+	app := plain["my-app"].(map[string]any)
+	dev := app["stages"].(map[string]any)["dev"].(map[string]any)["dc1-dev-k8s"].(map[string]any)
+	if dev["replicas"] != 3 || dev["image"] == nil {
+		t.Errorf("dev/dc1-dev-k8s: %v", dev)
+	}
+	if env := dev["env"].(map[string]any); env["STAGE_ENV"] != "false" {
+		t.Errorf("STAGE_ENV must stay a string: %#v", env["STAGE_ENV"])
+	}
+	// the source of a target-layer value is the target file, relative to the capability
+	out, _, _ := runShow(t, root, "payments/my-app", "--stage", "dev", "--target", "dc1-dev-k8s", "-s")
+	if !strings.Contains(out, "# targets/dc1-dev-k8s/target.yml:3") || !strings.Contains(out, "# global default") {
+		t.Errorf("sources:\n%s", out)
 	}
 }
 

@@ -1,0 +1,36 @@
+my-app:
+  owners:
+    codeOwners: [team1]
+    promoters:
+      dev: [doug@example.com]
+      staging: [doug@example.com]
+      perf: [doug@example.com]
+      prod: [doug@example.com]
+    viewers: [bob@example.com]
+    breakGlass: [carol@example.com]
+  stages:
+    dev:
+      dc1-dev-k8s:
+        image: ghcr.io/pitoniak32/nginx
+        environment: dev
+        environmentType: dev
+        platform: K8S
+        cluster: dc1
+        namespace: payments-onprem-dev
+        billing: dev
+        auth:
+          wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
+        port: 80
+        replicas: 3
+        resources:
+          cpu: 250m
+          memory: 256Mi
+        deployWith: argocd
+        envFrom:
+          - launchdarkly
+        env:
+          LD_SDK_KEY: secret:acme-dev-onprem/launchdarkly-sdk-key
+          LD_RELAY_URL: https://ld-relay.onprem-dev.example.com
+          APP_SECRET: secret:acme-proj1/my-app-secret
+          STAGE_ENV: "false"
+          APP_ENV: "false"

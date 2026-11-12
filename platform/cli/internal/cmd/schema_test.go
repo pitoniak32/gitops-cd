@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 const schemaGolden = "../../../render/testdata/golden-cli/"
@@ -23,7 +26,7 @@ func runSchema(t *testing.T, args ...string) (string, error) {
 }
 
 func TestSchemaGolden(t *testing.T) {
-	for name, args := range map[string][]string{"schema.txt": nil, "schema.json": {"--json"}} {
+	for name, args := range map[string][]string{"schema.yaml": nil, "schema-app-sources.yaml": {"app", "-s"}, "schema.json": {"--json"}} {
 		got, err := runSchema(t, args...)
 		if err != nil {
 			t.Fatal(err)
@@ -50,8 +53,27 @@ func TestSchemaGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(got, "app  capabilities/{cap}/apps/*/app.yml") {
+	if !strings.HasPrefix(got, "# app: capabilities/{cap}/apps/*/app.yml") {
 		t.Errorf("gcd schema app starts: %.80q", got)
+	}
+	// every kind's skeleton is valid YAML, documents separated by ---
+	all, err := runSchema(t, "-s")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	dec := yaml.NewDecoder(strings.NewReader(all))
+	for {
+		var v any
+		if err := dec.Decode(&v); err == io.EOF {
+			break
+		} else if err != nil {
+			t.Fatalf("%v\n%s", err, all)
+		}
+		n++
+	}
+	if n != 5 {
+		t.Errorf("documents: %d, want 5", n)
 	}
 }
 
