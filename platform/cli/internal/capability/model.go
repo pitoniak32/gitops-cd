@@ -9,7 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type kv struct{ k, v string }
+type kv struct {
+	k, v string
+	src  Source
+}
 
 // layer is the settings that can be set at app, stage or target level (and the platform's and the
 // global defaults below them). A zero field is "not set here".
@@ -20,10 +23,11 @@ type layer struct {
 	cpu, memory, deployWith string
 	wfRepo, wfFile, wfRef   string
 	node                    *yaml.Node
+	file, note              string // the file it is read from, or what it is when no file (defaults)
 }
 
-func readLayer(n *yaml.Node) layer {
-	l := layer{node: n, envFrom: strList(get(n, "envFrom")),
+func readLayer(n *yaml.Node, path string) layer {
+	l := layer{node: n, file: path, envFrom: strList(get(n, "envFrom")),
 		cpu: str(get(n, "resources", "cpu")), memory: str(get(n, "resources", "memory")), deployWith: str(get(n, "deployWith")),
 		wfRepo: str(get(n, "workflow", "repo")), wfFile: str(get(n, "workflow", "file")), wfRef: str(get(n, "workflow", "ref"))}
 	for _, f := range []struct {
@@ -36,7 +40,7 @@ func readLayer(n *yaml.Node) layer {
 		}
 	}
 	for _, p := range pairs(get(n, "env")) {
-		l.env = append(l.env, kv{p.k, valueOf(p.v)})
+		l.env = append(l.env, kv{p.k, valueOf(p.v), keySource(path, p.key)})
 	}
 	return l
 }
@@ -111,7 +115,8 @@ type deploy struct {
 	wfRepo, wfFile, wfRef   string
 	envFrom                 []string
 	env                     []kv
-	prefix                  string // terraform state prefix
+	src                     map[string]Source // leaf path -> where its value comes from
+	prefix                  string            // terraform state prefix
 }
 
 func (d *deploy) key() string { return d.app.name + "/" + d.target }
@@ -240,7 +245,7 @@ func build(cfg Config, in *inputs) (*model, []Diag) {
 			m.targetEnvs[t] = map[string][]kv{}
 		}
 		for _, p := range pairs(f.doc) {
-			m.targetEnvs[t][b] = append(m.targetEnvs[t][b], kv{p.k, valueOf(p.v)})
+			m.targetEnvs[t][b] = append(m.targetEnvs[t][b], kv{p.k, valueOf(p.v), keySource(f.path, p.key)})
 		}
 		if m.targetEnvs[t][b] == nil {
 			m.targetEnvs[t][b] = []kv{}
@@ -251,12 +256,12 @@ func build(cfg Config, in *inputs) (*model, []Diag) {
 			continue
 		}
 		g := func(k string) string { return str(get(f.doc, k)) }
-		a := &appDef{name: f.name(), file: f, layer: readLayer(f.doc), image: g("image"), imageConstraint: g("imageConstraint"),
+		a := &appDef{name: f.name(), file: f, layer: readLayer(f.doc, f.path), image: g("image"), imageConstraint: g("imageConstraint"),
 			module: g("module"), moduleConstraint: g("moduleConstraint"), sourceRepo: g("sourceRepo")}
 		for _, s := range pairs(get(f.doc, "stages")) {
-			as := appStage{name: s.k, layer: readLayer(s.v)}
+			as := appStage{name: s.k, layer: readLayer(s.v, f.path)}
 			for _, t := range pairs(get(s.v, "targets")) {
-				as.targets = append(as.targets, appTarget{name: t.k, key: t.key, layer: readLayer(t.v)})
+				as.targets = append(as.targets, appTarget{name: t.k, key: t.key, layer: readLayer(t.v, f.path)})
 			}
 			a.stages = append(a.stages, as)
 		}
@@ -357,18 +362,22 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 	at := func(field, msg string) { r.at(t.key, []string{"targets", tn, field}, msg) }
 	tgt := m.target(tn)
 	P := tgt.platform
-	d := &deploy{app: a, stage: s.name, target: tn, tgt: tgt, artifact: "image"}
+	d := &deploy{app: a, stage: s.name, target: tn, tgt: tgt, artifact: "image", src: map[string]Source{}}
+	artKey := "image"
 	if a.module != "" {
-		d.artifact = "module"
+		d.artifact, artKey = "module", "module"
 	}
+	d.src["artifact"] = a.layer.src(artKey)
 	if P.artifact != d.artifact {
 		at("platform", fmt.Sprintf("target %s is %s; %s apps need %s targets", tn, P.name, artifacts[d.artifact].app, strings.Join(platformNames(d.artifact), " or ")))
 		return nil
 	}
 	L := []*layer{&t.layer, &s.layer, &a.layer, &P.defaults, &defaults}
-	first := func(f func(*layer) string) string {
+	// first is the value of the first layer that has one; sets src[key] from that layer's path
+	first := func(key string, path []string, f func(*layer) string) string {
 		for _, l := range L {
 			if v := f(l); v != "" {
+				d.src[key] = l.src(path...)
 				return v
 			}
 		}
@@ -380,6 +389,7 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 		for _, l := range []*layer{&a.layer, &P.defaults} {
 			if l.port != nil {
 				d.port = l.port
+				d.src["port"] = l.src("port")
 				break
 			}
 		}
@@ -387,6 +397,7 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 		for _, l := range L {
 			if l.replicas != nil {
 				d.replicas = *l.replicas
+				d.src["replicas"] = l.src("replicas")
 				if min := m.cfg.MinReplicas[tgt.environmentType]; P.minReplicas && d.replicas < min {
 					where := t.key
 					if k, _ := getKV(l.node, "replicas"); k != nil {
@@ -397,8 +408,8 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 				break
 			}
 		}
-		d.cpu = first(func(l *layer) string { return l.cpu })
-		d.memory = first(func(l *layer) string { return l.memory })
+		d.cpu = first("resources.cpu", []string{"resources", "cpu"}, func(l *layer) string { return l.cpu })
+		d.memory = first("resources.memory", []string{"resources", "memory"}, func(l *layer) string { return l.memory })
 		if P.name == "K8S" {
 			// two targets of one app must not share cluster+namespace
 			at := tgt.cluster + "/" + tgt.namespace
@@ -419,20 +430,28 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 	switch {
 	case artifacts[d.artifact].deployWith != "":
 		d.deployWith = artifacts[d.artifact].deployWith
+		d.src["deployWith"] = Source{Note: "forced by artifact"}
 	case P.deployWith != "":
 		d.deployWith = P.deployWith
+		d.src["deployWith"] = Source{Note: "forced by platform"}
 	default:
-		d.deployWith = first(func(l *layer) string { return l.deployWith })
+		d.deployWith = first("deployWith", []string{"deployWith"}, func(l *layer) string { return l.deployWith })
 	}
 	// GitHub Actions workflow for gha deploys; each field defaults separately
-	wf := layer{wfRepo: m.cfg.ghRepo(), wfFile: P.workflowFile, wfRef: "main"}
+	wf := layer{wfRepo: m.cfg.ghRepo(), wfFile: P.workflowFile, wfRef: "main", note: "platform default (" + P.name + ")"}
 	L = []*layer{&t.layer, &s.layer, &a.layer, &wf}
-	d.wfRepo = first(func(l *layer) string { return l.wfRepo })
-	d.wfFile = first(func(l *layer) string { return l.wfFile })
-	d.wfRef = first(func(l *layer) string { return l.wfRef })
+	d.wfRepo = first("workflow.repo", []string{"workflow", "repo"}, func(l *layer) string { return l.wfRepo })
+	d.wfFile = first("workflow.file", []string{"workflow", "file"}, func(l *layer) string { return l.wfFile })
+	d.wfRef = first("workflow.ref", []string{"workflow", "ref"}, func(l *layer) string { return l.wfRef })
 
 	// envFrom: targets/<t>/environment-variables/<name>.yml, unioned over the layers
 	d.envFrom = uniqSorted(a.envFrom, s.envFrom, t.envFrom)
+	for _, l := range []*layer{&t.layer, &s.layer, &a.layer} { // the most specific layer listing any
+		if len(l.envFrom) > 0 {
+			d.src["envFrom"] = l.src("envFrom")
+			break
+		}
+	}
 	for _, n := range d.envFrom {
 		if m.targetEnvs[tn][n] == nil {
 			at("envFrom", fmt.Sprintf("target %s has no environment-variables/%s.yml", tn, n))
@@ -449,10 +468,12 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 		var keys []string
 		values := map[string][]string{} // KEY -> distinct values
 		files := map[string][]string{}  // KEY -> files setting it
+		srcs := map[string]Source{}     // KEY -> its first line
 		for _, n := range ly.l.envFrom {
 			for _, e := range m.targetEnvs[tn][n] {
 				if _, ok := values[e.k]; !ok {
 					keys = append(keys, e.k)
+					srcs[e.k] = e.src
 				}
 				if !has(values[e.k], e.v) {
 					values[e.k] = append(values[e.k], e.v)
@@ -467,7 +488,7 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 				at("envFrom", fmt.Sprintf("target %s: %s differs between environment-variables/{%s}.yml (both in %s-level envFrom)", tn, k, strings.Join(sorted(files[k]), ","), ly.name))
 				continue
 			}
-			layerEnv[i] = append(layerEnv[i], kv{k, values[k][0]})
+			layerEnv[i] = append(layerEnv[i], kv{k, values[k][0], srcs[k]})
 		}
 	}
 	// later lists win; a key keeps the place of the list its value comes from
@@ -490,6 +511,9 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 	}
 	// any env wins over every envFrom
 	d.env = override(override(layerEnv[0], layerEnv[1], layerEnv[2]), a.env, s.env, t.env)
+	for _, e := range d.env {
+		d.src["env."+e.k] = e.src
+	}
 	return d
 }
 

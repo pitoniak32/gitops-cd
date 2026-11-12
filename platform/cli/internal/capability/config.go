@@ -163,7 +163,7 @@ var platforms = []platform{
 		fields: []string{"gcpProject", "region"}, pipeline: []string{"gcpProject", "region"},
 		pinFile: "./out/service.yaml", pinKey: "spec.template.spec.containers.0.image",
 		deployWith: "gha", workflowFile: "cloud-run.yaml",
-		defaults: layer{replicas: intp(0), port: intp(8080), cpu: "1", memory: "512Mi"},
+		defaults: layer{replicas: intp(0), port: intp(8080), cpu: "1", memory: "512Mi", note: "platform default (CLOUD_RUN)"},
 	},
 	// ADR 0021
 	{
@@ -193,7 +193,7 @@ func platformNames(artifact string) []string {
 }
 
 // the last layer, under the platform's
-var defaults = layer{replicas: intp(2), cpu: "100m", memory: "128Mi", deployWith: "argocd"}
+var defaults = layer{replicas: intp(2), cpu: "100m", memory: "128Mi", deployWith: "argocd", note: "global default"}
 
 // What an app ships (exactly one of app.yml image / module); the name is also the Freight artifact's
 // name in dispatch inputs and commit messages. A terraform app is always applied by a workflow.

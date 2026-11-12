@@ -70,7 +70,7 @@ var lintCases = []struct {
 		must(t, yamledit.Rename(f, []string{"codeOwners"}, "owners"))
 	}, `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*renamed to codeOwners`},
 	{`.promoters.qa = ["doug@example.com"]`, ow, setTo([]string{"doug@example.com"}, "promoters", "qa"), `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown stage; allowed: dev, perf, prod, staging`},
-	{`.apps.nope = {}`, ow, setTo(m{}, "apps", "nope"), `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown app; allowed: infra, my-app, payments, web, worker`},
+	{`.apps.nope = {}`, ow, setTo(m{}, "apps", "nope"), `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*unknown app; allowed: flagged, infra, my-app, payments, web, worker`},
 	{`del(.promoters.staging)`, ow, delAt("promoters", "staging"), `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*app my-app uses stage staging: needs promoters\.staging`},
 	{`.promoters.dev = []`, ow, setTo([]string{}, "promoters", "dev"), `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*needs at least one email`},
 	{`.apps.worker.promoters.dev = ["doug@example.com", "doug@example.com"]`, ow, setTo([]string{"doug@example.com", "doug@example.com"}, "apps", "worker", "promoters", "dev"), `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*emails must not repeat`},
