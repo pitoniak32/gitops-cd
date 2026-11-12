@@ -28,7 +28,7 @@ func TestGitBase(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	run("init", "-q", ".")
+	run("init", "-q", "-b", "main", ".")
 	write("capabilities/a b/x y.yml", "base-cap\n")
 	write("other/o.txt", "other\n")
 	run("add", ".")
