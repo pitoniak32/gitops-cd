@@ -8,11 +8,11 @@ import (
 )
 
 // Promotion model (rendered-manifests + Kargo), one Kargo Stage per target (ADR 0012):
-//   CI renders every (app, stage, target) to <repo>@rendered (branch, ADR 0022): rendered/apps/<cap>/<app>/<stage>/<target>/
+//   CI renders every (app, stage, target) to <repo>@rendered (branch, ADR 0002): rendered/apps/<cap>/<app>/<stage>/<target>/
 //   Kargo Warehouse per app watches that path and the app's image repo (SemVer tags); Freight creation
 //   is Manual: promoters assemble Freight = (config commit, image digest) in the UI (ADR 0016).
 //   Target Stage <target> (in the app's project, ADR 0029) takes Freight from its upstream node (graph.go,
-//   ADR 0019) and copies its target folder from that commit onto branch env/<cap>/<app>/<target>, pins the
+//   ADR 0012) and copies its target folder from that commit onto branch env/<cap>/<app>/<target>, pins the
 //   Freight's image in it, then syncs that target's Argo CD app.
 //   Argo CD Application <cap>-<app>-<target> tracks that branch, path ".".
 //   deployWith: gha targets (ADR 0020) get no Application: after the push the Stage dispatches a GitHub
@@ -186,7 +186,7 @@ func saSubject(name, namespace string) List {
 	return List{M("kind", "ServiceAccount", "name", name, "namespace", namespace)}
 }
 
-// kargoPromoters is the promote RBAC (ADR 0023, 0029): in the app's project, one Kargo ServiceAccount
+// kargoPromoters is the promote RBAC (ADR 0011, 0029): in the app's project, one Kargo ServiceAccount
 // promote-<stage> per stage, mapped from the OIDC email claim to that stage's promoters + break-glass,
 // allowed to promote (and manually approve Freight for) the Kargo Stages of that capability stage. Only
 // stages with Kargo Stages: an empty resourceNames would mean *every* stage.

@@ -2,7 +2,7 @@
 
 What changes reach the cluster by themselves, and what needs a command.
 
-Rule of thumb: Argo CD reads **GitHub `main`** (`platform/appsets/`, `platform/infrastructure/`), the **`rendered` branch** (`rendered/`, written by CI on each push to main, ADR 0022) and the **`env/*` branches**. Every Argo CD (hub + each region) runs the same root app; ApplicationSets with the cluster generator pick what each one deploys from its cluster labels (ADR 0017). So a change under those paths does nothing until it is **pushed to `main`** (capabilities: merged and rendered by CI). `mise` tasks only cover what can't live in git: cluster creation, the first Argo CD install, the root app, CoreDNS, secrets and the Kargo shard token.
+Rule of thumb: Argo CD reads **GitHub `main`** (`platform/appsets/`, `platform/infrastructure/`), the **`rendered` branch** (`rendered/`, written by CI on each push to main, ADR 0002) and the **`env/*` branches**. Every Argo CD (hub + each region) runs the same root app; ApplicationSets with the cluster generator pick what each one deploys from its cluster labels (ADR 0017). So a change under those paths does nothing until it is **pushed to `main`** (capabilities: merged and rendered by CI). `mise` tasks only cover what can't live in git: cluster creation, the first Argo CD install, the root app, CoreDNS, secrets and the Kargo shard token.
 
 ```
 GITOPS LANE (pull: Argo CD, automated + prune + selfHeal)

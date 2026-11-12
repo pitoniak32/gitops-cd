@@ -89,7 +89,7 @@ func TestForbiddenFieldNoSpuriousLines(t *testing.T) {
 }
 
 // test.sh: "legacy app owners ok"
-// Leftover apps/<a>/owners.yml (pre-ADR 0023 layout) fails loudly
+// Leftover apps/<a>/owners.yml (old per-app owners layout, ADR 0007) fails loudly
 func TestLegacyAppOwners(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
@@ -132,7 +132,7 @@ func TestTargetStageNameCollision(t *testing.T) {
 	}
 }
 
-// ...nor like <stage>-done (fan-out control-flow Stage <stage>-done, ADR 0019)
+// ...nor like <stage>-done (fan-out control-flow Stage <stage>-done, ADR 0012)
 func TestTargetDoneCollision(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)

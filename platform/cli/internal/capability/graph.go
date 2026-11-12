@@ -106,7 +106,7 @@ func (m *model) pipeline(a *appDef) *pipeline {
 	return p
 }
 
-// graphNode is one Kargo Stage of an app (ADR 0019, names ADR 0029): a target Stage <target>, or a
+// graphNode is one Kargo Stage of an app (ADR 0012, names ADR 0029): a target Stage <target>, or a
 // control-flow Stage where it adds value. Each app has its own Kargo project, so names carry no app prefix.
 type graphNode struct {
 	name    string

@@ -1,4 +1,4 @@
-# ADR 0022: rendered/ lives on the orphan branch `rendered`, written only by this workflow on main (push, or workflow_dispatch to re-run);
+# ADR 0002: rendered/ lives on the orphan branch `rendered`, written only by this workflow on main (push, or workflow_dispatch to re-run);
 # main gets no bot commits. PRs comment the render diff against it. CODEOWNERS stays on main (GitHub reads it
 # there): authors regenerate it with `mise run codeowners`, CI checks it.
 name: ci
@@ -46,7 +46,7 @@ jobs:
         run: |
           # added/modified only: deleting rendered/ from main is fine
           if git diff --name-only --diff-filter=d "origin/${{ github.base_ref }}...HEAD" | grep -E '^rendered/'; then
-            echo "::error::rendered/ is generated onto the rendered branch by CI after merge (ADR 0022); remove it from this PR"; exit 1
+            echo "::error::rendered/ is generated onto the rendered branch by CI after merge (ADR 0002); remove it from this PR"; exit 1
           fi
 
       - name: renderer tests

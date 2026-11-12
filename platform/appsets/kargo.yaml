@@ -1,5 +1,5 @@
 # hub only: Application rendered-kargo syncs rendered/kargo/<cap>.yaml (a Kargo Project per app, Warehouses, Stages,
-# promote RBAC) from the rendered branch (ADR 0022)
+# promote RBAC) from the rendered branch (ADR 0002)
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:

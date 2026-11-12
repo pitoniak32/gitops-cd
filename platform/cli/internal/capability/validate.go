@@ -92,7 +92,7 @@ func (v *validator) target(r reporter, f *file) {
 	if !nameRx.MatchString(tn) {
 		r.at(nil, nil, badName)
 	}
-	// Kargo Stage names (one project per app, ADR 0029) are <target> and, for control flow (ADR 0019),
+	// Kargo Stage names (one project per app, ADR 0029) are <target> and, for control flow (ADR 0012),
 	// <stage> and <stage>-done: a target can't be named like either.
 	if has(v.stages, tn) {
 		r.at(nil, nil, "target name "+tn+" is also a stage name; Kargo Stage names would collide")
@@ -293,7 +293,7 @@ func (v *validator) appStages(app string) []string {
 }
 
 // capabilities/<cap>/owners.yml (required: codeOwners + promoters). One file per capability; apps override
-// codeOwners / promoters stages / viewers under `apps:` (ADR 0023).
+// codeOwners / promoters stages / viewers under `apps:` (ADR 0007).
 func (v *validator) owners(r reporter, f *file) {
 	if !isMap(f.doc) {
 		r.at(nil, nil, "expected a map")

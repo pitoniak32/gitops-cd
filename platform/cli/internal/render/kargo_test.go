@@ -130,7 +130,7 @@ func TestKindClusterKargo(t *testing.T) {
 	}
 	k := inProject(all, "kargo-payments-my-app")
 
-	// Kargo graph (ADR 0019); Stage names carry no app prefix (ADR 0029)
+	// Kargo graph (ADR 0012); Stage names carry no app prefix (ADR 0029)
 	if got := stagesOf(k, "my-app"); got != "dc1-dev-k8s dc1-npr-k8s dc1-prd-k8s dev dev-done prod staging us-east4-dev-k8s us-east4-npr-k8s us-east4-npr-k8s-perf us-east4-prd-k8s" {
 		t.Errorf("my-app Stage set: %s", got)
 	}
@@ -215,7 +215,7 @@ func TestKindClusterKargo(t *testing.T) {
 	oneclick(t, all)
 }
 
-// test.sh: "rendered branch ok" (ADR 0022: Warehouses watch the rendered branch, not main)
+// test.sh: "rendered branch ok" (ADR 0002: Warehouses watch the rendered branch, not main)
 func TestRenderedBranch(t *testing.T) {
 	t.Parallel()
 	out := sharedOut(t)
@@ -266,7 +266,7 @@ func addQA(t *testing.T, caps string) {
 	}
 }
 
-// test.sh: "control-flow graph ok" (ADR 0019, synthetic variants a-f)
+// test.sh: "control-flow graph ok" (ADR 0012, synthetic variants a-f)
 func TestControlFlowGraph(t *testing.T) {
 	t.Parallel()
 	// a) app skips perf: dev fans into staging alone (fan-in node named for staging), staging fans into prod

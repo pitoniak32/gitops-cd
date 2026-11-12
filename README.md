@@ -62,7 +62,7 @@ capabilities/<cap>/           one business capability (YAML only)
                               env vars for that target; apps opt in: envFrom: [<name>]
   apps/<app>/app.yml          image, replicas, env, envFrom, resources, per stage → target
 teams/<team>.yml              githubTeam, for CODEOWNERS (team or platform approves)
-rendered/                     generated; lives on branch `rendered` (ADR 0022), gitignored on main
+rendered/                     generated; lives on branch `rendered` (ADR 0002), gitignored on main
   apps/<cap>/<app>/<stage>/<target>/{deployment,manifests}.yaml
   argocd/deploys/<region>/<cap>/<app>-<target>.json  params for the workloads ApplicationSet
   argocd/projects/<region>/<cap>.yaml                 per-region AppProject
@@ -97,14 +97,14 @@ Plain YAML, no editor schema: `mise run lint` (also in CI, as PR annotations) re
 | Approve Freight that skipped verification ("Manual approval required") | the app's `breakGlass` emails + admins (guard, `docs/break-glass.md`) |
 | View the capability in Kargo / Argo CD | all stages' `promoters` + `viewers` |
 
-All in the capability's `owners.yml`; `apps.<app>` overrides: `codeOwners`/`viewers` replace the list, `promoters` merge per stage (ADR 0023).
+All in the capability's `owners.yml`; `apps.<app>` overrides: `codeOwners`/`viewers` replace the list, `promoters` merge per stage (ADR 0007).
 Stages that deploy to a `prod` target can't `autoPromote`. `.github/CODEOWNERS` is generated
 from `.github/CODEOWNERS.tmpl` + `owners.yml` by `mise run codeowners`; commit it with the owners change (CI checks).
 
 ## Flow
 
 1. PR: CI lints every capability (errors annotated on the changed lines), renders, and comments the `rendered/` diff.
-2. Merge: CI renders and commits `rendered/` to branch `rendered` (`render: <sha>`); main gets no bot commit (ADR 0022).
+2. Merge: CI renders and commits `rendered/` to branch `rendered` (`render: <sha>`); main gets no bot commit (ADR 0002).
 3. Every Argo CD runs the same root app (`platform/bootstrap/root.yaml` → `platform/appsets/`); cluster-generator labels pick the rest (ADR 0017). Hub: `rendered-kargo` syncs `rendered/kargo` from branch `rendered`. Each region: `argocd-projects` syncs its AppProjects and the `workloads` ApplicationSet makes one Application per app+target from `rendered/argocd/deploys/<region>/`. The hub runs no workloads.
 4. Kargo: each app's Warehouse watches `rendered/apps/<cap>/<app>/` and the app's image repo (SemVer tags).
    Nothing is promoted automatically from it: a promoter opens the Warehouse in the Kargo UI and
@@ -116,7 +116,7 @@ from `.github/CODEOWNERS.tmpl` + `owners.yml` by `mise run codeowners`; commit i
    and always dispatch `.github/workflows/terraform.yaml` (plan + apply; ADR 0021). Image apps may also
    have CLOUD_RUN targets: they render a Knative `service.yaml`, pin the image digest in it and always dispatch
    `.github/workflows/cloud-run.yaml`; no Argo CD, no shard (ADR 0024). Control-flow
-   Stages (no steps, always auto) appear only where they help (ADR 0019): `<S>-done` where
+   Stages (no steps, always auto) appear only where they help (ADR 0012): `<S>-done` where
    several targets fan out to several, `<D>` where several fan into a multi-target stage or a stage
    needs a one-click release. To release a whole stage, use **Promote to downstream** on its `<D>`
    node, or on its single upstream target when nothing else hangs off it.

@@ -10,7 +10,7 @@ promotion pipeline (ADR 0030). Teams never edit either.
 | `capability/load.go` | the one table of input file routes; reads the YAML |
 | `capability/schema.go`, `validate.go` | what each file may contain + cross-file rules, every problem a located diagnostic |
 | `capability/model.go` | layered merge app → stage → target → deploy, owners |
-| `capability/graph.go` | neutral per-app promotion graph (`pipelines/<cap>.json`), Kargo Stage graph (ADR 0019) |
+| `capability/graph.go` | neutral per-app promotion graph (`pipelines/<cap>.json`), Kargo Stage graph (ADR 0012) |
 | `capability/kargo.go`, `output.go` | Kargo Project/ProjectConfig/Warehouse/Stages/RBAC, Argo CD params + AppProjects, k8s / Cloud Run / terraform files, CODEOWNERS fragment |
 | `capability/platformfiles.go` | **platform-level** `ClusterPromotionTask`s (ADR 0027), region files, `mise run regions` config |
 | `emit` | ordered maps → YAML/JSON in the committed formatting |

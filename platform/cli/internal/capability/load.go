@@ -27,7 +27,7 @@ var routes = []route{
 	{"capabilities/{cap}/targets/*/target", "target"},
 	{"capabilities/{cap}/targets/*/environment-variables/*", "targetEnv"},
 	{"capabilities/{cap}/apps/*/app", "app"},
-	{"capabilities/{cap}/apps/*/owners", "legacyAppOwners"}, // pre-ADR 0023: read so it fails loudly
+	{"capabilities/{cap}/apps/*/owners", "legacyAppOwners"}, // old per-app owners file (ADR 0007): read so it fails loudly
 }
 
 // file is one input YAML file.

@@ -23,7 +23,9 @@ Normal promotions: promoters promote Freight that is verified upstream. When Fre
   kubectl -n kargo-<cap>-<app> patch freight <id> --subresource=status --type=json \
     -p '[{"op":"remove","path":"/status/approvedFor/<stage>"}]'
   ```
-- **Remove it**: see "Removing it" in `docs/adr/0013-break-glass-approval.md`.
+- **Remove it**:
+  1. Back out the change (`jj backout -r <change>`) and push; CI re-renders without the annotations.
+  2. `kubectl -n argocd delete app break-glass`: the finalizer deletes the guard, the Middleware and the approve route, so approvals go straight to kargo-api.
 
 ## Restoring Kargo state after a cluster rebuild
 

@@ -30,12 +30,12 @@ _Avoid_: approver (promoters approve normal promotions by promoting)
 An email listed under `viewers` in `owners.yml`. Viewers see the capability's apps in Kargo and Argo CD, read-only; `apps.<app>.viewers` replaces them for that app (ADR 0029).
 
 **Stage**:
-A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on. In Kargo it becomes one target stage per target, plus control-flow Stages where needed (ADR 0019).
+A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on. In Kargo it becomes one target stage per target, plus control-flow Stages where needed (ADR 0012).
 _Avoid_: environment, phase
 
 **Control-flow Stage**:
-A Kargo Stage with no promotion steps that always auto-promotes, rendered only where it helps (ADR 0019): `<S>-done` waits for all targets of stage S and fans out to several downstream targets; `<D>` fans into stage D's targets or gives a multi-target stage a one-click "Promote to downstream".
-_Avoid_: gate (ADR 0012's gate per stage is gone), join
+A Kargo Stage with no promotion steps that always auto-promotes, rendered only where it helps (ADR 0012): `<S>-done` waits for all targets of stage S and fans out to several downstream targets; `<D>` fans into stage D's targets or gives a multi-target stage a one-click "Promote to downstream".
+_Avoid_: gate (the old gate before every stage is gone), join
 
 **Target stage**:
 The Kargo Stage `<target>`, in its app's Kargo project, that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
@@ -116,7 +116,7 @@ _Avoid_: deployer (a person who ships is a promoter), runner
 An app's promotion graph: the capability's stages it uses, with skipped stages bypassed.
 
 **Rendered manifests**:
-The generated output under `rendered/`, on the CI-written branch `rendered` (ADR 0022); never edited by hand.
+The generated output under `rendered/`, on the CI-written branch `rendered` (ADR 0002); never edited by hand.
 _Avoid_: build output, artifacts
 
 ### Delivery

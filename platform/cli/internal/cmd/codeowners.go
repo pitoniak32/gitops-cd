@@ -36,7 +36,7 @@ func init() {
 				return err
 			}
 			defer os.RemoveAll(tmp)
-			// owner fragments render to a temp dir; rendered/ is untouched (ADR 0022)
+			// owner fragments render to a temp dir; rendered/ is untouched (ADR 0002)
 			if err := render.Fragments(root, tmp, io.Discard); err != nil {
 				return render.Wrap(err)
 			}

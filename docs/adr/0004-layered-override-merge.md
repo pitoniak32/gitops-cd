@@ -1,3 +1,6 @@
 # Layered override merge (app → stage → target)
 
-App, stage and target settings merge with "most specific wins" (env merged per key), implemented explicitly per field in `platform/app.cue`. This deliberately departs from CUE's native unification, where conflicting values are errors, because teams expect a target to override a stage default; only `replicas`, `env` and `resources` are overridable, and `image` stays app-level so it promotes as one unit.
+Settings in `app.yml` merge "most specific wins": `stages.<s>.targets.<t>` > `stages.<s>` > app top level > the target platform's defaults > the global defaults (`model.go`, `config.go`). `env` merges per key, and `workflow` merges per field. Teams expect a target to override a stage default, so a value set at a more specific layer is never a conflict.
+
+- **Layered**: `replicas`, `env`, `envFrom` (ADR 0014), `resources`, `deployWith` and `workflow` (ADR 0020).
+- **App-level only**: `image`/`module` and their constraints, `port` and `sourceRepo`. The artifact stays app-level so that it promotes as one unit.

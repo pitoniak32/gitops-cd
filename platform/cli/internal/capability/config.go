@@ -54,7 +54,7 @@ func (c Check) Normalize() (Check, error) {
 
 // Config is everything platform-owned that the renderer needs besides the platform table.
 type Config struct {
-	// The gitops monorepo; generated output lives under rendered/ on branch `rendered` (ADR 0022).
+	// The gitops monorepo; generated output lives under rendered/ on branch `rendered` (ADR 0002).
 	RepoURL  string
 	Clusters []Cluster
 	// regions a TERRAFORM or CLOUD_RUN target can sit in (ADR 0025)

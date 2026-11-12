@@ -1,32 +1,21 @@
 # One Kargo project per app
 
-Status: accepted. Amends ADR 0012 and 0019 (Stage names), 0016 (Freight `create` consequence), 0023 (RBAC names, viewer scope).
+Kargo's model is a project per pipeline, which here means per app. A capability-wide project would leak access: RBAC can't limit Freight `create` to one Warehouse (Freight names are content hashes), and project read can't be narrower than the project.
 
-Each capability had one Kargo project, `kargo-<cap>`, which held every app's Warehouse, Stages and RBAC. Kargo's own model is a project per pipeline, which here means per app. A capability-wide project also leaked access:
-
-- **Freight assembly** (ADR 0016): RBAC can't limit Freight `create` to one Warehouse, because Freight names are content hashes. So any promoter in a capability could assemble Freight for any app in it.
-- **Viewers**: project read went to every email in the capability (`_allEmails`). `apps.<app>.viewers` in `owners.yml` therefore narrowed nothing.
-
-## Decision
-
-- **Kargo project `kargo-<cap>-<app>` per app.** Each project holds the app's Namespace (labeled `example.com/capability`, `example.com/app`), Project, ProjectConfig (that app's auto-promote Stages), Warehouse `<app>`, Stages, `promote-<stage>` RBAC and `viewers`. All of a capability's projects stay in one file, `rendered/kargo/<cap>.yaml`.
-- **Stage names lose the `<app>-` prefix**, since the project already scopes them. A target Stage is `<target>`. A control-flow Stage is `<D>` (fan-in or entry), `<S>-done` (fan-out) or `<S1>-<S2>…-done`.
-- **Per-app access.** `viewers` and Argo CD read access go to the app's emails: its promoters (stages it uses, after overrides), its viewers (app override, else the capability's) and the capability's break-glass emails. `users-<cap>` (list project names) stays capability-wide.
-- **Argo CD AppProjects stay per capability per region** (Argo CD's usual per-tenant grouping). The single `viewer` role becomes one `viewer-<app>` role per app, with policies naming that app's Applications (`<cap>/<cap>-<app>-<target>`) exactly. A glob such as `<cap>-api-*` would also match an app named `api-v2`.
-- **Unchanged:** Argo CD Application names `<cap>-<app>-<target>`, `env/<cap>/<app>/<target>` branches, Promotion vars, and the shared ClusterPromotionTasks.
+- **Kargo project `kargo-<cap>-<app>`** holds the app's Namespace (labeled `example.com/capability`, `example.com/app`), Project, ProjectConfig (auto-promote Stages), Warehouse `<app>`, Stages and RBAC (ADR 0011). All of a capability's projects stay in one file, `rendered/kargo/<cap>.yaml`.
+- **Stage names have no app prefix**, because the project scopes them (ADR 0012).
+- **Argo CD AppProjects stay per capability per region**, which is Argo CD's usual tenant grouping. Per-app visibility comes from `viewer-<app>` roles that name that app's Applications (`<cap>/<cap>-<app>-<target>`) exactly. A glob such as `<cap>-api-*` would also match an app named `api-v2`.
+- Argo CD Application names `<cap>-<app>-<target>` and `env/<cap>/<app>/<target>` branches are scoped by capability.
 
 ## Considered Options
 
-- **Keep one project per capability, scope RBAC finer**: rejected. Freight `create` can't be scoped below a project.
-- **One Argo CD AppProject per app**: rejected. That means many near-identical projects with the same repos and destinations. Per-app roles already give per-app visibility.
-- **Share one gitops (config) Warehouse**: rejected. Warehouses and Freight are project-scoped, so a Warehouse can't be shared across projects. Inside one project, a shared config Warehouse plus per-app image Warehouses would split config and image into separate Freight, which loses ADR 0016's chosen pairing. All it would save is git polling.
-- **Drop or change the `kargo-` project prefix** (`<cap>-<app>`, `kp-…`): rejected. The prefix keeps project namespaces apart from the hub's add-on namespaces. Capabilities are platform-approved, so no reserved-name lint.
-- **Keep the `<app>-` prefix on Stages**: rejected. It's redundant inside a per-app project and uses up the 63-character Stage-name budget.
+- **One project per capability with finer RBAC**: Freight `create` can't be scoped below a project.
+- **One Argo CD AppProject per app**: many near-identical projects with the same repos and destinations.
+- **A shared config Warehouse**: Warehouses and Freight are project-scoped. Inside one project, it would split config and image into separate Freight and lose ADR 0016's pairing.
+- **Drop the `kargo-` prefix**: the prefix keeps project namespaces apart from the hub's add-on namespaces.
 
 ## Consequences
 
-- The project name must fit a namespace (63 characters): lint rejects `kargo-<cap>-<app>` when it is longer.
-- `kargo-<cap>-<app>` can collide across capabilities (cap `a-b` + app `c` vs cap `a` + app `b-c`). `gcd render` rejects duplicate project names, alongside duplicate Application names.
-- Stage and target names now share one namespace per app. The existing lint (a target can't be named like a stage or `<stage>-done`) already covers it.
-- Migration loses Kargo history. `rendered-kargo` prunes `kargo-<cap>`, which deletes its Freight and Promotions. Workloads and `env/*` branches don't change. Run `mise run kargo-restore` afterwards.
-- More projects in the Kargo UI, and no single pipeline view for a capability.
+- Lint rejects a `kargo-<cap>-<app>` longer than 63 characters (the namespace limit).
+- `kargo-<cap>-<app>` can collide across capabilities (cap `a-b` + app `c` vs cap `a` + app `b-c`). `gcd render` rejects duplicate project names and duplicate Application names.
+- The Kargo UI shows more projects, and there's no single pipeline view for a capability.
