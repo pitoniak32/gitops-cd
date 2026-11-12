@@ -1,0 +1,22 @@
+name: setup-go
+description: mise-pinned Go (.mise.toml) + module/build cache for platform/cli
+runs:
+  using: composite
+  steps:
+    - uses: jdx/mise-action@v2
+      with:
+        install_args: go
+    - name: go cache dirs
+      id: go
+      shell: bash
+      run: |
+        echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+        echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+    # key: Go version + go.sum
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ${{ steps.go.outputs.mod }}
+          ${{ steps.go.outputs.build }}
+        key: go-${{ runner.os }}-${{ hashFiles('.mise.toml') }}-${{ hashFiles('platform/cli/go.sum') }}
+        restore-keys: go-${{ runner.os }}-${{ hashFiles('.mise.toml') }}-

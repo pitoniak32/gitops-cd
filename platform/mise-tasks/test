@@ -1,6 +1,3 @@
 #!/usr/bin/env bash
-#MISE description="Tests: gofmt + go vet + go test (renderer golden/CODEOWNERS/lint cases, CLI; UPDATE=1 accepts golden) + tf-module-push"
-#MISE depends=["cli"]
-set -euo pipefail
-(cd "$MISE_PROJECT_ROOT/platform/cli" && { test -z "$(gofmt -l .)" || { echo "gofmt needed:" >&2; gofmt -l . >&2; exit 1; }; } && go vet ./... && go test ./...)
-"$MISE_PROJECT_ROOT/platform/tests/tf-module-push.sh"
+#MISE description="All tests: test-cli + test-tf (CI runs each only when its code changes: cli.yaml, tf-module.yaml)"
+#MISE depends=["test-cli", "test-tf"]

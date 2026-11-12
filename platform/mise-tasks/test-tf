@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="tf-module-push idempotency (stubbed oras/fnox/gh)"
+exec "$MISE_PROJECT_ROOT/platform/tests/tf-module-push.sh"

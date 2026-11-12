@@ -1,0 +1,25 @@
+# tf-module-push (stubbed oras/fnox/gh): only when the script, its test or the example module changes.
+name: tf-module
+on:
+  pull_request:
+    paths: &paths
+      - platform/mise-tasks/tf-module-push
+      - platform/tests/tf-module-push.sh
+      - examples/terraform/**
+      - .github/workflows/tf-module.yaml
+  push:
+    branches: [main]
+    paths: *paths
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tf-module-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: tf-module-push idempotency
+        run: platform/tests/tf-module-push.sh

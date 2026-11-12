@@ -1,23 +1,25 @@
+# Config: lint + render the capability YAML on every PR and main push (no path filter: a renderer change
+# re-renders everything too). Code tests run only when their code changes: cli.yaml, tf-module.yaml.
 # ADR 0002: rendered/ lives on the orphan branch `rendered`, written only by this workflow on main (push, or workflow_dispatch to re-run);
 # main gets no bot commits. PRs comment the render diff against it. CODEOWNERS stays on main (GitHub reads it
 # there): authors regenerate it with `mise run codeowners`, CI checks it.
-name: ci
+name: config
 on:
   pull_request:
     # labeled/unlabeled: the lint-all label switches PR lint to everything
     types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main]
-  # re-run the main render by hand (`gh workflow run ci --ref main`), e.g. when a push run gets stuck queued
+  # re-run the main render by hand (`gh workflow run config --ref main`), e.g. when a push run gets stuck queued
   workflow_dispatch:
 permissions:
   contents: read           # the rendered push uses the gitops-cd-demo app token (ruleset bypass actor)
   pull-requests: write
 concurrency:
-  group: ci-${{ github.ref }}
+  group: config-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
-  ci:
+  config:
     runs-on: ubuntu-latest
     env:
       # .mise.toml evaluates `gh auth token` for GITHUB_AUTH_TOKEN; gh uses GH_TOKEN on runners
@@ -26,22 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@v2   # pinned tools from .mise.toml (go only: gcd is the renderer)
-        with:
-          install_args: go
-      - name: go cache dirs
-        id: go
-        run: |
-          echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
-          echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-      # module + build cache for platform/cli (go vet/test, gcd build); key: Go version + go.sum
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ${{ steps.go.outputs.mod }}
-            ${{ steps.go.outputs.build }}
-          key: go-${{ runner.os }}-${{ hashFiles('.mise.toml') }}-${{ hashFiles('platform/cli/go.sum') }}
-          restore-keys: go-${{ runner.os }}-${{ hashFiles('.mise.toml') }}-
+      - uses: ./.github/actions/setup-go
 
       - name: rendered/ lives on the rendered branch
         if: github.event_name == 'pull_request'
@@ -51,13 +38,11 @@ jobs:
             echo "::error::rendered/ is generated onto the rendered branch by CI after merge (ADR 0002); remove it from this PR"; exit 1
           fi
 
-      - name: renderer tests
-        run: mise run test
-      - name: region-derived config up to date (cluster registry)
-        run: mise run regions && git diff --exit-code platform/cluster/regions platform/infrastructure/keycloak platform/infrastructure/kargo/values.yaml
+      - name: build gcd
+        run: mise run cli
 
       # gcd picks the scope from the event (PR: what changed, label lint-all: everything; main: everything)
-      # and prints ::error annotations (`gcd lint --help`); .bin/gcd was built by the test task
+      # and prints ::error annotations (`gcd lint --help`)
       - name: lint
         run: .bin/gcd lint
 

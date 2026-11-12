@@ -1,0 +1,37 @@
+# gcd (platform/cli): gofmt, vet, tests, region-derived config drift. Only when the Go code or a file its
+# tests read changes; config-only PRs skip it (config.yaml lints and renders those).
+name: cli
+on:
+  pull_request:
+    paths: &paths
+      - platform/cli/**
+      - platform/render/**          # renderer fixtures + golden, rendered README
+      - platform/appsets/**         # internal/appsets static checks
+      - platform/bootstrap/**
+      - platform/infrastructure/**  # regions drift (keycloak, kargo values), appsets checks
+      - platform/cluster/**
+      - .github/CODEOWNERS.tmpl     # CODEOWNERS golden
+      - .mise.toml                  # Go version
+      - .github/actions/setup-go/**
+      - .github/workflows/cli.yaml
+  push:
+    branches: [main]
+    paths: *paths
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cli-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}   # .mise.toml evaluates `gh auth token`
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-go
+      - name: gofmt, vet, test
+        run: mise run test-cli
+      - name: region-derived config up to date (cluster registry)
+        run: mise run regions && git diff --exit-code platform/cluster/regions platform/infrastructure/keycloak platform/infrastructure/kargo/values.yaml
