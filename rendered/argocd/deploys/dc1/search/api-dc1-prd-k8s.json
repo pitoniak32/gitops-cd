@@ -7,5 +7,5 @@
   "namespace": "search-onprem-prod",
   "branch": "env/search/api/dc1-prd-k8s",
   "destination": "in-cluster",
-  "authorizedStage": "kargo-search:api-dc1-prd-k8s"
+  "authorizedStage": "kargo-search-api:dc1-prd-k8s"
 }

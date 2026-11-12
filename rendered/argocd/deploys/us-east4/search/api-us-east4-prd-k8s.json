@@ -7,5 +7,5 @@
   "namespace": "search-us-prod",
   "branch": "env/search/api/us-east4-prd-k8s",
   "destination": "in-cluster",
-  "authorizedStage": "kargo-search:api-us-east4-prd-k8s"
+  "authorizedStage": "kargo-search-api:us-east4-prd-k8s"
 }
