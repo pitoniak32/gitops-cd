@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -27,11 +28,13 @@ func runShow(t *testing.T, root string, args ...string) (stdout, stderr string, 
 func TestShowGolden(t *testing.T) {
 	root, _ := filepath.Abs(fixtureRoot)
 	for name, args := range map[string][]string{
-		"show-payments.yaml":       {"payments"},
-		"show-my-app-prod.yaml":    {"payments/my-app", "--stage", "prod"},
-		"show-my-app-sources.yaml": {"payments/my-app", "--sources"},
-		"show-target.yaml":         {"payments", "--target", "dc1-dev-k8s"},
-		"show-my-app.json":         {"payments/my-app", "--json"},
+		"show-payments.yaml":          {"payments"},
+		"show-my-app-prod.yaml":       {"payments/my-app", "--stage", "prod"},
+		"show-my-app-sources.yaml":    {"payments/my-app", "--sources"},
+		"show-target.yaml":            {"payments", "--target", "dc1-dev-k8s"},
+		"show-my-app.json":            {"payments/my-app", "--json"},
+		"show-rendered.yaml":          {"payments/my-app", "--stage", "dev", "--rendered"},
+		"show-rendered-platform.yaml": {"payments/my-app", "--stage", "dev", "--target", "dc1-dev-k8s", "--rendered", "--include-platform"},
 	} {
 		got, _, err := runShow(t, root, args...)
 		if err != nil {
@@ -119,5 +122,83 @@ func TestShowUnknown(t *testing.T) {
 		if err == nil || out != "" || err.Error() != c.want {
 			t.Errorf("%v: err=%v out=%q", c.args, err, out)
 		}
+	}
+}
+
+func TestShowFlagConflicts(t *testing.T) {
+	root, _ := filepath.Abs(fixtureRoot)
+	for _, args := range [][]string{
+		{"payments", "--rendered", "--json"},
+		{"payments", "--diff", "--sources"},
+		{"payments", "--rendered", "--diff"},
+		{"payments", "--include-platform"},
+	} {
+		if out, _, err := runShow(t, root, args...); err == nil || out != "" {
+			t.Errorf("%v: want error, got %v %q", args, err, out)
+		}
+	}
+}
+
+// vcsRepo copies the fixture into a fresh repo of kind ("git" or "jj"), commits it, and returns its root.
+func vcsRepo(t *testing.T, kind string) string {
+	t.Helper()
+	root := t.TempDir()
+	if err := os.CopyFS(root, os.DirFS(fixtureRoot)); err != nil {
+		t.Fatal(err)
+	}
+	run := func(name string, args ...string) {
+		t.Helper()
+		c := exec.Command(name, args...)
+		c.Dir = root
+		c.Env = append(os.Environ(), "JJ_CONFIG=")
+		if out, err := c.CombinedOutput(); err != nil {
+			t.Fatalf("%s %v: %v\n%s", name, args, err, out)
+		}
+	}
+	id := []string{"user.name=t", "user.email=t@example.com"}
+	switch kind {
+	case "git":
+		if _, err := exec.LookPath("git"); err != nil {
+			t.Skip("git not installed")
+		}
+		run("git", "init", "-q", ".")
+		run("git", "add", ".")
+		run("git", "-c", id[0], "-c", id[1], "-c", "commit.gpgsign=false", "commit", "-q", "-m", "base")
+	case "jj":
+		if _, err := exec.LookPath("jj"); err != nil {
+			t.Skip("jj not installed")
+		}
+		run("jj", "--config", id[0], "--config", id[1], "git", "init", ".")
+		run("jj", "--config", id[0], "--config", id[1], "commit", "-m", "base")
+	}
+	p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
+	b, _ := os.ReadFile(p)
+	if err := os.WriteFile(p, []byte(strings.Replace(string(b), "    replicas: 1\n", "    replicas: 5\n", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+func TestShowDiff(t *testing.T) {
+	for _, kind := range []string{"git", "jj"} {
+		t.Run(kind, func(t *testing.T) {
+			root := vcsRepo(t, kind)
+			// the edit is the dev stage's replicas: us-east4-dev-k8s inherits it, dc1-dev-k8s overrides it
+			out, errOut, err := runShow(t, root, "payments/my-app", "--stage", "dev", "--diff")
+			if err != nil {
+				t.Fatalf("%v\n%s", err, errOut)
+			}
+			if !strings.Contains(out, "+++ b/rendered/apps/payments/my-app/dev/us-east4-dev-k8s/deployment.yaml") || !strings.Contains(out, "+  replicas: 5") {
+				t.Errorf("want a deployment diff hunk:\n%s", out)
+			}
+			// unchanged files print in full under a header, with no hunk
+			if !strings.Contains(out, "# rendered/apps/payments/my-app/dev/dc1-dev-k8s/deployment.yaml\n") || strings.Contains(out, "b/rendered/apps/payments/my-app/dev/dc1-dev-k8s") {
+				t.Errorf("want full unchanged files:\n%s", out)
+			}
+			if strings.Contains(out, "search") || strings.Contains(out, "my-app/prod") {
+				t.Errorf("unselected deploys present:\n%s", out)
+			}
+			t.Log("\n" + out)
+		})
 	}
 }

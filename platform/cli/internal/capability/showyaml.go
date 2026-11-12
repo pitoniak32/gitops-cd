@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
 	"gopkg.in/yaml.v3"
 )
 
@@ -97,9 +98,9 @@ func (n *ynode) write(y *yamlLines, indent int, sources bool) {
 		} else {
 			s = yscalar(n.val.Value)
 		}
-		y.add(indent, ykey(n.key)+": "+s, cm(n.val.Source))
+		y.addC(indent, ykey(n.key)+": "+s, y.p.Blue(ykey(n.key))+": "+s, cm(n.val.Source))
 	default:
-		y.add(indent, ykey(n.key)+":", "")
+		y.addC(indent, ykey(n.key)+":", y.p.Blue(ykey(n.key))+":", "")
 		for _, it := range n.items {
 			y.add(indent+2, "- "+yscalar(it.Path), cm(it.Source))
 		}
@@ -110,8 +111,8 @@ func (n *ynode) write(y *yamlLines, indent int, sources bool) {
 }
 
 // YAML renders r for people as YAML: per app its owners, then stages.<stage>.<target> with the
-// effective values. sources appends each value's origin (file:line or note) as a comment.
-func (r ShowResult) YAML(sources bool) string {
+// effective values (keys and source comments painted by p). sources appends each value's origin (file:line or note) as a comment.
+func (r ShowResult) YAML(sources bool, p color.P) string {
 	var order []string
 	byApp := map[string][]ShowDeploy{}
 	for _, d := range r.Deploys {
@@ -140,7 +141,7 @@ func (r ShowResult) YAML(sources bool) string {
 				t.put(art, v)
 			}
 		}
-		var y yamlLines
+		y := yamlLines{p: p}
 		root.write(&y, 0, sources)
 		out.WriteString(y.String())
 	}

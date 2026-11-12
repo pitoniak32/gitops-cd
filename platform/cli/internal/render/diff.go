@@ -138,7 +138,8 @@ func lines(s string) []string {
 	return difflib.SplitLines(strings.TrimSuffix(s, "\n"))
 }
 
-// Unified renders d as a unified diff (3 context lines) with a/rendered/ and b/rendered/ headers.
+// Unified renders d as the changed lines only (no context, no @@ hunk lines) under a/rendered/ and
+// b/rendered/ headers.
 func Unified(d []FileDiff) string {
 	var sb strings.Builder
 	for _, f := range d {
@@ -147,7 +148,7 @@ func Unified(d []FileDiff) string {
 			B:        lines(f.New),
 			FromFile: "a/rendered/" + f.Path,
 			ToFile:   "b/rendered/" + f.Path,
-			Context:  3,
+			Context:  0,
 		}
 		if f.Old == "" {
 			ud.FromFile = "/dev/null"
@@ -159,7 +160,11 @@ func Unified(d []FileDiff) string {
 		if err != nil {
 			continue
 		}
-		sb.WriteString(s)
+		for _, l := range strings.SplitAfter(s, "\n") {
+			if !strings.HasPrefix(l, "@@") {
+				sb.WriteString(l)
+			}
+		}
 	}
 	return sb.String()
 }

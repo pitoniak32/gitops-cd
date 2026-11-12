@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/term"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
 )
 
 const (
@@ -47,7 +47,7 @@ func New(w io.Writer) *Tracker { return &Tracker{w: w, now: time.Now, nameWidth:
 
 // Auto is New(f) when f is a terminal and off is false, else nil (no progress: CI logs, pipes).
 func Auto(f *os.File, off bool) *Tracker {
-	if off || f == nil || !term.IsTerminal(int(f.Fd())) {
+	if off || f == nil || !color.IsTerminal(f) {
 		return nil
 	}
 	return New(f)

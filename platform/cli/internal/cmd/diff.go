@@ -21,13 +21,16 @@ func init() {
 		c := &cobra.Command{
 			Use:   "diff",
 			Short: "Show how the working tree changes the rendered output against a base revision (read-only)",
-			Long: `Renders the changed capabilities from the working tree and from --base (default @-) in memory and prints
+			Long: `Renders the changed capabilities from the working tree and from --base (default @- in jj, HEAD in git) in memory and prints
 the unified diff of rendered/ files. Changed = capabilities/ or teams/ files differing from --base (a teams/
 change selects every capability). Nothing is written to rendered/. Prints nothing when nothing changed.`,
 			Args: cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, args []string) error {
+				pt, err := painter(cmd)
+				if err != nil {
+					return err
+				}
 				root := rootDir
-				var err error
 				if root == "" {
 					if root, err = repo.Root(); err != nil {
 						return err
@@ -35,7 +38,7 @@ change selects every capability). Nothing is written to rendered/. Prints nothin
 				} else if root, err = filepath.Abs(root); err != nil {
 					return err
 				}
-				id, err := repo.ResolveOne(root, base)
+				id, err := repo.ResolveBase(root, base)
 				if err != nil {
 					return err
 				}
@@ -44,7 +47,7 @@ change selects every capability). Nothing is written to rendered/. Prints nothin
 					return err
 				}
 				defer os.RemoveAll(tmp)
-				if err := repo.Export(root, id, tmp, "capabilities", "teams"); err != nil {
+				if err := repo.ExportBase(root, id, tmp, "capabilities", "teams"); err != nil {
 					return err
 				}
 				if len(caps) > 0 {
@@ -83,15 +86,15 @@ change selects every capability). Nothing is written to rendered/. Prints nothin
 					return nil
 				}
 				if stat {
-					fmt.Fprint(cmd.OutOrStdout(), render.Stat(d))
+					fmt.Fprint(cmd.OutOrStdout(), render.ColorStat(render.Stat(d), pt))
 				} else {
-					fmt.Fprint(cmd.OutOrStdout(), render.Unified(d))
+					fmt.Fprint(cmd.OutOrStdout(), render.ColorDiff(render.Unified(d), pt))
 				}
 				return nil
 			},
 		}
 		c.Flags().StringVar(&rootDir, "root", "", "repo root (default: this repo)")
-		c.Flags().StringVar(&base, "base", "@-", "jj revset of the base revision (exactly one commit)")
+		c.Flags().StringVar(&base, "base", "", "base revision: jj revset (exactly one commit; default @-) or git rev (default HEAD)")
 		c.Flags().BoolVar(&stat, "stat", false, "per-file +added -removed line counts instead of the diff")
 		c.Flags().StringArrayVar(&caps, "capability", nil, "diff only this capability (repeatable; overrides change detection)")
 		return c

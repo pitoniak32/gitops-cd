@@ -1,7 +1,10 @@
 // Package cmd defines the gcd command tree.
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
+	"github.com/spf13/cobra"
+)
 
 var subcommands []func() *cobra.Command
 
@@ -18,8 +21,15 @@ func NewRoot() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: false,
 	}
+	root.PersistentFlags().String("color", "auto", "color human output: auto (terminal and no NO_COLOR), always, never")
 	for _, f := range subcommands {
 		root.AddCommand(f())
 	}
 	return root
+}
+
+// painter resolves the root --color flag for cmd's stdout.
+func painter(cmd *cobra.Command) (color.P, error) {
+	mode, _ := cmd.Flags().GetString("color")
+	return color.Detect(mode, cmd.OutOrStdout())
 }

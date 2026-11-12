@@ -1,0 +1,162 @@
+# rendered/apps/payments/my-app/dev/dc1-dev-k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: dev
+    example.com/target: dc1-dev-k8s
+    example.com/environment: dev
+    example.com/environment-type: dev
+    example.com/billing: dev
+  name: my-app
+  namespace: payments-onprem-dev
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: my-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: cue-platform
+        app.kubernetes.io/name: my-app
+        example.com/capability: payments
+        example.com/stage: dev
+        example.com/target: dc1-dev-k8s
+        example.com/environment: dev
+        example.com/environment-type: dev
+        example.com/billing: dev
+    spec:
+      containers:
+        - env:
+            - name: LD_RELAY_URL
+              value: https://ld-relay.onprem-dev.example.com
+            - name: STAGE_ENV
+              value: "false"
+            - name: APP_ENV
+              value: "false"
+          image: ghcr.io/pitoniak32/nginx
+          name: my-app
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+      serviceAccountName: my-app
+---
+# rendered/apps/payments/my-app/dev/dc1-dev-k8s/manifests.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: team1-dev@team1-dev.iam.gserviceaccount.com
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: dev
+    example.com/target: dc1-dev-k8s
+    example.com/environment: dev
+    example.com/environment-type: dev
+    example.com/billing: dev
+  name: my-app
+  namespace: payments-onprem-dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: my-app
+    example.com/capability: payments
+    example.com/stage: dev
+    example.com/target: dc1-dev-k8s
+    example.com/environment: dev
+    example.com/environment-type: dev
+    example.com/billing: dev
+  name: my-app
+  namespace: payments-onprem-dev
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: my-app
+
+# rendered/argocd/deploys/dc1/payments/my-app-dc1-dev-k8s.json
+{
+  "appName": "payments-my-app-dc1-dev-k8s",
+  "capability": "payments",
+  "app": "my-app",
+  "stage": "dev",
+  "target": "dc1-dev-k8s",
+  "namespace": "payments-onprem-dev",
+  "branch": "env/payments/my-app/dc1-dev-k8s",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-payments-my-app:dc1-dev-k8s"
+}
+---
+# rendered/kargo/payments.yaml#Stage/kargo-payments-my-app/dc1-dev-k8s
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: dc1-dev-k8s
+  namespace: kargo-payments-my-app
+  labels:
+    example.com/capability: payments
+    example.com/app: my-app
+    example.com/kind: target
+    example.com/stage: dev
+    example.com/target: dc1-dev-k8s
+    example.com/deploy-with: argocd
+    example.com/platform: k8s
+  annotations:
+    example.com/break-glass: '["carol@example.com"]'
+    kargo.akuity.io/color: blue
+spec:
+  shard: dc1
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: my-app
+      sources:
+        stages:
+          - dev
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repo
+          value: https://github.com/pitoniak32/gitops-cd
+        - name: src
+          value: ./src/rendered/apps/payments/my-app/dev/dc1-dev-k8s/
+        - name: branch
+          value: env/payments/my-app/dc1-dev-k8s
+        - name: image
+          value: ghcr.io/pitoniak32/nginx
+        - name: capability
+          value: payments
+        - name: app
+          value: my-app
+        - name: stage
+          value: dev
+        - name: target
+          value: dc1-dev-k8s
+        - name: pinFile
+          value: ./out/deployment.yaml
+        - name: pinKey
+          value: spec.template.spec.containers.0.image
+        - name: artifactKey
+          value: image
+      steps:
+        - as: promote
+          task:
+            kind: ClusterPromotionTask
+            name: promote-argocd

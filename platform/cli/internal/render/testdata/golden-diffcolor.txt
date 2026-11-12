@@ -1,0 +1,15 @@
+[1m# rendered/a/full.yaml[0m
+kind: A
+---
+- gone
+--- looks like a header
+---
+[1m--- a/rendered/a/x.yaml[0m
+[1m+++ b/rendered/a/x.yaml[0m
+[31m--- removed line starting with dashes[0m
+[32m+new[0m
+[31m-old[0m
+[32m+new2[0m
+[1m# rendered/a/other.yaml[0m
+---
+x: 1
