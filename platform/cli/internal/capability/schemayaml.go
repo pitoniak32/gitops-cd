@@ -1,23 +1,27 @@
 package capability
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
+)
 
 // exampleDir prefixes every fixture example; shown once in the header instead of per field.
 const exampleDir = FixtureRoot + "/capabilities/"
 
 // SchemaYAML renders docs as annotated YAML skeletons, one document per kind, each opened by a header
 // comment. examples adds each field's fixture example to its comment.
-func SchemaYAML(docs []SchemaDoc, examples bool) string {
+func SchemaYAML(docs []SchemaDoc, examples bool, p color.P) string {
 	var b strings.Builder
 	if examples {
-		b.WriteString("# e.g. paths are under " + exampleDir + "\n")
+		b.WriteString(p.Dim("# e.g. paths are under "+exampleDir) + "\n")
 	}
 	for i, d := range docs {
 		if i > 0 {
 			b.WriteString("---\n")
 		}
-		b.WriteString("# " + d.Kind + ": " + d.File + " — " + d.Desc + "\n")
-		var y yamlLines
+		b.WriteString(p.Dim("# "+d.Kind+": "+d.File+" — "+d.Desc) + "\n")
+		y := yamlLines{p: p}
 		for _, f := range d.Fields {
 			schemaField(&y, f, 0, examples)
 		}
@@ -84,12 +88,12 @@ func schemaField(y *yamlLines, f FieldDoc, indent int, ex bool) {
 	c := fieldComment(f, ex)
 	switch f.Type {
 	case "map":
-		y.add(indent, name+":", c)
+		y.addC(indent, name+":", y.p.Blue(name)+":", c)
 		for _, ch := range f.Fields {
 			schemaField(y, ch, indent+2, ex)
 		}
 	case "dict":
-		y.add(indent, name+":", c)
+		y.addC(indent, name+":", y.p.Blue(name)+":", c)
 		if f.Elem == nil {
 			return
 		}
@@ -97,24 +101,25 @@ func schemaField(y *yamlLines, f FieldDoc, indent int, ex bool) {
 		e.Name = dictKey(f.Name)
 		schemaField(y, e, indent+2, ex)
 	case "list":
-		y.add(indent, name+":", c)
+		y.addC(indent, name+":", y.p.Blue(name)+":", c)
 		if f.Elem == nil {
 			return
 		}
 		e := *f.Elem
 		if e.Type == "map" {
-			var sub yamlLines
+			sub := yamlLines{p: y.p}
 			for _, ch := range e.Fields {
 				schemaField(&sub, ch, indent+4, ex)
 			}
 			if len(sub.ls) > 0 {
 				sub.ls[0].text = strings.Repeat(" ", indent+2) + "- " + sub.ls[0].text[indent+4:]
+				sub.ls[0].ctext = strings.Repeat(" ", indent+2) + "- " + sub.ls[0].ctext[indent+4:]
 			}
 			y.ls = append(y.ls, sub.ls...)
 			return
 		}
-		y.add(indent+2, "- "+placeholder(e), fieldComment(e, ex))
+		y.addC(indent+2, "- "+placeholder(e), "- "+y.p.Yellow(placeholder(e)), fieldComment(e, ex))
 	default:
-		y.add(indent, name+": "+placeholder(f), c)
+		y.addC(indent, name+": "+placeholder(f), y.p.Blue(name)+": "+y.p.Yellow(placeholder(f)), c)
 	}
 }

@@ -33,6 +33,10 @@ Give a kind to print only that one. --json prints the full schema as JSON.`,
 				} else if root, err = filepath.Abs(root); err != nil {
 					return err
 				}
+				pt, err := painter(cmd)
+				if err != nil {
+					return err
+				}
 				docs := capability.Schemas(capability.Default())
 				if len(args) == 1 {
 					var one []capability.SchemaDoc
@@ -64,7 +68,7 @@ Give a kind to print only that one. --json prints the full schema as JSON.`,
 					_, err = fmt.Fprintf(out, "%s\n", b)
 					return err
 				}
-				_, err = fmt.Fprint(out, capability.SchemaYAML(docs, sources))
+				_, err = fmt.Fprint(out, capability.SchemaYAML(docs, sources, pt))
 				return err
 			},
 		}

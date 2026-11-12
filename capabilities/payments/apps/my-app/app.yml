@@ -6,7 +6,7 @@ replicas: 1
 env:
   APP_ENV: 'true'
   APP_SECRET: 'secret:acme-proj1/my-app-secret'
-  NEW_VAR: 'testing'
+  NEW_VARIABLE: 'testing'
 stages:
   dev:
     envFrom: [launchdarkly]
@@ -16,14 +16,16 @@ stages:
     targets:
       us-east4-dev-k8s: {}
       dc1-dev-k8s:
+        envFrom: [sdk-config]
         env:
           APP_ENV: 'false'
-        replicas: 3
+        replicas: 2
   staging:
     targets:
       us-east4-npr-k8s:
         replicas: 3
       dc1-npr-k8s:
+        envFrom: [sdk-config]
         env:
           APP_SECRET: 'secret:acme-proj2/my-app-secret@3'
   perf:
@@ -37,4 +39,5 @@ stages:
       memory: 512Mi
     targets:
       us-east4-prd-k8s: {}
-      dc1-prd-k8s: {}
+      dc1-prd-k8s:
+        envFrom: [sdk-config]
