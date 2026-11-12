@@ -280,7 +280,7 @@ func ownersSchema(teams, stages []string) *schema {
 	promoters := &schema{kind: "dict", elem: emails}
 	return &schema{kind: "map", fields: []field{
 		{name: "codeOwners", required: true, desc: "teams in teams/ that approve code changes (CODEOWNERS)", s: teamsS},
-		{name: "promoters", required: true, desc: "per stage name (a stage of this capability), emails that may promote into it and approve its Freight", s: promoters},
+		{name: "promoters", required: true, desc: "per stage name (a stage of this capability), emails that may promote into it", s: promoters},
 		{name: "viewers", desc: "emails with read-only access in Kargo and Argo CD", s: emails},
 		{name: "breakGlass", desc: "emails that may approve Freight that skipped upstream verification", s: emails},
 		{name: "apps", desc: "per app name (an app of this capability) overrides; each field set replaces the capability's", s: &schema{kind: "dict", elem: &schema{kind: "map", fields: []field{

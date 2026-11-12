@@ -1,7 +1,7 @@
 # owners: capabilities/{cap}/owners.yml — who reviews, promotes and views a capability (one file per capability)
 codeOwners:      # required; teams in teams/ that approve code changes (CODEOWNERS)
   - <str>
-promoters:       # required; per stage name (a stage of this capability), emails that may promote into it and approve its Freight
+promoters:       # required; per stage name (a stage of this capability), emails that may promote into it
   <stage>:
     - <str>      # /^[a-z0-9._%+-]+@example\.com$/
 viewers:         # emails with read-only access in Kargo and Argo CD

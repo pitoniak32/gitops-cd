@@ -50,7 +50,9 @@ specific wins ([ADR 0004](../adr/0004-layered-override-merge.md)):
 3. top level of `app.yml` (everywhere)
 4. platform defaults (per target platform), then global defaults
 
-`env` merges per key and `workflow` per field. Everything else is replaced whole.
+`env` merges per key. `envFrom` lists are combined across layers, so a narrower layer adds files and never
+removes them. `workflow` and `resources` resolve per field. `replicas` and `deployWith` take the most
+specific layer that sets them.
 
 ```yaml path=capabilities/payments/apps/my-app/app.yml
 image: ghcr.io/pitoniak32/nginx

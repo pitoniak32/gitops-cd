@@ -9,7 +9,7 @@ who reviews, promotes and views a capability (one file per capability)
 |---|---|---|---|---|---|---|
 | `codeOwners` | list | yes |  |  | teams in teams/ that approve code changes (CODEOWNERS) | [`payments/owners.yml:1`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L1) |
 | `codeOwners[]` | str |  |  |  |  | [`payments/owners.yml:1`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L1) |
-| `promoters` | dict | yes |  |  | per stage name (a stage of this capability), emails that may promote into it and approve its Freight | [`payments/owners.yml:2`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L2) |
+| `promoters` | dict | yes |  |  | per stage name (a stage of this capability), emails that may promote into it | [`payments/owners.yml:2`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L2) |
 | `promoters.<stage>` | list |  |  |  |  | [`payments/owners.yml:3`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L3) |
 | `promoters.<stage>[]` | str |  | `^[a-z0-9._%+-]+@example\.com$` |  |  | [`payments/owners.yml:3`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L3) |
 | `viewers` | list |  |  |  | emails with read-only access in Kargo and Argo CD | [`payments/owners.yml:7`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L7) |
