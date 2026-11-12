@@ -372,7 +372,9 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 		at("platform", fmt.Sprintf("target %s is %s; %s apps need %s targets", tn, P.name, artifacts[d.artifact].app, strings.Join(platformNames(d.artifact), " or ")))
 		return nil
 	}
-	L := []*layer{&t.layer, &s.layer, &a.layer, &P.defaults, &defaults}
+	pd := P.defaults // note derived from the platform name, not per entry
+	pd.note = "platform default (" + P.name + ")"
+	L := []*layer{&t.layer, &s.layer, &a.layer, &pd, &defaults}
 	// first is the value of the first layer that has one; sets src[key] from that layer's path
 	first := func(key string, path []string, f func(*layer) string) string {
 		for _, l := range L {
@@ -386,7 +388,7 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 
 	if d.artifact == "image" {
 		// app level only. K8S: Service on :80 when set. CLOUD_RUN: the container port.
-		for _, l := range []*layer{&a.layer, &P.defaults} {
+		for _, l := range []*layer{&a.layer, &pd} {
 			if l.port != nil {
 				d.port = l.port
 				d.src["port"] = l.src("port")
@@ -438,21 +440,22 @@ func (m *model) merge(r reporter, a *appDef, s *appStage, t *appTarget, placed m
 		d.deployWith = first("deployWith", []string{"deployWith"}, func(l *layer) string { return l.deployWith })
 	}
 	// GitHub Actions workflow for gha deploys; each field defaults separately
-	wf := layer{wfRepo: m.cfg.ghRepo(), wfFile: P.workflowFile, wfRef: "main", note: "platform default (" + P.name + ")"}
-	L = []*layer{&t.layer, &s.layer, &a.layer, &wf}
+	wfG := layer{wfRepo: m.cfg.ghRepo(), wfRef: "main", note: "global default"}
+	wfP := layer{wfFile: P.workflowFile, note: pd.note}
+	L = []*layer{&t.layer, &s.layer, &a.layer, &wfP, &wfG}
 	d.wfRepo = first("workflow.repo", []string{"workflow", "repo"}, func(l *layer) string { return l.wfRepo })
 	d.wfFile = first("workflow.file", []string{"workflow", "file"}, func(l *layer) string { return l.wfFile })
 	d.wfRef = first("workflow.ref", []string{"workflow", "ref"}, func(l *layer) string { return l.wfRef })
 
 	// envFrom: targets/<t>/environment-variables/<name>.yml, unioned over the layers
 	d.envFrom = uniqSorted(a.envFrom, s.envFrom, t.envFrom)
-	for _, l := range []*layer{&t.layer, &s.layer, &a.layer} { // the most specific layer listing any
-		if len(l.envFrom) > 0 {
-			d.src["envFrom"] = l.src("envFrom")
-			break
-		}
-	}
 	for _, n := range d.envFrom {
+		for _, l := range []*layer{&t.layer, &s.layer, &a.layer} { // the most specific layer listing it
+			if has(l.envFrom, n) {
+				d.src["envFrom."+n] = l.src("envFrom")
+				break
+			}
+		}
 		if m.targetEnvs[tn][n] == nil {
 			at("envFrom", fmt.Sprintf("target %s has no environment-variables/%s.yml", tn, n))
 		}
@@ -531,16 +534,27 @@ type owners struct {
 	appEmails map[string][]string
 	// everyone who can list the capability's projects in Kargo
 	allEmails []string
+	// per app: its effective viewers (the app's if set, else the capability's)
+	viewers map[string][]string
+	// per app: codeOwners / viewers / breakGlass / promoters.<stage> -> the key line of the list used
+	src map[string]map[string]Source
 }
 
 func (m *model) readOwners() {
 	o := &m.owners
 	o.codeOwners, o.promoters, o.appEmails = map[string][]string{}, map[string]map[string][]string{}, map[string][]string{}
+	o.viewers, o.src = map[string][]string{}, map[string]map[string]Source{}
 	var doc *yaml.Node
+	var path string
 	if f := m.in.of("owners"); len(f) > 0 {
-		doc = f[0].doc
+		doc, path = f[0].doc, f[0].path
 	}
 	list := func(p ...string) []string { return strList(get(doc, p...)) }
+	// where: key line of the list at path in owners.yml
+	where := func(p ...string) Source {
+		k, _ := getKV(doc, p...)
+		return keySource(path, k)
+	}
 	o.breakGlass = uniqSorted(list("breakGlass"))
 	var all, allTeams []string
 	for _, p := range pairs(get(doc, "promoters")) {
@@ -555,28 +569,36 @@ func (m *model) readOwners() {
 	o.allEmails = uniqSorted(all, list("viewers"), o.breakGlass)
 	for _, a := range m.apps {
 		an := a.name
-		teams := list("codeOwners")
+		src := map[string]Source{"breakGlass": where("breakGlass")}
+		o.src[an] = src
+		teams, tp := list("codeOwners"), []string{"codeOwners"}
 		if get(doc, "apps", an, "codeOwners") != nil {
-			teams = list("apps", an, "codeOwners")
+			teams, tp = list("apps", an, "codeOwners"), []string{"apps", an, "codeOwners"}
 		}
+		src["codeOwners"] = where(tp...)
 		o.codeOwners[an] = uniqSorted(teams)
 		allTeams = append(allTeams, teams...)
 		o.promoters[an] = map[string][]string{}
 		var mine []string
 		for _, s := range a.stages {
-			p := get(doc, "apps", an, "promoters", s.name)
+			pp := []string{"apps", an, "promoters", s.name}
+			p := get(doc, pp...)
 			if p == nil {
-				p = get(doc, "promoters", s.name)
+				pp = []string{"promoters", s.name}
+				p = get(doc, pp...)
 			}
 			if p != nil {
+				src["promoters."+s.name] = where(pp...)
 				o.promoters[an][s.name] = uniqSorted(strList(p))
 				mine = append(mine, strList(p)...)
 			}
 		}
-		viewers := list("viewers")
+		viewers, vp := list("viewers"), []string{"viewers"}
 		if get(doc, "apps", an, "viewers") != nil {
-			viewers = list("apps", an, "viewers")
+			viewers, vp = list("apps", an, "viewers"), []string{"apps", an, "viewers"}
 		}
+		src["viewers"] = where(vp...)
+		o.viewers[an] = uniqSorted(viewers)
 		o.appEmails[an] = uniqSorted(mine, viewers, o.breakGlass)
 	}
 	if len(m.apps) == 0 {

@@ -1,10 +1,13 @@
 package capability
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/yamledit"
 )
 
 func srcModel(t *testing.T) *model {
@@ -22,6 +25,11 @@ func srcModel(t *testing.T) *model {
 func lineOf(t *testing.T, rel, anchor, lit string) int {
 	t.Helper()
 	root, _ := filepath.Abs(testdata + "/root")
+	return lineIn(t, root, rel, anchor, lit)
+}
+
+func lineIn(t *testing.T, root, rel, anchor, lit string) int {
+	t.Helper()
 	b, err := os.ReadFile(filepath.Join(root, rel))
 	if err != nil {
 		t.Fatal(err)
@@ -66,7 +74,7 @@ func TestSrcStageLayer(t *testing.T) {
 	d := srcModel(t).deploy("my-app", "us-east4-dev-k8s")
 	wantSrc(t, d, "replicas", myApp, lineOf(t, myApp, "  dev:", "replicas: 1"))
 	wantSrc(t, d, "env.STAGE_ENV", myApp, lineOf(t, myApp, "  dev:", "STAGE_ENV"))
-	wantSrc(t, d, "envFrom", myApp, lineOf(t, myApp, "  dev:", "envFrom:"))
+	wantSrc(t, d, "envFrom.launchdarkly", myApp, lineOf(t, myApp, "  dev:", "envFrom:"))
 }
 
 func TestSrcDefaults(t *testing.T) {
@@ -98,13 +106,25 @@ func TestSrcDefaults(t *testing.T) {
 		}
 	}
 	if cr == 0 {
-		t.Skip("no CLOUD_RUN deploy in fixture")
+		t.Fatal("no CLOUD_RUN deploy in fixture")
 	}
 }
 
 func TestSrcForcedDeployWith(t *testing.T) {
 	t.Parallel()
 	m := srcModel(t)
+	var cr int
+	for _, d := range m.deploys {
+		if d.tgt.platform.name == "CLOUD_RUN" {
+			cr++
+			if got := d.src["deployWith"].String(); got != "forced by platform" {
+				t.Errorf("%s deployWith src %q", d.key(), got)
+			}
+		}
+	}
+	if cr == 0 {
+		t.Fatal("no CLOUD_RUN deploy in fixture")
+	}
 	for _, d := range m.deploys {
 		if d.tgt.platform.name == "TERRAFORM" {
 			if got := d.src["deployWith"].String(); got != "forced by artifact" {
@@ -135,4 +155,113 @@ func TestSrcEnvBeatsBundle(t *testing.T) {
 	t.Parallel()
 	d := srcModel(t).deploy("my-app", "us-east4-dev-k8s")
 	wantSrc(t, d, "env.APP_ENV", myApp, lineOf(t, myApp, "env:", "APP_ENV: 'true'"))
+}
+
+func TestSrcWorkflowDefaults(t *testing.T) {
+	t.Parallel()
+	d := srcModel(t).deploy("my-app", "us-east4-npr-k8s")
+	for k, want := range map[string]string{"workflow.repo": "global default", "workflow.ref": "global default", "workflow.file": "platform default (K8S)"} {
+		if got := d.src[k].String(); got != want {
+			t.Errorf("src[%s] = %q, want %q", k, got, want)
+		}
+	}
+}
+
+func copyFixture(t *testing.T) string {
+	t.Helper()
+	src, _ := filepath.Abs(testdata + "/root")
+	dst := t.TempDir()
+	err := filepath.WalkDir(src, func(p string, e fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, p)
+		if e.IsDir() {
+			return os.MkdirAll(filepath.Join(dst, rel), 0o755)
+		}
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dst, rel), b, 0o644)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dst
+}
+
+func loadAt(t *testing.T, root string) *model {
+	t.Helper()
+	m, diags, err := loadModel(Default(), root, "payments", nil)
+	if err != nil || len(diags) > 0 {
+		t.Fatalf("temp fixture: %v %v", err, diags)
+	}
+	return m
+}
+
+// envFrom.<name> points at the most specific layer listing that name
+func TestSrcEnvFromPerName(t *testing.T) {
+	t.Parallel()
+	root := copyFixture(t)
+	dirs, _ := filepath.Glob(filepath.Join(root, "capabilities/payments/targets/*"))
+	for _, d := range dirs { // app-level envFrom applies to every target of the app
+		if err := os.MkdirAll(filepath.Join(d, "environment-variables"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(d, "environment-variables/extra.yml"), []byte("EXTRA: x\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	app := filepath.Join(root, myApp)
+	if err := yamledit.Set(app, []string{"envFrom"}, []string{"extra"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := yamledit.Set(app, []string{"stages", "dev", "targets", "us-east4-dev-k8s", "envFrom"}, []string{"launchdarkly"}); err != nil {
+		t.Fatal(err)
+	}
+	d := loadAt(t, root).deploy("my-app", "us-east4-dev-k8s")
+	wantSrc(t, d, "envFrom.extra", myApp, lineIn(t, root, myApp, "dc1-prd-k8s", "envFrom:"))
+	wantSrc(t, d, "envFrom.launchdarkly", myApp, lineIn(t, root, myApp, "us-east4-dev-k8s:", "envFrom:"))
+}
+
+const ownersYml = "capabilities/payments/owners.yml"
+
+func wantOwn(t *testing.T, o owners, app, key string, line int) {
+	t.Helper()
+	got := o.src[app][key]
+	if got.File != ownersYml || got.Line != line {
+		t.Errorf("owners.src[%s][%s] = %s, want %s:%d", app, key, got, ownersYml, line)
+	}
+}
+
+func TestOwnersSrc(t *testing.T) {
+	t.Parallel()
+	root := copyFixture(t)
+	f := filepath.Join(root, ownersYml)
+	if err := yamledit.Set(f, []string{"apps", "my-app", "promoters", "prod"}, []string{"x@example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	o := loadAt(t, root).owners
+	at := func(anchor, lit string) int { return lineIn(t, root, ownersYml, anchor, lit) }
+	// override
+	wantOwn(t, o, "my-app", "promoters.prod", at("my-app:", "prod:"))
+	// capability-wide
+	wantOwn(t, o, "my-app", "promoters.dev", at("", "dev:"))
+	wantOwn(t, o, "worker", "promoters.prod", at("worker:", "prod:"))
+	wantOwn(t, o, "my-app", "breakGlass", at("", "breakGlass:"))
+	wantOwn(t, o, "my-app", "codeOwners", at("", "codeOwners:"))
+	wantOwn(t, o, "my-app", "viewers", at("", "viewers:"))
+	// worker overrides
+	wantOwn(t, o, "worker", "codeOwners", at("worker:", "codeOwners:"))
+	wantOwn(t, o, "worker", "viewers", at("worker:", "viewers:"))
+	wantOwn(t, o, "worker", "promoters.dev", at("worker:", "dev:"))
+	// capability-wide promoters for a stage the app does not override
+	wantOwn(t, o, "worker", "promoters.staging", at("", "staging:"))
+	if got := o.viewers["worker"]; len(got) != 2 {
+		t.Errorf("worker viewers = %v", got)
+	}
+	if got := o.viewers["my-app"]; len(got) != 1 || got[0] != "bob@example.com" {
+		t.Errorf("my-app viewers = %v", got)
+	}
 }
