@@ -107,6 +107,26 @@ func Show(cfg Config, root, capName string, teams *Teams, f ShowFilter) (ShowRes
 			res.Owners[a.name] = m.ownerValues(a, f.Stage)
 		}
 	}
+	if len(res.Deploys) == 0 && (f.Stage != "" || f.Target != "") {
+		var flt []string
+		if f.Stage != "" {
+			flt = append(flt, "--stage "+f.Stage)
+		}
+		if f.Target != "" {
+			flt = append(flt, "--target "+f.Target)
+		}
+		who, scope := "", "capability"
+		if f.App != "" {
+			who, scope = " of "+f.App, f.App
+		}
+		var have []string
+		for _, d := range m.deploys {
+			if f.App == "" || d.app.name == f.App {
+				have = append(have, d.stage+"/"+d.target)
+			}
+		}
+		return ShowResult{}, fmt.Errorf("no deploys%s match %s; %s deploys to: %s", who, strings.Join(flt, " "), scope, strings.Join(sorted(have), ", "))
+	}
 	return res, nil
 }
 

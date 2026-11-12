@@ -130,16 +130,30 @@ func Diff(cfg capability.Config, baseRoot, root string, caps []string) ([]FileDi
 	return out, nil
 }
 
+// lines splits s into newline-terminated lines; "" = no lines, a missing final newline adds no blank line.
+func lines(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return difflib.SplitLines(strings.TrimSuffix(s, "\n"))
+}
+
 // Unified renders d as a unified diff (3 context lines) with a/rendered/ and b/rendered/ headers.
 func Unified(d []FileDiff) string {
 	var sb strings.Builder
 	for _, f := range d {
 		ud := difflib.UnifiedDiff{
-			A:        difflib.SplitLines(f.Old),
-			B:        difflib.SplitLines(f.New),
+			A:        lines(f.Old),
+			B:        lines(f.New),
 			FromFile: "a/rendered/" + f.Path,
 			ToFile:   "b/rendered/" + f.Path,
 			Context:  3,
+		}
+		if f.Old == "" {
+			ud.FromFile = "/dev/null"
+		}
+		if f.New == "" {
+			ud.ToFile = "/dev/null"
 		}
 		s, err := difflib.GetUnifiedDiffString(ud)
 		if err != nil {
@@ -156,7 +170,7 @@ func Stat(d []FileDiff) string {
 	ta, tr := 0, 0
 	for _, f := range d {
 		a, r := 0, 0
-		m := difflib.NewMatcher(difflib.SplitLines(f.Old), difflib.SplitLines(f.New))
+		m := difflib.NewMatcher(lines(f.Old), lines(f.New))
 		for _, op := range m.GetOpCodes() {
 			switch op.Tag {
 			case 'r':

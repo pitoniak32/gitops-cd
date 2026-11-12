@@ -53,3 +53,16 @@ func TestShowAbsentPlatform(t *testing.T) {
 	}
 	t.Error("no config.platform value")
 }
+
+// --stage/--target are checked against the selected app's deploys, not the whole capability.
+func TestShowNoMatchingDeploys(t *testing.T) {
+	root, _ := filepath.Abs(testdata + "/root")
+	_, err := Show(Default(), root, "payments", nil, ShowFilter{App: "flagged", Target: "dc1-dev-k8s"})
+	if err == nil || !strings.HasPrefix(err.Error(), "no deploys of flagged match --target dc1-dev-k8s; flagged deploys to: ") {
+		t.Errorf("got %v", err)
+	}
+	_, err = Show(Default(), root, "payments", nil, ShowFilter{Stage: "dev", Target: "nope-none"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}

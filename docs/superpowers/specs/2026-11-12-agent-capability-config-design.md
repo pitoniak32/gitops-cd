@@ -29,7 +29,8 @@ Agents edit YAML directly (Edit tool). `gcd` supplies the knowledge (schema, eff
 - Requires provenance in the merge: `layer` already holds its `*yaml.Node`; record the source `file`+node per resolved value on `deploy` (e.g. parallel `src map[string]srcRef`). Render path ignores it; no output change (golden unchanged).
 - Owners: per app an `owners:` block (effective `codeOwners`, `promoters.<stage>`, `viewers`, `breakGlass`), each tagged `← owners.yml:<line>` (capability-wide) or the `apps.<app>` override line. Shown when no `--stage`/`--target` filter, or the filtered stage's promoters only.
 - On load/validate errors: print diags (same as lint) and exit non-zero.
-- `--json`: `{deploys: [{app, stage, target, values: {path: {value, file, line}}}], owners: {<app>: {path: {value, file, line}}}}`.
+- `--json`: ordered arrays: `{deploys: [{app, stage, target, platform, values: [{path, value, file, line, note}]}], owners: {<app>: [{path, value, file, line, note}]}}` (`file`/`line`/`note` omitted when empty).
+- A `--stage`/`--target` that matches no deploy of the selected app is an error listing the app's `<stage>/<target>` deploys.
 
 ### 3. `gcd lint --format json`
 - New value for existing `--format` (`auto|text|github|json`): array of `{file, line, col, label, msg}`.
@@ -39,7 +40,8 @@ Agents edit YAML directly (Edit tool). `gcd` supplies the knowledge (schema, eff
 - `--base` takes any revset; must resolve to exactly one commit, else error naming the count. Default `@-`; skill recommends `trunk()` to see a whole PR stack.
 - Renderer inputs are only `capabilities/` + `teams/` (platform config is compiled into `gcd`), so base root = temp dir filled via `jj file list -r <base>` + `jj file show -r <base>` for those paths. Read-only jj; no workspace created. Helpers in `repo` package.
 - Caveat: diff uses current `gcd` for both sides, so it shows input changes only, not renderer changes.
-- Scope: `lint.Changed` logic picks affected capabilities unless `--capability` given.
+- Scope: capabilities with a changed path under `capabilities/` or `teams/` between the exported base and the working tree (a `teams/` change selects all; deleted caps included; not `lint.Changed`, which drops deleted caps), unless `--capability` given (unknown name = error).
+- `--root` is a repo root and must be a jj repo.
 - Platform files + CODEOWNERS included when in scope.
 
 ### 5. Skill `.claude/skills/capability-config/SKILL.md`

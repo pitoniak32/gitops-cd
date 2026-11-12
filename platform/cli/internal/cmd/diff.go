@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/render"
@@ -44,6 +46,24 @@ change selects every capability). Nothing is written to rendered/. Prints nothin
 				defer os.RemoveAll(tmp)
 				if err := repo.Export(root, id, tmp, "capabilities", "teams"); err != nil {
 					return err
+				}
+				if len(caps) > 0 {
+					all := map[string]bool{}
+					for _, r := range []string{tmp, root} {
+						for _, n := range capability.Names(r) {
+							all[n] = true
+						}
+					}
+					for _, c := range caps {
+						if !all[c] {
+							names := make([]string, 0, len(all))
+							for n := range all {
+								names = append(names, n)
+							}
+							sort.Strings(names)
+							return fmt.Errorf("unknown capability %s; allowed: %s", c, strings.Join(names, ", "))
+						}
+					}
 				}
 				if len(caps) == 0 {
 					if caps, err = render.ChangedCaps(tmp, root); err != nil {

@@ -5,7 +5,7 @@ runs:
   steps:
     - uses: jdx/mise-action@v2
       with:
-        install_args: go
+        install_args: go jj
     - name: go cache dirs
       id: go
       shell: bash

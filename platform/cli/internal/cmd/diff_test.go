@@ -45,3 +45,28 @@ func TestDiffStat(t *testing.T) {
 		t.Errorf("stat: %q", out.String())
 	}
 }
+
+func TestDiffUnknownCapability(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not installed")
+	}
+	root := t.TempDir()
+	if err := os.CopyFS(root, os.DirFS("../../../render/testdata/root")); err != nil {
+		t.Fatal(err)
+	}
+	c := exec.Command("jj", "--config", "user.name=t", "--config", "user.email=t@example.com", "git", "init", ".")
+	c.Dir = root
+	c.Env = append(os.Environ(), "JJ_CONFIG=")
+	if out, err := c.CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	cmd := NewRoot()
+	var out, errOut bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&errOut)
+	cmd.SetArgs([]string{"diff", "--capability", "nope", "--base", "root()", "--root", root})
+	err := cmd.Execute()
+	if err == nil || !strings.HasPrefix(err.Error(), "unknown capability nope; allowed: ") {
+		t.Errorf("got %v", err)
+	}
+}
