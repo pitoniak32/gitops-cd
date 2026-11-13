@@ -21,7 +21,7 @@ apps:            # per app name (an app of this capability) overrides; each fiel
 # stage: capabilities/{cap}/stages/*.yml — a stage of the capability's promotion pipeline
 dependsOn:           # stages that must be verified before this one
   - <str>
-autoPromote: <bool>  # promote automatically once upstream stages are verified
+autoPromote: <bool>  # promote automatically once upstream stages are verified; default false (a person promotes); apps may override
 color: red|salmon|orange|amber|yellow|lime|avocado|green|teal|cyan|sky|blue|indigo|periwinkle|violet|purple|fuchsia|pink|rose|dragonfruit|gray  # Kargo UI color for this stage's Kargo Stages; default picked per stage
 ---
 # app: capabilities/{cap}/apps/*/app.yml — an app: what it ships and its settings at app, stage and target level
@@ -59,6 +59,7 @@ stages:                         # stages the app deploys through, by stage name,
       repo: <str>               # /^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$/ — workflow repository, <owner>/<name>
       file: <str>               # /^[A-Za-z0-9_.-]+\.ya?ml$/ — workflow file name, .yml or .yaml
       ref: <str>                # /./ — git ref the workflow runs on
+    autoPromote: <bool>         # this app only: overrides the stage's autoPromote (default false: promoted by a person)
     targets:                    # targets this stage deploys to, by target name; settings here override the stage's and app's
       <target>:
         replicas: <int>         # number of replicas, 0 to 100

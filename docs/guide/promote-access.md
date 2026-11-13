@@ -17,7 +17,7 @@ promoters:
   perf: [doug@example.com]
   prod: [doug@example.com]
 viewers: [bob@example.com]
-breakGlass: [carol@example.com]
+breakGlass: [oncall@example.com]
 # per-app overrides of the lists above
 apps:
   worker:

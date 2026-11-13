@@ -39,6 +39,8 @@ the platform adds control-flow Stages (`<stage>-done`, `<stage>`) that need no a
 ## Auto-promotion
 
 `autoPromote: true` promotes Freight automatically once all `dependsOn` stages have verified it.
+Default `false`: a promoter promotes by hand. An app can override it for itself
+(`stages.<stage>.autoPromote` in `app.yml`, see [app](app.md#auto-promotion-per-app)).
 
 <!-- embed path=capabilities/payments/stages/dev.yml -->
 ```yaml

@@ -30,14 +30,14 @@ func TestKindClusterRBAC(t *testing.T) {
 	if str(get(rb, "roleRef.kind"))+"/"+str(get(rb, "roleRef.name"))+"/"+str(get(rb, "subjects.0.name")) != "Role/kargo-viewer/viewers" {
 		t.Error("missing viewers RoleBinding")
 	}
-	if claims(k, "viewers") != `{"email":["bob@example.com","carol@example.com","doug@example.com"]}` {
+	if claims(k, "viewers") != `{"email":["bob@example.com","doug@example.com","oncall@example.com"]}` {
 		t.Error("my-app viewers SA must map its promoters + viewers + break-glass by email")
 	}
-	if claims(w, "viewers") != `{"email":["alice@example.com","bob@example.com","carol@example.com","doug@example.com"]}` {
+	if claims(w, "viewers") != `{"email":["alice@example.com","bob@example.com","carol@example.com","doug@example.com","oncall@example.com"]}` {
 		t.Error("worker viewers SA must map its promoters + viewers + break-glass by email")
 	}
 	users := find(all, "ServiceAccount", "users-payments")
-	if str(get(users, "metadata.namespace"))+" "+claims(all, "users-payments") != `kargo-shared-resources {"email":["alice@example.com","bob@example.com","carol@example.com","doug@example.com"]}` {
+	if str(get(users, "metadata.namespace"))+" "+claims(all, "users-payments") != `kargo-shared-resources {"email":["alice@example.com","bob@example.com","carol@example.com","doug@example.com","oncall@example.com"]}` {
 		t.Error("missing users-payments global SA")
 	}
 	crb := find(all, "ClusterRoleBinding", "kargo-users-payments")
@@ -65,13 +65,13 @@ func TestKindClusterRBAC(t *testing.T) {
 	}
 
 	// promoters are per app: worker's app owners replace promoters; my-app inherits the capability's
-	if claims(w, "promote-dev") != `{"email":["alice@example.com","carol@example.com","doug@example.com"]}` {
+	if claims(w, "promote-dev") != `{"email":["alice@example.com","doug@example.com","oncall@example.com"]}` {
 		t.Error("worker promote-dev claims")
 	}
-	if claims(w, "promote-staging") != `{"email":["carol@example.com","doug@example.com"]}` {
+	if claims(w, "promote-staging") != `{"email":["doug@example.com","oncall@example.com"]}` {
 		t.Error("worker promote-staging must inherit")
 	}
-	if claims(w, "promote-prod") != `{"email":["alice@example.com","carol@example.com"]}` {
+	if claims(w, "promote-prod") != `{"email":["alice@example.com","oncall@example.com"]}` {
 		t.Error("worker promote-prod claims")
 	}
 
@@ -87,7 +87,7 @@ func TestKindClusterRBAC(t *testing.T) {
 		bgs = append(bgs, v)
 	}
 	sort.Strings(bgs)
-	if strings.Join(bgs, "\n") != `["carol@example.com"]` {
+	if strings.Join(bgs, "\n") != `["oncall@example.com"]` {
 		t.Error("every my-app Stage needs the break-glass annotation")
 	}
 
@@ -167,10 +167,10 @@ func TestAppViewers(t *testing.T) {
 	must(t, yamledit.Set(filepath.Join(r, "capabilities/payments/owners.yml"), []string{"apps", "worker", "viewers"}, []string{"erin@example.com"}))
 	o := renderCap(t, r, "payments")
 	all := docs(t, filepath.Join(o, "kargo/payments.yaml"))
-	if got := claims(inProject(all, "kargo-payments-worker"), "viewers"); got != `{"email":["alice@example.com","carol@example.com","doug@example.com","erin@example.com"]}` {
+	if got := claims(inProject(all, "kargo-payments-worker"), "viewers"); got != `{"email":["alice@example.com","doug@example.com","erin@example.com","oncall@example.com"]}` {
 		t.Errorf("worker viewers: app viewer replaces capability viewer bob: %s", got)
 	}
-	if got := claims(inProject(all, "kargo-payments-my-app"), "viewers"); got != `{"email":["bob@example.com","carol@example.com","doug@example.com"]}` {
+	if got := claims(inProject(all, "kargo-payments-my-app"), "viewers"); got != `{"email":["bob@example.com","doug@example.com","oncall@example.com"]}` {
 		t.Errorf("my-app viewers must not include worker's viewer: %s", got)
 	}
 	if !strings.Contains(claims(all, "users-payments"), "erin@example.com") {

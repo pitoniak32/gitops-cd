@@ -73,7 +73,8 @@ type appTarget struct {
 type appStage struct {
 	name string
 	layer
-	targets []appTarget
+	autoPromote *bool // app-level override of the stage's autoPromote
+	targets     []appTarget
 }
 
 type appDef struct {
@@ -115,6 +116,7 @@ type deploy struct {
 	wfRepo, wfFile, wfRef   string
 	envFrom                 []string
 	env                     []kv
+	autoPromote             bool              // effective for this app's stage: app override, else stage, else false
 	src                     map[string]Source // leaf path -> where its value comes from
 	prefix                  string            // terraform state prefix
 }
@@ -260,6 +262,10 @@ func build(cfg Config, in *inputs) (*model, []Diag) {
 			module: g("module"), moduleConstraint: g("moduleConstraint"), sourceRepo: g("sourceRepo")}
 		for _, s := range pairs(get(f.doc, "stages")) {
 			as := appStage{name: s.k, layer: readLayer(s.v, f.path)}
+			if n := get(s.v, "autoPromote"); isBool(n) {
+				b := n.Value == "true"
+				as.autoPromote = &b
+			}
 			for _, t := range pairs(get(s.v, "targets")) {
 				as.targets = append(as.targets, appTarget{name: t.k, key: t.key, layer: readLayer(t.v, f.path)})
 			}
@@ -290,17 +296,43 @@ func build(cfg Config, in *inputs) (*model, []Diag) {
 		return m, diags
 	}
 
-	// Prod is only ever promoted by a person: no autoPromote on a stage that deploys to a prod target.
+	// autoPromote: app.yml stages.<s> override, else stages/<s>.yml, else manual
+	for _, d := range m.deploys {
+		as, st := d.app.stage(d.stage), m.stage(d.stage)
+		switch {
+		case as.autoPromote != nil:
+			d.autoPromote = *as.autoPromote
+			k, _ := getKV(as.node, "autoPromote")
+			d.src["autoPromote"] = keySource(d.app.file.path, k)
+		case st.file != nil && isBool(get(st.file.doc, "autoPromote")):
+			d.autoPromote = st.autoPromote
+			k, _ := getKV(st.file.doc, "autoPromote")
+			d.src["autoPromote"] = keySource(st.file.path, k)
+		default:
+			d.src["autoPromote"] = Source{Note: "default: manual"}
+		}
+	}
+	// Prod is only ever promoted by a person: no autoPromote on a stage that deploys to a prod target,
+	// in the stage file or an app's override.
 	prod := map[string]bool{}
 	for _, d := range m.deploys {
 		if d.tgt.environmentType == "prd" {
 			prod[d.stage] = true
 		}
 	}
+	notAllowed := func(s string) string { return "stage " + s + " deploys to prod targets; autoPromote not allowed" }
 	for _, s := range m.stages {
 		if prod[s.name] && s.autoPromote {
 			k, _ := getKV(s.file.doc, "autoPromote")
-			rep(s.file).at(k, []string{"autoPromote"}, "stage "+s.name+" deploys to prod targets; autoPromote not allowed")
+			rep(s.file).at(k, []string{"autoPromote"}, notAllowed(s.name))
+		}
+	}
+	for _, a := range m.apps {
+		for _, s := range a.stages {
+			if prod[s.name] && s.autoPromote != nil && *s.autoPromote {
+				k, _ := getKV(s.node, "autoPromote")
+				rep(a.file).at(k, []string{"stages", s.name, "autoPromote"}, notAllowed(s.name))
+			}
 		}
 	}
 

@@ -186,8 +186,9 @@ func TestKindClusterKargo(t *testing.T) {
 	if got := autoOf("kargo-payments-my-app"); got != "dc1-dev-k8s dev dev-done prod staging us-east4-dev-k8s" {
 		t.Errorf("auto-promotion: every control-flow Stage + targets of autoPromote stages only: %s", got)
 	}
-	if got := autoOf("kargo-payments-worker"); got != "us-east4-dev-k8s" {
-		t.Errorf("worker auto-promotion: %s", got)
+	// worker overrides autoPromote: false on dev in its app.yml: nothing auto-promotes
+	if got := autoOf("kargo-payments-worker"); got != "" {
+		t.Errorf("worker auto-promotion (app override): %s", got)
 	}
 	if str(get(stage(k, "dc1-prd-k8s"), "spec.promotionTemplate.spec.vars.2.value")) != "env/payments/my-app/dc1-prd-k8s" {
 		t.Error("target stage must push its own branch")

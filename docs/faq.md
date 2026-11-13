@@ -21,7 +21,7 @@ No. Typical: **one Kargo control plane per org/platform**, on a management (hub)
 
 ### What does this repo run?
 
-Hub-and-spoke with one spoke: one kind cluster, one Kargo (`platform/infrastructure/kargo/`, chart 1.12.5), one Argo CD. the cluster registry (`platform/cli/internal/capability/config.go`) registers `in-cluster`; each entry's `argocdName` is an Argo CD cluster secret name. More clusters in hub-and-spoke = add Argo CD cluster secrets + `clusters` entries; no Kargo changes.
+Sharded (ADR 0015), on kind: a hub cluster runs the Kargo control plane (API, UI, default controller; `platform/infrastructure/kargo/`, chart 1.12.5) plus an Argo CD for infrastructure only. Each region (`us-east4`, `dc1`) is its own kind cluster with its own Argo CD and a Kargo controller shard named after the region (placement option A below). The hub runs no workloads and holds no region credentials. Regions come from the cluster registry (`platform/cli/internal/capability/config.go`); a new region = a new `Clusters` entry, `mise run regions`, clean `mise run up`.
 
 ## Integrating with existing Argo CD in each management cluster
 
@@ -49,17 +49,15 @@ Scenario: several management clusters, each already running its own Argo CD for 
 
 Central install: `api.argocd.urls` maps shard name → that Argo CD's URL (UI deep links), e.g. `"": https://argocd.localhost`, `"eu-mgmt": https://argocd.eu.example`.
 
-### What changes in this repo
+### How this repo does it
 
-- cluster registry (`platform/cli/internal/capability/config.go`): add a field like `kargoShard` (or `argocd`) per cluster so targets know which management cluster's Argo CD owns them.
-- `platform/cli/internal/capability/kargo.go`:
-  - set `spec.shard` on each Stage from its target's cluster.
-  - Applications still carry `kargo.akuity.io/authorized-stage: <project>:<stage>`; Argo CD rejects Kargo updates without it.
-  - emit Applications/AppProjects **per management cluster** (e.g. `rendered/argocd/<mgmt>/`), not one flat dir; Kargo resources stay in `rendered/kargo/` (central).
-- `platform/bootstrap/`: each management cluster's Argo CD gets a root Application syncing only its `rendered/argocd/<mgmt>/` dir. Central keeps syncing `rendered/kargo/`.
-- RBAC: owner-generated Argo CD AppProject `viewer-<app>` roles (ADR 0029) must exist in every management cluster's Argo CD, and each Argo CD needs the OIDC client with the `email` claim and `scopes: [email]` (ADR 0011). Kargo `promote-<stage>`/`viewers` roles (per app project) stay central.
-- Warehouses: usually unsharded (default controller, central). Shard only if a mgmt cluster must pull from registries/git only it can reach.
-- Git creds: every shard controller needs the GitHub App creds (`kargo-shared-resources` in central works only if the shard reads secrets from the central cluster via `kubeconfigSecrets.kargo`, as in option A).
+- Cluster registry (`platform/cli/internal/capability/config.go`): each cluster's `Region` is its Kargo shard and its Argo CD.
+- Renderer (`kargo.go`): target Stages get `spec.shard` = their cluster's region; control-flow Stages and Warehouses stay unsharded (hub default controller). Applications carry `kargo.akuity.io/authorized-stage: <project>:<stage>`.
+- Argo CD params and AppProjects are rendered per region (`rendered/argocd/{deploys,projects}/<region>/`); Kargo resources stay central (`rendered/kargo/`).
+- Every Argo CD runs the same root app (`platform/bootstrap/root.yaml`); cluster-generator labels pick what each deploys (ADR 0017).
+- Shard controllers run in their region (`platform/appsets/addons/kargo-shard.yaml`) with a kubeconfig for the hub (`mise run kargo-shards` hands over the token); Argo CD access stays local.
+- RBAC: AppProject `viewer-<app>` roles exist in every regional Argo CD; each has its own Keycloak client `argocd-<region>` with the `email` claim (ADR 0011). Kargo `promote-<stage>`/`viewers` roles (per app project) stay central.
+- Git creds: shards read `kargo-shared-resources` from the hub through that kubeconfig.
 
 ### Gotchas
 

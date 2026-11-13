@@ -79,6 +79,8 @@ var lintCases = []struct {
 	{`.breakGlass = ["carol@example.com", "carol@example.com"]`, ow, setTo([]string{"carol@example.com", "carol@example.com"}, "breakGlass"), `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: .*emails must not repeat`},
 	{`.githubTeam = "Bad Name"`, "teams/team2.yaml", setTo("Bad Name", "githubTeam"), `^teams/team2\.yaml:[0-9]+:[0-9]+:`},
 	{`.autoPromote = true`, "capabilities/payments/stages/prod.yml", setTo(true, "autoPromote"), `^capabilities/payments/stages/prod\.yml:[0-9]+:[0-9]+: .*stage prod deploys to prod targets; autoPromote not allowed`},
+	{`.stages.prod.autoPromote = true`, appW, setTo(true, "stages", "prod", "autoPromote"), `^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: stages\.prod\.autoPromote: stage prod deploys to prod targets; autoPromote not allowed`},
+	{`.stages.dev.autoPromote = "yes"`, appW, setTo("yes", "stages", "dev", "autoPromote"), `^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: stages\.dev\.autoPromote:`},
 	{`.idpGroup = "team1"`, "teams/team1.yml", setTo("team1", "idpGroup"), `^teams/team1\.yml:[0-9]+:[0-9]+: .*idpGroup`},
 	{`.envFrom = ["statsig"]`, "capabilities/payments/apps/my-app/app.yml", setTo([]string{"statsig"}, "envFrom"), `^capabilities/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.[a-z0-9-]+\.envFrom: .*has no environment-variables/statsig\.yml`},
 	{`."1BAD" = "x"`, "capabilities/payments/targets/us-east4-dev-k8s/environment-variables/launchdarkly.yml", setTo("x", "1BAD"), `^capabilities/payments/targets/us-east4-dev-k8s/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: .*1BAD`},
@@ -132,8 +134,8 @@ var lintCases = []struct {
 // test.sh: "lint case ok: <expr>" loop over lint-cases.tsv
 func TestLintCases(t *testing.T) {
 	t.Parallel()
-	if len(lintCases) != 66 {
-		t.Fatalf("lint-cases.tsv had 64 rows (+2 sourceRepo), table has %d", len(lintCases))
+	if len(lintCases) != 68 {
+		t.Fatalf("lint-cases.tsv had 64 rows (+2 sourceRepo, +2 app autoPromote), table has %d", len(lintCases))
 	}
 	for i, c := range lintCases {
 		t.Run(strings.ReplaceAll(c.name, " ", "_"), func(t *testing.T) {

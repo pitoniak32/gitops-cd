@@ -56,7 +56,7 @@ Kargo's project list still shows other projects' names (listing needs cluster-sc
 ```
 capabilities/<cap>/           one business capability (YAML only)
   owners.yml                  codeOwners, promoters per stage, viewers, breakGlass, apps overrides (platform-approved)
-  stages/<stage>.yml          promotion graph: dependsOn, autoPromote
+  stages/<stage>.yml          promotion graph: dependsOn, autoPromote (default manual; app.yml can override per app)
   targets/<target>/target.yml cluster / namespace / identity, reused by apps
   targets/<target>/environment-variables/<name>.yml
                               env vars for that target; apps opt in: envFrom: [<name>]

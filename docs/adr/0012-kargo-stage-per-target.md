@@ -8,7 +8,7 @@ Control-flow Stages (no promotion steps) appear only where they do a job (`graph
 - **Shared control-flow Stage** when both U and C have more than one node. It waits for All of U, and every consumer requests from it.
 - **One click per stage**: Kargo's "Promote to downstream" promotes a node's direct downstream Stages. A stage with several targets gets an **entry** control-flow Stage when its feeder also feeds other stages or is the Warehouse (which can't promote to several Stages at once).
 - **Names**: fan-in or entry into stage D is `<D>`; fan-out after stage S is `<S>-done`; several upstream stages shared by several downstream stages is `<S1>-<S2>…-done`. Lint rejects a target named like a stage or `<stage>-done`.
-- **Policy**: control-flow Stages always auto-promote, because they only mean "upstream verified". A stage's `autoPromote` covers its targets. A stage with an `environmentType: prd` target can't set `autoPromote`.
+- **Policy**: control-flow Stages always auto-promote, because they only mean "upstream verified". A stage's `autoPromote` (default false) covers its targets; an app's `stages.<stage>.autoPromote` overrides it for that app's targets. A stage with an `environmentType: prd` target can't set `autoPromote`.
 
 Example (`payments/my-app`): Warehouse → `dev` (entry) → both dev targets → `dev-done` (fan-out) → `staging` (entry, both npr targets) and the perf target → `prod` (fan-in) → both prd targets.
 

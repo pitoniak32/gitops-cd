@@ -121,7 +121,7 @@
       {
         "name": "autoPromote",
         "type": "bool",
-        "desc": "promote automatically once upstream stages are verified",
+        "desc": "promote automatically once upstream stages are verified; default false (a person promotes); apps may override",
         "example": "platform/render/testdata/root/capabilities/payments/stages/dev.yml:2"
       },
       {
@@ -356,7 +356,7 @@
                 "gha"
               ],
               "desc": "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow",
-              "example": "platform/render/testdata/root/capabilities/payments/apps/worker/app.yml:8"
+              "example": "platform/render/testdata/root/capabilities/payments/apps/worker/app.yml:9"
             },
             {
               "name": "workflow",
@@ -386,6 +386,12 @@
                   "example": "platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml:17"
                 }
               ]
+            },
+            {
+              "name": "autoPromote",
+              "type": "bool",
+              "desc": "this app only: overrides the stage's autoPromote (default false: promoted by a person)",
+              "example": "platform/render/testdata/root/capabilities/payments/apps/worker/app.yml:6"
             },
             {
               "name": "targets",

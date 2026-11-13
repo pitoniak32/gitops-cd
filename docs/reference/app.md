@@ -121,6 +121,29 @@ Source: [`payments/apps/infra/app.yml:8-17`](../../platform/render/testdata/root
 
 `{}` deploys to the target with no overrides; here `us-east4-prd-tf` overrides one `env` key. Each target the app lists becomes its own Kargo Stage.
 
+### Auto-promotion per app
+
+Promotion is manual unless turned on. `stages/<stage>.yml` `autoPromote` sets it for every app in the
+capability; `stages.<stage>.autoPromote` in `app.yml` overrides it for this app only (each app has its
+own Kargo project, [ADR 0029](../adr/0029-kargo-project-per-app.md)). Here `worker` opts out of the
+`dev` stage's auto-promotion:
+
+<!-- embed path=capabilities/payments/apps/worker/app.yml lines=4-8 -->
+```yaml
+stages:
+  dev:
+    autoPromote: false  # this app only: overrides stages/dev.yml
+    targets:
+      us-east4-dev-k8s: {}
+```
+
+Source: [`payments/apps/worker/app.yml:4-8`](../../platform/render/testdata/root/capabilities/payments/apps/worker/app.yml#L4-L8)
+<!-- /embed -->
+
+Order: app override, then the stage file, then `false`. `gcd show <cap>/<app> -s` prints the effective
+`autoPromote` of each target and where it comes from. A stage that deploys to a `prd` target can't
+auto-promote, from either place.
+
 ## Layers
 
 These fields can be set at three levels:

@@ -119,7 +119,7 @@ metadata:
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["carol@example.com"]'
+    example.com/break-glass: '["oncall@example.com"]'
     kargo.akuity.io/color: blue
 spec:
   shard: dc1

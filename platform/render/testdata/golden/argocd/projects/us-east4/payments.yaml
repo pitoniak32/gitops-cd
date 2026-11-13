@@ -31,8 +31,8 @@ spec:
         - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-us-east4-prd-k8s, allow
       groups:
         - bob@example.com
-        - carol@example.com
         - doug@example.com
+        - oncall@example.com
     - name: viewer-payments
       description: read-only view of payments/payments for its promoters and viewers
       policies:
@@ -41,16 +41,16 @@ spec:
         - p, proj:payments:viewer-payments, applications, get, payments/payments-payments-us-east4-prd-k8s, allow
       groups:
         - bob@example.com
-        - carol@example.com
         - doug@example.com
+        - oncall@example.com
     - name: viewer-web
       description: read-only view of payments/web for its promoters and viewers
       policies:
         - p, proj:payments:viewer-web, applications, get, payments/payments-web-us-east4-dev-k8s, allow
       groups:
         - bob@example.com
-        - carol@example.com
         - doug@example.com
+        - oncall@example.com
     - name: viewer-worker
       description: read-only view of payments/worker for its promoters and viewers
       policies:
@@ -61,3 +61,4 @@ spec:
         - bob@example.com
         - carol@example.com
         - doug@example.com
+        - oncall@example.com

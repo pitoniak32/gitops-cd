@@ -4,7 +4,7 @@ flagged:
     promoters:
       dev: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [carol@example.com]
+    breakGlass: [oncall@example.com]
   dev:
     us-east4-dev-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -21,6 +21,7 @@ flagged:
         cpu: 100m
         memory: 128Mi
       deployWith: gha
+      autoPromote: true
       workflow:
         repo: pitoniak32/deploys
         file: deploy-dev.yml
@@ -38,7 +39,7 @@ infra:
       dev: [doug@example.com]
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [carol@example.com]
+    breakGlass: [oncall@example.com]
   dev:
     us-east4-dev-tf:
       module: ghcr.io/pitoniak32/tf-bucket
@@ -53,6 +54,7 @@ infra:
       backend:
         bucket: tfstate-team1-dev
       deployWith: gha
+      autoPromote: true
       workflow:
         repo: pitoniak32/gitops-cd
         file: terraform.yaml
@@ -77,6 +79,7 @@ infra:
         bucket: tfstate-team1-prod
         prefix: payments/custom
       deployWith: gha
+      autoPromote: false
       workflow:
         repo: pitoniak32/gitops-cd
         file: terraform.yaml
@@ -92,7 +95,7 @@ my-app:
       perf: [doug@example.com]
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [carol@example.com]
+    breakGlass: [oncall@example.com]
   dev:
     dc1-dev-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -110,6 +113,7 @@ my-app:
         cpu: 250m
         memory: 256Mi
       deployWith: argocd
+      autoPromote: true
       envFrom:
         - launchdarkly
       env:
@@ -134,6 +138,7 @@ my-app:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: true
       envFrom:
         - launchdarkly
       env:
@@ -159,6 +164,7 @@ my-app:
         cpu: 100m
         memory: 128Mi
       deployWith: gha
+      autoPromote: false
       workflow:
         repo: acme/deploys
         file: onprem.yml
@@ -182,6 +188,7 @@ my-app:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: false
       env:
         APP_ENV: "true"
         APP_SECRET: secret:acme-proj1/my-app-secret
@@ -202,6 +209,7 @@ my-app:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: false
       env:
         APP_ENV: "true"
         APP_SECRET: secret:acme-proj1/my-app-secret
@@ -222,6 +230,7 @@ my-app:
         cpu: 500m
         memory: 512Mi
       deployWith: argocd
+      autoPromote: false
       env:
         APP_ENV: "true"
         APP_SECRET: secret:acme-proj1/my-app-secret
@@ -241,6 +250,7 @@ my-app:
         cpu: 500m
         memory: 512Mi
       deployWith: argocd
+      autoPromote: false
       env:
         APP_ENV: "true"
         APP_SECRET: secret:acme-proj1/my-app-secret
@@ -252,7 +262,7 @@ payments:
       staging: [doug@example.com]
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [carol@example.com]
+    breakGlass: [oncall@example.com]
   dev:
     us-east4-dev-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -269,6 +279,7 @@ payments:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: true
   staging:
     us-east4-npr-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -285,6 +296,7 @@ payments:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: false
   prod:
     us-east4-prd-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -301,6 +313,7 @@ payments:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: false
 web:
   owners:
     codeOwners: [team1]
@@ -308,7 +321,7 @@ web:
       dev: [doug@example.com]
       staging: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [carol@example.com]
+    breakGlass: [oncall@example.com]
   dev:
     us-east4-dev-k8s:
       image: ghcr.io/example/web
@@ -325,6 +338,7 @@ web:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: true
       env:
         GREETING: hello
         API_KEY: secret:acme-secrets/web-api-key
@@ -346,6 +360,7 @@ web:
         cpu: "1"
         memory: 512Mi
       deployWith: gha
+      autoPromote: false
       workflow:
         repo: pitoniak32/gitops-cd
         file: cloud-run.yaml
@@ -362,7 +377,7 @@ worker:
       staging: [doug@example.com]
       prod: [alice@example.com]
     viewers: [bob@example.com, carol@example.com]
-    breakGlass: [carol@example.com]
+    breakGlass: [oncall@example.com]
   dev:
     us-east4-dev-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -379,6 +394,7 @@ worker:
         cpu: 100m
         memory: 128Mi
       deployWith: gha
+      autoPromote: false
       workflow:
         repo: pitoniak32/gitops-cd
         file: deploy.yaml
@@ -399,6 +415,7 @@ worker:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: false
   prod:
     us-east4-prd-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -415,3 +432,4 @@ worker:
         cpu: 100m
         memory: 128Mi
       deployWith: argocd
+      autoPromote: false

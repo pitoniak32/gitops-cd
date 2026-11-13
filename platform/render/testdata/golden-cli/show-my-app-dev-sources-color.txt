@@ -4,7 +4,7 @@
     [34mpromoters[0m:
       [34mdev[0m: [doug@example.com]                                    [2m# owners.yml:3[0m
     [34mviewers[0m: [bob@example.com]                                   [2m# owners.yml:7[0m
-    [34mbreakGlass[0m: [carol@example.com]                              [2m# owners.yml:8[0m
+    [34mbreakGlass[0m: [oncall@example.com]                             [2m# owners.yml:8[0m
   [34mdev[0m:
     [34mdc1-dev-k8s[0m:
       [34mimage[0m: ghcr.io/pitoniak32/nginx                            [2m# apps/my-app/app.yml:1[0m
@@ -22,6 +22,7 @@
         [34mcpu[0m: 250m                                                [2m# apps/my-app/app.yml:22[0m
         [34mmemory[0m: 256Mi                                            [2m# apps/my-app/app.yml:23[0m
       [34mdeployWith[0m: argocd                                         [2m# global default[0m
+      [34mautoPromote[0m: true                                          [2m# stages/dev.yml:2[0m
       [34menvFrom[0m:
         - launchdarkly                                           [2m# apps/my-app/app.yml:11[0m
       [34menv[0m:
@@ -46,6 +47,7 @@
         [34mcpu[0m: 100m                                                [2m# global default[0m
         [34mmemory[0m: 128Mi                                            [2m# global default[0m
       [34mdeployWith[0m: argocd                                         [2m# global default[0m
+      [34mautoPromote[0m: true                                          [2m# stages/dev.yml:2[0m
       [34menvFrom[0m:
         - launchdarkly                                           [2m# apps/my-app/app.yml:11[0m
       [34menv[0m:

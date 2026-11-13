@@ -7,7 +7,7 @@ my-app:
       perf: [doug@example.com]
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [carol@example.com]
+    breakGlass: [oncall@example.com]
   dev:
     dc1-dev-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -25,6 +25,7 @@ my-app:
         cpu: 250m
         memory: 256Mi
       deployWith: argocd
+      autoPromote: true
       envFrom:
         - launchdarkly
       env:

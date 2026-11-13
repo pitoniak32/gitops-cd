@@ -166,6 +166,7 @@ func deployValues(d *deploy) []Value {
 		add("resources.memory", d.memory, d.memory != "")
 	}
 	add("deployWith", d.deployWith, d.deployWith != "")
+	add("autoPromote", d.autoPromote, true)
 	if d.deployWith == "gha" {
 		add("workflow.repo", d.wfRepo, d.wfRepo != "")
 		add("workflow.file", d.wfFile, d.wfFile != "")

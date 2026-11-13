@@ -84,6 +84,12 @@
           "note": "global default"
         },
         {
+          "path": "autoPromote",
+          "value": true,
+          "file": "capabilities/payments/stages/dev.yml",
+          "line": 2
+        },
+        {
           "path": "envFrom.launchdarkly",
           "value": true,
           "file": "capabilities/payments/apps/my-app/app.yml",
@@ -201,6 +207,12 @@
           "path": "deployWith",
           "value": "argocd",
           "note": "global default"
+        },
+        {
+          "path": "autoPromote",
+          "value": true,
+          "file": "capabilities/payments/stages/dev.yml",
+          "line": 2
         },
         {
           "path": "envFrom.launchdarkly",
@@ -323,6 +335,11 @@
           "line": 30
         },
         {
+          "path": "autoPromote",
+          "value": false,
+          "note": "default: manual"
+        },
+        {
           "path": "workflow.repo",
           "value": "acme/deploys",
           "file": "capabilities/payments/apps/my-app/app.yml",
@@ -436,6 +453,11 @@
           "note": "global default"
         },
         {
+          "path": "autoPromote",
+          "value": false,
+          "note": "default: manual"
+        },
+        {
           "path": "env.APP_ENV",
           "value": "true",
           "file": "capabilities/payments/apps/my-app/app.yml",
@@ -529,6 +551,11 @@
           "path": "deployWith",
           "value": "argocd",
           "note": "global default"
+        },
+        {
+          "path": "autoPromote",
+          "value": false,
+          "note": "default: manual"
         },
         {
           "path": "env.APP_ENV",
@@ -628,6 +655,11 @@
           "note": "global default"
         },
         {
+          "path": "autoPromote",
+          "value": false,
+          "note": "default: manual"
+        },
+        {
           "path": "env.APP_ENV",
           "value": "true",
           "file": "capabilities/payments/apps/my-app/app.yml",
@@ -725,6 +757,11 @@
           "note": "global default"
         },
         {
+          "path": "autoPromote",
+          "value": false,
+          "note": "default: manual"
+        },
+        {
           "path": "env.APP_ENV",
           "value": "true",
           "file": "capabilities/payments/apps/my-app/app.yml",
@@ -792,7 +829,7 @@
       {
         "path": "breakGlass",
         "value": [
-          "carol@example.com"
+          "oncall@example.com"
         ],
         "file": "capabilities/payments/owners.yml",
         "line": 8

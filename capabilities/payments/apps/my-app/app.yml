@@ -9,6 +9,7 @@ env:
   NEW_VARIABLE: 'testing'
 stages:
   dev:
+    autoPromote: true  # this app only; payments stages are manual by default (stages/dev.yml)
     envFrom: [launchdarkly]
     env:
       STAGE_ENV: 'false'

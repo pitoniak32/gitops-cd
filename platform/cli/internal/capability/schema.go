@@ -199,6 +199,8 @@ var (
 	}
 	layerS      = &schema{kind: "map", fields: layerFields}
 	stageLayerS = &schema{kind: "map", fields: append(append([]field{}, layerFields...),
+		// overrides stages/<s>.yml autoPromote for this app only (each app is its own Kargo project, ADR 0029)
+		field{name: "autoPromote", desc: "this app only: overrides the stage's autoPromote (default false: promoted by a person)", s: &schema{kind: "bool"}},
 		field{name: "targets", desc: "targets this stage deploys to, by target name; settings here override the stage's and app's", s: &schema{kind: "dict", elem: layerS}})}
 
 	// apps/<name>/app.yml
@@ -234,8 +236,8 @@ func (s *schema) field(name string) *field {
 func stageSchema(stages []string) *schema {
 	return &schema{kind: "map", fields: []field{
 		{name: "dependsOn", desc: "stages that must be verified before this one", s: &schema{kind: "list", elem: &schema{kind: "str", enum: stages, msg: allowed("stage", stages)}}},
-		// promote automatically once upstream stages are verified
-		{name: "autoPromote", desc: "promote automatically once upstream stages are verified", s: &schema{kind: "bool"}},
+		// default false: a person promotes; app.yml stages.<s>.autoPromote overrides it per app
+		{name: "autoPromote", desc: "promote automatically once upstream stages are verified; default false (a person promotes); apps may override", s: &schema{kind: "bool"}},
 		// Kargo UI color for all of this stage's Kargo Stages; default picked per stage
 		{name: "color", desc: "Kargo UI color for this stage's Kargo Stages; default picked per stage", s: &schema{kind: "str", enum: kargoColors, msg: allowed("color", kargoColors)}},
 	}}

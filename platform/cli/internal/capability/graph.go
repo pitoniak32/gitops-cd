@@ -71,7 +71,11 @@ func (m *model) pipeline(a *appDef) *pipeline {
 	p := &pipeline{app: a}
 	maxLevel := 0
 	for _, s := range a.stages {
-		ps := &pstage{name: s.name, autoPromote: m.stage(s.name).autoPromote, level: m.stage(s.name).depth, dependsOn: []string{}}
+		auto := m.stage(s.name).autoPromote
+		if s.autoPromote != nil {
+			auto = *s.autoPromote
+		}
+		ps := &pstage{name: s.name, autoPromote: auto, level: m.stage(s.name).depth, dependsOn: []string{}}
 		// drop deps already implied by another dep (dev when staging also depends on dev)
 		var deps []string
 		for d := range effOf(s.name) {

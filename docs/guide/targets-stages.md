@@ -38,8 +38,10 @@ dependsOn: [staging, perf]
 Source: [`payments/stages/prod.yml`](../../platform/render/testdata/root/capabilities/payments/stages/prod.yml)
 <!-- /embed -->
 
-- `autoPromote: true` promotes automatically once upstream stages verify. Prod is always promoted by a
-  person, so a stage that deploys to any `prd` target can't auto-promote:
+- `autoPromote: true` promotes automatically once upstream stages verify; without it a promoter promotes
+  by hand. One app can override its stage's setting with `stages.<stage>.autoPromote` in its `app.yml`.
+  Prod is always promoted by a person, so a stage that deploys to any `prd` target can't auto-promote
+  (in either file):
 
   ```yaml path=capabilities/payments/stages/prod.yml expect="autoPromote not allowed"
   dependsOn: [staging, perf]

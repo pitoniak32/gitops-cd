@@ -23,7 +23,7 @@ Pick the smallest scope that covers the request; `gcd show -s` source comments r
 - one stage of one app: `stages.<stage>` in `app.yml`
 - one app: top level of `app.yml`
 - every app on one target: `targets/<t>/target.yml`; `environment-variables/<name>.yml` reaches only apps that opt in with `envFrom: [<name>]`
-- pipeline shape (order, autoPromote): `stages/<stage>.yml`; access: `owners.yml` (`apps:` for one app)
+- pipeline shape (order, autoPromote; default manual): `stages/<stage>.yml`; one app's autoPromote: `app.yml` `stages.<stage>.autoPromote`; access: `owners.yml` (`apps:` for one app)
 
 If a value is overridden at a narrower layer, editing a wider one changes nothing; `gcd show` after the edit confirms the effective value.
 

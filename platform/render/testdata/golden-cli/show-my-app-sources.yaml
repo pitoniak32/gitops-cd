@@ -7,7 +7,7 @@ my-app:
       perf: [doug@example.com]                                         # owners.yml:5
       prod: [doug@example.com]                                         # owners.yml:6
     viewers: [bob@example.com]                                         # owners.yml:7
-    breakGlass: [carol@example.com]                                    # owners.yml:8
+    breakGlass: [oncall@example.com]                                   # owners.yml:8
   dev:
     dc1-dev-k8s:
       image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1
@@ -25,6 +25,7 @@ my-app:
         cpu: 250m                                                      # apps/my-app/app.yml:22
         memory: 256Mi                                                  # apps/my-app/app.yml:23
       deployWith: argocd                                               # global default
+      autoPromote: true                                                # stages/dev.yml:2
       envFrom:
         - launchdarkly                                                 # apps/my-app/app.yml:11
       env:
@@ -49,6 +50,7 @@ my-app:
         cpu: 100m                                                      # global default
         memory: 128Mi                                                  # global default
       deployWith: argocd                                               # global default
+      autoPromote: true                                                # stages/dev.yml:2
       envFrom:
         - launchdarkly                                                 # apps/my-app/app.yml:11
       env:
@@ -74,6 +76,7 @@ my-app:
         cpu: 100m                                                      # global default
         memory: 128Mi                                                  # global default
       deployWith: gha                                                  # apps/my-app/app.yml:30
+      autoPromote: false                                               # default: manual
       workflow:
         repo: acme/deploys                                             # apps/my-app/app.yml:32
         file: onprem.yml                                               # apps/my-app/app.yml:33
@@ -97,6 +100,7 @@ my-app:
         cpu: 100m                                                      # global default
         memory: 128Mi                                                  # global default
       deployWith: argocd                                               # global default
+      autoPromote: false                                               # default: manual
       env:
         APP_ENV: "true"                                                # apps/my-app/app.yml:7
         APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
@@ -117,6 +121,7 @@ my-app:
         cpu: 100m                                                      # global default
         memory: 128Mi                                                  # global default
       deployWith: argocd                                               # global default
+      autoPromote: false                                               # default: manual
       env:
         APP_ENV: "true"                                                # apps/my-app/app.yml:7
         APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
@@ -137,6 +142,7 @@ my-app:
         cpu: 500m                                                      # apps/my-app/app.yml:40
         memory: 512Mi                                                  # apps/my-app/app.yml:41
       deployWith: argocd                                               # global default
+      autoPromote: false                                               # default: manual
       env:
         APP_ENV: "true"                                                # apps/my-app/app.yml:7
         APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8
@@ -156,6 +162,7 @@ my-app:
         cpu: 500m                                                      # apps/my-app/app.yml:40
         memory: 512Mi                                                  # apps/my-app/app.yml:41
       deployWith: argocd                                               # global default
+      autoPromote: false                                               # default: manual
       env:
         APP_ENV: "true"                                                # apps/my-app/app.yml:7
         APP_SECRET: secret:acme-proj1/my-app-secret                    # apps/my-app/app.yml:8

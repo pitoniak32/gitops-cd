@@ -4,7 +4,7 @@ my-app:
     promoters:
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [carol@example.com]
+    breakGlass: [oncall@example.com]
   prod:
     dc1-prd-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -22,6 +22,7 @@ my-app:
         cpu: 500m
         memory: 512Mi
       deployWith: argocd
+      autoPromote: false
       env:
         APP_ENV: "true"
         APP_SECRET: secret:acme-proj1/my-app-secret
@@ -41,6 +42,7 @@ my-app:
         cpu: 500m
         memory: 512Mi
       deployWith: argocd
+      autoPromote: false
       env:
         APP_ENV: "true"
         APP_SECRET: secret:acme-proj1/my-app-secret

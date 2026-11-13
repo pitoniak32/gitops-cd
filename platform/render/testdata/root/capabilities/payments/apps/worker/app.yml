@@ -3,6 +3,7 @@ image: ghcr.io/pitoniak32/nginx
 sourceRepo: pitoniak32/gitops-cd
 stages:
   dev:
+    autoPromote: false  # this app only: overrides stages/dev.yml
     targets:
       us-east4-dev-k8s: {}
     deployWith: gha
