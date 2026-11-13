@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: dc1-dev-k8s
     example.com/environment: dev
@@ -23,7 +23,7 @@ spec:
       labels:
         app.kubernetes.io/managed-by: cue-platform
         app.kubernetes.io/name: my-app
-        example.com/capability: payments
+        example.com/system: payments
         example.com/stage: dev
         example.com/target: dc1-dev-k8s
         example.com/environment: dev
@@ -60,7 +60,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: dc1-dev-k8s
     example.com/environment: dev
@@ -75,7 +75,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: dc1-dev-k8s
     example.com/environment: dev
@@ -98,7 +98,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: us-east4-dev-k8s
     example.com/environment: dev
@@ -116,7 +116,7 @@ spec:
       labels:
         app.kubernetes.io/managed-by: cue-platform
         app.kubernetes.io/name: my-app
-        example.com/capability: payments
+        example.com/system: payments
         example.com/stage: dev
         example.com/target: us-east4-dev-k8s
         example.com/environment: dev
@@ -153,7 +153,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: us-east4-dev-k8s
     example.com/environment: dev
@@ -168,7 +168,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: us-east4-dev-k8s
     example.com/environment: dev

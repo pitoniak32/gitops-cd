@@ -1,5 +1,5 @@
-# each region: Application argocd-projects syncs rendered/argocd/projects/<region>/<cap>.yaml (one AppProject
-# per capability, that region's destinations + viewer roles). AppSets can't create AppProjects themselves.
+# each region: Application argocd-projects syncs rendered/argocd/projects/<region>/<sys>.yaml (one AppProject
+# per system, that region's destinations + viewer roles). AppSets can't create AppProjects themselves.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -36,4 +36,4 @@ spec:
         automated:
           prune: true
           selfHeal: true
-          allowEmpty: true  # a region may lose its last capability; prune its last AppProject (.keep keeps the path)
+          allowEmpty: true  # a region may lose its last system; prune its last AppProject (.keep keeps the path)

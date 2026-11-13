@@ -21,7 +21,7 @@ Some teams want to run a service on Cloud Run instead of a cluster, sometimes on
 | `deployWith` | argocd or gha | always gha |
 | `workflow.file` default | `deploy.yaml` | `cloud-run.yaml` |
 
-**Render**: `service.yaml`, one `serving.knative.dev/v1` `Service`. `name` is the app and `namespace` is `gcpProject`. Labels use GCP-safe keys (`app`, `capability`, `stage`, `target`, `environment`, `environment-type`, `billing`, …), plus `cloud.googleapis.com/location: <region>`. There are no Argo CD params and no `spec.shard`.
+**Render**: `service.yaml`, one `serving.knative.dev/v1` `Service`. `name` is the app and `namespace` is `gcpProject`. Labels use GCP-safe keys (`app`, `system`, `stage`, `target`, `environment`, `environment-type`, `billing`, …), plus `cloud.googleapis.com/location: <region>`. There are no Argo CD params and no `spec.shard`.
 
 **Promotion**: `promote-gha` (ADR 0020, 0027) pins the image in `service.yaml`. The example `.github/workflows/cloud-run.yaml` prints the service and applies nothing, with the WIF and `gcloud run services replace` steps commented.
 

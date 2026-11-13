@@ -40,7 +40,7 @@ var (
 )
 
 // FreightFromBranch rebuilds the Freight a target's env branch was promoted from: the source commit from
-// Kargo's commit message ("promote <cap>/<app> to <stage>/<target> from <sha>[, image|module <tag>]") and
+// Kargo's commit message ("promote <sys>/<app> to <stage>/<target> from <sha>[, image|module <tag>]") and
 // the pinned artifact (<repo>:<tag>@<digest>) from the branch's deployment.yaml (K8s app), service.yaml (Cloud Run app) or terraform.yaml
 // `module` (terraform app, ADR 0021). Same artifacts -> Kargo computes the same Freight ID. The error is the
 // reason the branch can't be restored.
@@ -148,8 +148,8 @@ func deploymentImage(raw []byte) string {
 	return d.Spec.Template.Spec.Containers[0].Image
 }
 
-func allCaps(root string) ([]string, error) {
-	es, err := os.ReadDir(root + "/capabilities")
+func allSystems(root string) ([]string, error) {
+	es, err := os.ReadDir(root + "/systems")
 	if err != nil {
 		return nil, err
 	}
@@ -230,28 +230,28 @@ func findFreight(items []unstructured.Unstructured, f *unstructured.Unstructured
 // For each target Stage with no current Freight it recreates the Freight the branch was promoted from,
 // approves it for the Stage and promotes it (identical manifests: the workload doesn't change).
 // Branches it can't reproduce are skipped with a reason. Gate Stages are not restored.
-func Restore(ctx context.Context, root string, hub *kube.Clients, caps []string, branches BranchReader, out io.Writer) error {
-	if len(caps) == 0 {
+func Restore(ctx context.Context, root string, hub *kube.Clients, systems []string, branches BranchReader, out io.Writer) error {
+	if len(systems) == 0 {
 		var err error
-		if caps, err = allCaps(root); err != nil {
+		if systems, err = allSystems(root); err != nil {
 			return err
 		}
 	}
 	var promos []promo
-	for _, cap := range caps {
+	for _, sys := range systems {
 		// one Kargo project per app (ADR 0029), found by its rendered namespace label
-		sel := capabilityLabel + "=" + cap
+		sel := systemLabel + "=" + sys
 		nss, err := hub.Core.CoreV1().Namespaces().List(ctx, metav1.ListOptions{LabelSelector: sel})
 		if err != nil {
 			return fmt.Errorf("list namespaces %s: %w", sel, err)
 		}
 		if len(nss.Items) == 0 {
-			fmt.Fprintf(out, "%s: no Kargo project labeled %s (not rendered/synced yet?), skipped\n", cap, sel)
+			fmt.Fprintf(out, "%s: no Kargo project labeled %s (not rendered/synced yet?), skipped\n", sys, sel)
 			continue
 		}
 		sort.Slice(nss.Items, func(i, j int) bool { return nss.Items[i].Name < nss.Items[j].Name })
 		for _, ns := range nss.Items {
-			if err := restoreProject(ctx, hub, branches, out, cap+"/"+ns.Labels[appLabel], ns.Name, &promos); err != nil {
+			if err := restoreProject(ctx, hub, branches, out, sys+"/"+ns.Labels[appLabel], ns.Name, &promos); err != nil {
 				return err
 			}
 		}
@@ -302,11 +302,11 @@ func waitPromotion(ctx context.Context, hub *kube.Clients, ns, name string) (pha
 type promo struct{ ns, name string }
 
 const (
-	capabilityLabel = "example.com/capability"
-	appLabel        = "example.com/app"
+	systemLabel = "example.com/system"
+	appLabel    = "example.com/app"
 )
 
-// restoreProject restores the target Stages of one Kargo project (namespace pns); prefix (<cap>/<app>) labels its output.
+// restoreProject restores the target Stages of one Kargo project (namespace pns); prefix (<sys>/<app>) labels its output.
 func restoreProject(ctx context.Context, hub *kube.Clients, branches BranchReader, out io.Writer, prefix, pns string, promos *[]promo) error {
 	stages, err := hub.Dyn.Resource(stageGVR).Namespace(pns).List(ctx, metav1.ListOptions{})
 	if err != nil {

@@ -16,8 +16,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/lint"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -43,7 +43,7 @@ type block struct {
 
 // Run is gcd docs: rewrite embeds (Embeds; written only if write), lint the fixture they come from,
 // then Check. No doc dir under root: nothing to do.
-func Run(root string, write bool) (changed []string, diags []capability.Diag, err error) {
+func Run(root string, write bool) (changed []string, diags []system.Diag, err error) {
 	has := false
 	for _, d := range Dirs {
 		if fi, err := os.Stat(filepath.Join(root, filepath.FromSlash(d))); err == nil && fi.IsDir() {
@@ -57,27 +57,27 @@ func Run(root string, write bool) (changed []string, diags []capability.Diag, er
 	if err != nil {
 		return nil, nil, err
 	}
-	found, err := lint.All(filepath.Join(root, filepath.FromSlash(capability.FixtureRoot)), nil)
+	found, err := lint.All(filepath.Join(root, filepath.FromSlash(system.FixtureRoot)), nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	for _, d := range found {
-		d.File = capability.FixtureRoot + "/" + d.File
+		d.File = system.FixtureRoot + "/" + d.File
 		diags = append(diags, d)
 	}
 	checked, err := Check(root)
 	if err != nil {
 		return nil, nil, err
 	}
-	return changed, capability.SortDedupe(append(diags, checked...)), nil
+	return changed, system.SortDedupe(append(diags, checked...)), nil
 }
 
 // Check lints every annotated yaml block of the *.md pages in Dirs under root, each written over its own copy
-// of the fixture (capability.FixtureRoot). Diagnostics point into the markdown: the snippet's own file
+// of the fixture (system.FixtureRoot). Diagnostics point into the markdown: the snippet's own file
 // at fence line + its line, any other file at the fence line. No guide dir: nothing to check.
-func Check(root string) ([]capability.Diag, error) {
+func Check(root string) ([]system.Diag, error) {
 	var blocks []block
-	var diags []capability.Diag
+	var diags []system.Diag
 	for _, dir := range Dirs {
 		pages, err := filepath.Glob(filepath.Join(root, filepath.FromSlash(dir), "*.md"))
 		if err != nil {
@@ -96,8 +96,8 @@ func Check(root string) ([]capability.Diag, error) {
 	if len(blocks) == 0 && len(diags) == 0 {
 		return nil, nil
 	}
-	fixture := os.DirFS(filepath.Join(root, filepath.FromSlash(capability.FixtureRoot)))
-	res := make([][]capability.Diag, len(blocks))
+	fixture := os.DirFS(filepath.Join(root, filepath.FromSlash(system.FixtureRoot)))
+	res := make([][]system.Diag, len(blocks))
 	errs := make([]error, len(blocks))
 	var g errgroup.Group
 	g.SetLimit(runtime.GOMAXPROCS(0))
@@ -114,13 +114,13 @@ func Check(root string) ([]capability.Diag, error) {
 	for _, d := range res {
 		diags = append(diags, d...)
 	}
-	return capability.SortDedupe(diags), nil
+	return system.SortDedupe(diags), nil
 }
 
 // parse extracts the yaml blocks to check; unannotated yaml blocks are diagnostics.
-func parse(page, text string) ([]block, []capability.Diag) {
+func parse(page, text string) ([]block, []system.Diag) {
 	var blocks []block
-	var diags []capability.Diag
+	var diags []system.Diag
 	lines := strings.Split(text, "\n")
 	inEmbed := false
 	for i := 0; i < len(lines); i++ {
@@ -160,15 +160,15 @@ func parse(page, text string) ([]block, []capability.Diag) {
 	return blocks, diags
 }
 
-func (b block) at(line int, msg string) capability.Diag {
-	return capability.Diag{File: b.page, Line: line, Col: 1, Msg: msg}
+func (b block) at(line int, msg string) system.Diag {
+	return system.Diag{File: b.page, Line: line, Col: 1, Msg: msg}
 }
 
-func checkBlock(fixture fs.FS, b block) ([]capability.Diag, error) {
+func checkBlock(fixture fs.FS, b block) ([]system.Diag, error) {
 	segs := strings.Split(b.path, "/")
 	if !filepath.IsLocal(filepath.FromSlash(b.path)) || path.Clean(b.path) != b.path || len(segs) < 2 ||
-		(segs[0] != "capabilities" && segs[0] != "teams") || (segs[0] == "capabilities" && len(segs) < 3) {
-		return []capability.Diag{b.at(b.line, "path must be under capabilities/ or teams/")}, nil
+		(segs[0] != "systems" && segs[0] != "teams") || (segs[0] == "systems" && len(segs) < 3) {
+		return []system.Diag{b.at(b.line, "path must be under systems/ or teams/")}, nil
 	}
 	tmp, err := os.MkdirTemp("", "gcd-docs-")
 	if err != nil {
@@ -185,18 +185,18 @@ func checkBlock(fixture fs.FS, b block) ([]capability.Diag, error) {
 	if err := os.WriteFile(dst, []byte(b.body), 0o644); err != nil {
 		return nil, err
 	}
-	var caps []string
-	if segs[0] == "capabilities" {
-		caps = []string{segs[1]}
+	var systems []string
+	if segs[0] == "systems" {
+		systems = []string{segs[1]}
 	}
-	found, err := lint.All(tmp, caps)
+	found, err := lint.All(tmp, systems)
 	if err != nil {
 		return nil, fmt.Errorf("%s:%d: %w", b.page, b.line, err)
 	}
-	var out []capability.Diag
+	var out []system.Diag
 	for _, d := range found {
 		if d.File == b.path {
-			out = append(out, capability.Diag{File: b.page, Line: b.line + max(d.Line, 1), Col: d.Col, Label: d.Label, Msg: d.Msg})
+			out = append(out, system.Diag{File: b.page, Line: b.line + max(d.Line, 1), Col: d.Col, Label: d.Label, Msg: d.Msg})
 			continue
 		}
 		msg := d.Msg
@@ -218,5 +218,5 @@ func checkBlock(fixture fs.FS, b block) ([]capability.Diag, error) {
 	if len(got) == 0 {
 		got = []string{"no errors"}
 	}
-	return []capability.Diag{b.at(b.line, fmt.Sprintf("expected lint error containing %q, got: %s", b.expect, strings.Join(got, "; ")))}, nil
+	return []system.Diag{b.at(b.line, fmt.Sprintf("expected lint error containing %q, got: %s", b.expect, strings.Join(got, "; ")))}, nil
 }

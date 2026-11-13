@@ -86,7 +86,7 @@ func TestShowYAMLParses(t *testing.T) {
 	if env := dev["env"].(map[string]any); env["STAGE_ENV"] != "false" {
 		t.Errorf("STAGE_ENV must stay a string: %#v", env["STAGE_ENV"])
 	}
-	// the source of a target-layer value is the target file, relative to the capability
+	// the source of a target-layer value is the target file, relative to the system
 	out, _, _ := runShow(t, root, "payments/my-app", "--stage", "dev", "--target", "dc1-dev-k8s", "-s")
 	if !strings.Contains(out, "# targets/dc1-dev-k8s/target.yml:3") || !strings.Contains(out, "# global default") {
 		t.Errorf("sources:\n%s", out)
@@ -98,7 +98,7 @@ func TestShowLintErrors(t *testing.T) {
 	if err := os.CopyFS(root, os.DirFS(fixtureRoot)); err != nil {
 		t.Fatal(err)
 	}
-	p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
+	p := filepath.Join(root, "systems/payments/apps/my-app/app.yml")
 	b, _ := os.ReadFile(p)
 	if err := os.WriteFile(p, []byte(strings.Replace(string(b), "replicas: 2", "replicas: x", 1)), 0o644); err != nil {
 		t.Fatal(err)
@@ -185,7 +185,7 @@ func vcsRepoWith(t *testing.T, kind string, prepare func(root string)) string {
 		run("jj", "bookmark", "create", "main", "-r", "@-")
 		run("jj", "config", "set", "--repo", `revset-aliases."trunk()"`, "main")
 	}
-	p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
+	p := filepath.Join(root, "systems/payments/apps/my-app/app.yml")
 	b, _ := os.ReadFile(p)
 	if err := os.WriteFile(p, []byte(strings.Replace(string(b), "    replicas: 1\n", "    replicas: 5\n", 1)), 0o644); err != nil {
 		t.Fatal(err)
@@ -217,21 +217,21 @@ func TestShowDiff(t *testing.T) {
 	}
 }
 
-func TestShowRequiresCapability(t *testing.T) {
+func TestShowRequiresSystem(t *testing.T) {
 	root, _ := filepath.Abs(fixtureRoot)
-	if _, _, err := runShow(t, root); err == nil || !strings.Contains(err.Error(), "a capability is required") {
+	if _, _, err := runShow(t, root); err == nil || !strings.Contains(err.Error(), "a system is required") {
 		t.Errorf("got %v", err)
 	}
 }
 
-func TestShowUnknownCapability(t *testing.T) {
+func TestShowUnknownSystem(t *testing.T) {
 	root, _ := filepath.Abs(fixtureRoot)
-	if _, _, err := runShow(t, root, "nope", "--diff"); err == nil || !strings.HasPrefix(err.Error(), "unknown capability nope; allowed: ") {
+	if _, _, err := runShow(t, root, "nope", "--diff"); err == nil || !strings.HasPrefix(err.Error(), "unknown system nope; allowed: ") {
 		t.Errorf("got %v", err)
 	}
 }
 
-// No capability: every changed one, from the default base (the branch fork point), in git and jj.
+// No system: every changed one, from the default base (the branch fork point), in git and jj.
 func TestShowDiffAllChanged(t *testing.T) {
 	for _, kind := range []string{"git", "jj"} {
 		t.Run(kind, func(t *testing.T) {
@@ -244,26 +244,26 @@ func TestShowDiffAllChanged(t *testing.T) {
 				t.Errorf("want my-app diff:\n%s", out)
 			}
 			if strings.Contains(out, "rendered/apps/search") {
-				t.Errorf("unchanged capability present:\n%s", out)
+				t.Errorf("unchanged system present:\n%s", out)
 			}
 			stat, _, err := runShow(t, root, "--diff", "--stat")
 			if err != nil || !strings.Contains(stat, "my-app") || !strings.Contains(stat, "files changed") || strings.Contains(stat, "@@") {
 				t.Errorf("stat: %v\n%s", err, stat)
 			}
-			// a capability deleted in the working tree shows as removed files
-			if err := os.RemoveAll(filepath.Join(root, "capabilities/search")); err != nil {
+			// a system deleted in the working tree shows as removed files
+			if err := os.RemoveAll(filepath.Join(root, "systems/search")); err != nil {
 				t.Fatal(err)
 			}
 			out, _, err = runShow(t, root, "--diff", "--stat")
 			if err != nil || !strings.Contains(out, "apps/search/") {
-				t.Errorf("deleted capability: %v\n%s", err, out)
+				t.Errorf("deleted system: %v\n%s", err, out)
 			}
 		})
 	}
 }
 
-// With a capability, --stat counts only the selected deploys' files.
-func TestShowDiffStatCapability(t *testing.T) {
+// With a system, --stat counts only the selected deploys' files.
+func TestShowDiffStatSystem(t *testing.T) {
 	root := vcsRepo(t, "git")
 	out, _, err := runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--stat")
 	if err != nil || !strings.Contains(out, "us-east4-dev-k8s/deployment.yaml | +1 -1") || strings.Contains(out, "@@") {
@@ -276,7 +276,7 @@ func TestShowDiffNoChange(t *testing.T) {
 		root := vcsRepo(t, kind)
 		runShow(t, root, "--diff") // warm: jj snapshots the edit
 		// revert the edit: nothing differs from the base
-		p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
+		p := filepath.Join(root, "systems/payments/apps/my-app/app.yml")
 		b, _ := os.ReadFile(p)
 		if err := os.WriteFile(p, []byte(strings.Replace(string(b), "    replicas: 5\n", "    replicas: 1\n", 1)), 0o644); err != nil {
 			t.Fatal(err)
@@ -350,17 +350,17 @@ func TestShowDiffAgainst(t *testing.T) {
 			if err != nil || !strings.Contains(stat, "us-east4-dev-k8s/deployment.yaml | +1 -1") || strings.Contains(stat, "@@") {
 				t.Errorf("stat: %v\n%s", err, stat)
 			}
-			// with a capability, filtered to the selected deploys
+			// with a system, filtered to the selected deploys
 			out, _, err = runShow(t, root, "payments/my-app", "--stage", "prod", "--diff", "--against", rev)
 			if err != nil || out != "" {
 				t.Errorf("unselected stage: %v %q", err, out)
 			}
 			out, _, err = runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--against", rev, "--stat")
 			if err != nil || !strings.Contains(out, "us-east4-dev-k8s/deployment.yaml | +1 -1") {
-				t.Errorf("cap stat: %v %q", err, out)
+				t.Errorf("sys stat: %v %q", err, out)
 			}
 			// revert the edit: empty
-			p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
+			p := filepath.Join(root, "systems/payments/apps/my-app/app.yml")
 			b, _ := os.ReadFile(p)
 			if err := os.WriteFile(p, []byte(strings.Replace(string(b), "    replicas: 5\n", "    replicas: 1\n", 1)), 0o644); err != nil {
 				t.Fatal(err)
@@ -369,12 +369,12 @@ func TestShowDiffAgainst(t *testing.T) {
 				t.Errorf("unchanged: err=%v out=%q", err, out)
 			}
 			// a file only at the rev is a deletion
-			if err := os.RemoveAll(filepath.Join(root, "capabilities/search")); err != nil {
+			if err := os.RemoveAll(filepath.Join(root, "systems/search")); err != nil {
 				t.Fatal(err)
 			}
 			out, _, err = runShow(t, root, "--diff", "--against", rev, "--stat")
 			if err != nil || !strings.Contains(out, "apps/search/") {
-				t.Errorf("deleted capability: %v\n%s", err, out)
+				t.Errorf("deleted system: %v\n%s", err, out)
 			}
 		})
 	}

@@ -10,7 +10,7 @@ spec:
     - name: src
     - name: branch
     - name: image
-    - name: capability
+    - name: system
     - name: app
     - name: stage
     - name: target
@@ -44,14 +44,14 @@ spec:
       as: commit
       config:
         path: ./out
-        message: promote ${{ vars.capability }}/${{ vars.app }} to ${{ vars.stage }}/${{ vars.target }} from ${{ commitFrom(vars.repo).ID }}, ${{ vars.artifactKey }} ${{ imageFrom(vars.image).Tag }}
+        message: promote ${{ vars.system }}/${{ vars.app }} to ${{ vars.stage }}/${{ vars.target }} from ${{ commitFrom(vars.repo).ID }}, ${{ vars.artifactKey }} ${{ imageFrom(vars.image).Tag }}
     - uses: git-push
       config:
         path: ./out
     - uses: argocd-update
       config:
         apps:
-          - name: ${{ vars.capability }}-${{ vars.app }}-${{ vars.target }}
+          - name: ${{ vars.system }}-${{ vars.app }}-${{ vars.target }}
             namespace: argocd
             sources:
               - repoURL: ${{ vars.repo }}
@@ -69,7 +69,7 @@ spec:
     - name: src
     - name: branch
     - name: image
-    - name: capability
+    - name: system
     - name: app
     - name: stage
     - name: target
@@ -106,7 +106,7 @@ spec:
       as: commit
       config:
         path: ./out
-        message: promote ${{ vars.capability }}/${{ vars.app }} to ${{ vars.stage }}/${{ vars.target }} from ${{ commitFrom(vars.repo).ID }}, ${{ vars.artifactKey }} ${{ imageFrom(vars.image).Tag }}
+        message: promote ${{ vars.system }}/${{ vars.app }} to ${{ vars.stage }}/${{ vars.target }} from ${{ commitFrom(vars.repo).ID }}, ${{ vars.artifactKey }} ${{ imageFrom(vars.image).Tag }}
     - uses: git-push
       config:
         path: ./out
@@ -124,7 +124,7 @@ spec:
             value: "2022-11-28"
           - name: Content-Type
             value: application/json
-        body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': vars.capability, ''app'': vars.app, ''stage'': vars.stage, ''target'': vars.target, ''commit'': task.outputs.commit.commit, (vars.artifactKey): vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+        body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''system'': vars.system, ''app'': vars.app, ''stage'': vars.stage, ''target'': vars.target, ''commit'': task.outputs.commit.commit, (vars.artifactKey): vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
         successExpression: response.status == 200
         failureExpression: response.status != 200
         errorExpression: response.body.message
@@ -161,7 +161,7 @@ spec:
   vars:
     - name: repo
     - name: image
-    - name: capability
+    - name: system
     - name: app
     - name: stage
     - name: target
@@ -185,7 +185,7 @@ spec:
             value: "2022-11-28"
           - name: Content-Type
             value: application/json
-        body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''capability'': vars.capability, ''app'': vars.app, ''stage'': vars.stage, ''target'': vars.target, ''commit'': commitFrom(vars.repo).ID, (vars.artifactKey): vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
+        body: '${{ quote({''ref'': vars.workflowRef, ''return_run_details'': true, ''inputs'': {''system'': vars.system, ''app'': vars.app, ''stage'': vars.stage, ''target'': vars.target, ''commit'': commitFrom(vars.repo).ID, (vars.artifactKey): vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest} }) }}'
         successExpression: response.status == 200
         failureExpression: response.status != 200
         errorExpression: response.body.message

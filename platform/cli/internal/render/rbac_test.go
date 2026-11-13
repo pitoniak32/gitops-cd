@@ -64,7 +64,7 @@ func TestKindClusterRBAC(t *testing.T) {
 		}
 	}
 
-	// promoters are per app: worker's app owners replace promoters; my-app inherits the capability's
+	// promoters are per app: worker's app owners replace promoters; my-app inherits the system's
 	if claims(w, "promote-dev") != `{"email":["alice@example.com","doug@example.com","oncall@example.com"]}` {
 		t.Error("worker promote-dev claims")
 	}
@@ -133,24 +133,24 @@ func TestKindClusterRBAC(t *testing.T) {
 }
 
 // test.sh: "override-all owners ok"
-// Every app overrides promoters: the capability-level promoter gets no promote role but still
+// Every app overrides promoters: the system-level promoter gets no promote role but still
 // views; stages/targets approvers (CODEOWNERS) are the apps' owners.
 func TestOverrideAllOwners(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	writeFile(t, filepath.Join(r, "capabilities/search/owners.yml"), "codeOwners: [team1]\npromoters: {dev: [carol@example.com]}\napps: {api: {codeOwners: [team2], promoters: {dev: [dave@example.com]}}}\n")
-	o := renderCap(t, r, "search")
+	writeFile(t, filepath.Join(r, "systems/search/owners.yml"), "codeOwners: [team1]\npromoters: {dev: [carol@example.com]}\napps: {api: {codeOwners: [team2], promoters: {dev: [dave@example.com]}}}\n")
+	o := renderSystem(t, r, "search")
 	kf := filepath.Join(o, "kargo/search.yaml")
 	if _, err := os.Stat(kf); err != nil {
 		t.Fatalf("missing %s", kf)
 	}
 	if claims(inProject(docs(t, kf), "kargo-search-api"), "promote-dev") != `{"email":["dave@example.com"]}` {
-		t.Error("capability-only promoter got promote rights")
+		t.Error("system-only promoter got promote rights")
 	}
 	co := mustRead(t, filepath.Join(o, "codeowners/search"))
 	has := false
 	for _, l := range strings.Split(co, "\n") {
-		if l == "/capabilities/search/ @acme/team2" {
+		if l == "/systems/search/ @acme/team2" {
 			has = true
 		}
 	}
@@ -160,20 +160,20 @@ func TestOverrideAllOwners(t *testing.T) {
 }
 
 // test.sh: "app viewers ok"
-// App viewers (apps.<a>.viewers) replace the capability's viewers in that app's project only (ADR 0029)
+// App viewers (apps.<a>.viewers) replace the system's viewers in that app's project only (ADR 0029)
 func TestAppViewers(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	must(t, yamledit.Set(filepath.Join(r, "capabilities/payments/owners.yml"), []string{"apps", "worker", "viewers"}, []string{"erin@example.com"}))
-	o := renderCap(t, r, "payments")
+	must(t, yamledit.Set(filepath.Join(r, "systems/payments/owners.yml"), []string{"apps", "worker", "viewers"}, []string{"erin@example.com"}))
+	o := renderSystem(t, r, "payments")
 	all := docs(t, filepath.Join(o, "kargo/payments.yaml"))
 	if got := claims(inProject(all, "kargo-payments-worker"), "viewers"); got != `{"email":["alice@example.com","doug@example.com","erin@example.com","oncall@example.com"]}` {
-		t.Errorf("worker viewers: app viewer replaces capability viewer bob: %s", got)
+		t.Errorf("worker viewers: app viewer replaces system viewer bob: %s", got)
 	}
 	if got := claims(inProject(all, "kargo-payments-my-app"), "viewers"); got != `{"email":["bob@example.com","doug@example.com","oncall@example.com"]}` {
 		t.Errorf("my-app viewers must not include worker's viewer: %s", got)
 	}
 	if !strings.Contains(claims(all, "users-payments"), "erin@example.com") {
-		t.Error("app viewer must still list the capability's projects")
+		t.Error("app viewer must still list the system's projects")
 	}
 }

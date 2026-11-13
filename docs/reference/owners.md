@@ -1,7 +1,7 @@
 # owners
 
-`owners.yml` says who reviews, promotes and views a capability's apps. There is exactly one per
-capability, at `capabilities/<cap>/owners.yml` ([ADR 0007](../adr/0007-capabilities-and-ownership.md)). All
+`owners.yml` says who reviews, promotes and views a system's apps. There is exactly one per
+system, at `systems/<sys>/owners.yml` ([ADR 0007](../adr/0007-systems-and-ownership.md)). All
 Kargo and Argo CD access is generated from it, matched on the login's `email`
 ([ADR 0011](../adr/0011-access-by-email.md)). Changes always need platform approval.
 
@@ -9,7 +9,7 @@ How-to: [promote and access](../guide/promote-access.md).
 
 ## Defining owners
 
-<!-- embed path=capabilities/payments/owners.yml -->
+<!-- embed path=systems/payments/owners.yml -->
 ```yaml
 codeOwners: [team1]
 promoters:
@@ -29,16 +29,16 @@ apps:
       prod: [alice@example.com]
 ```
 
-Source: [`payments/owners.yml`](../../platform/render/testdata/root/capabilities/payments/owners.yml)
+Source: [`payments/owners.yml`](../../platform/render/testdata/root/systems/payments/owners.yml)
 <!-- /embed -->
 
-The file has capability-wide roles at the top and per-app overrides under `apps`.
+The file has system-wide roles at the top and per-app overrides under `apps`.
 
 ## Roles
 
 | Key | Takes | Grants |
 |---|---|---|
-| `codeOwners` (required) | team names from `teams/` | approve PRs to the capability (generated CODEOWNERS) |
+| `codeOwners` (required) | team names from `teams/` | approve PRs to the system (generated CODEOWNERS) |
 | `promoters` (required) | per stage, emails | promote that stage's targets in Kargo; read the app |
 | `viewers` | emails | read-only access to the apps in Kargo and Argo CD |
 | `breakGlass` | emails | approve Freight that skipped upstream verification ([ADR 0013](../adr/0013-break-glass-approval.md)) |
@@ -53,7 +53,7 @@ Emails are lowercase `@example.com` addresses.
 stage names (`prod`), not environment types (`prd`). Every stage an app uses needs promoters, either
 here or in that app's override:
 
-```yaml path=capabilities/payments/owners.yml expect="needs promoters.dev"
+```yaml path=systems/payments/owners.yml expect="needs promoters.dev"
 codeOwners: [team1]
 promoters:
   staging: [doug@example.com]
@@ -64,9 +64,9 @@ promoters:
 ## Per-app overrides
 
 `apps.<app>` overrides `codeOwners`, `promoters` and `viewers` for one app (an app directory of this
-capability). Each set field **replaces** the capability's value; `promoters` replaces per stage:
+system). Each set field **replaces** the system's value; `promoters` replaces per stage:
 
-<!-- embed path=capabilities/payments/owners.yml lines=10-16 -->
+<!-- embed path=systems/payments/owners.yml lines=10-16 -->
 ```yaml
 apps:
   worker:
@@ -77,11 +77,11 @@ apps:
       prod: [alice@example.com]
 ```
 
-Source: [`payments/owners.yml:10-16`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L10-L16)
+Source: [`payments/owners.yml:10-16`](../../platform/render/testdata/root/systems/payments/owners.yml#L10-L16)
 <!-- /embed -->
 
 Here `worker`'s `prod` promoters are only `alice@example.com`, its `staging` and `perf` promoters stay
 `doug@example.com`, and its viewers are `bob@example.com` and `carol@example.com`. `breakGlass` can't be
-overridden per app. `gcd show <cap>/<app>` prints an app's effective owners.
+overridden per app. `gcd show <sys>/<app>` prints an app's effective owners.
 
 Every field: `gcd schema owners`.

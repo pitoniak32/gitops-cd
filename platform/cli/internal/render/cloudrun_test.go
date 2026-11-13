@@ -34,7 +34,7 @@ func TestCloudRunRender(t *testing.T) {
 	if get(svc, "metadata.annotations") != nil {
 		t.Error("service.yaml: no run.googleapis.com/location annotation")
 	}
-	if orderedJSON(t, sf, "spec.template.metadata.labels") != `{"app":"web","managed-by":"cue-platform","capability":"payments","stage":"staging","target":"us-east4-npr-cr","environment":"staging","environment-type":"npr","billing":"payments"}` {
+	if orderedJSON(t, sf, "spec.template.metadata.labels") != `{"app":"web","managed-by":"cue-platform","system":"payments","stage":"staging","target":"us-east4-npr-cr","environment":"staging","environment-type":"npr","billing":"payments"}` {
 		t.Error("service.yaml template labels (GCP-safe keys)")
 	}
 	safe := regexp.MustCompile(`^[a-z0-9_.-]+$`)
@@ -64,8 +64,8 @@ func TestCloudRunRender(t *testing.T) {
 
 	// below 1 vCPU Cloud Run needs containerConcurrency 1
 	c := fixture(t)
-	must(t, yamledit.Set(filepath.Join(c, "capabilities/payments/apps/web/app.yml"), []string{"stages", "staging", "targets", "us-east4-npr-cr", "resources", "cpu"}, "500m"))
-	o := renderCap(t, c, "payments")
+	must(t, yamledit.Set(filepath.Join(c, "systems/payments/apps/web/app.yml"), []string{"stages", "staging", "targets", "us-east4-npr-cr", "resources", "cpu"}, "500m"))
+	o := renderSystem(t, c, "payments")
 	s2 := docs(t, filepath.Join(o, "apps/payments/web/staging/us-east4-npr-cr/service.yaml"))[0]
 	if str(get(s2, "spec.template.spec.containerConcurrency"))+" "+str(get(s2, "spec.template.spec.containers.0.resources.limits.cpu")) != "1 500m" {
 		t.Error("cpu 500m must set containerConcurrency 1")

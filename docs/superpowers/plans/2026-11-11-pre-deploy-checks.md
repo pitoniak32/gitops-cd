@@ -17,7 +17,7 @@
 - Check: `{file!, ref: *"main", timeout: *"30m"}`. `file` =~ `^[A-Za-z0-9_.-]+\.ya?ml$`. Timeout is whole minutes, 1..120. There is no `repo` field: checks always go to the app's `sourceRepo`.
 - `preDeploy` is keyed on the **target's** `environmentType`. Initial config: `preDeploy: prd: [{file: "precheck.yaml"}]`.
 - Wait hard cap `retry.timeout: "2h"`. Per-check timeout: `now() - date(response.body.created_at) > duration('${{ vars.checkTimeout }}')`.
-- Dispatch inputs (exactly six): `capability, app, stage, target, commit` (= `commitFrom(vars.repo).ID`), and `image`/`module` via `(vars.artifactKey)`.
+- Dispatch inputs (exactly six): `system, app, stage, target, commit` (= `commitFrom(vars.repo).ID`), and `image`/`module` via `(vars.artifactKey)`.
 - Rendered `promote-gha` and `promote-argocd` stay byte-identical.
 - VCS is jj: `jj commit -m ...`. No git mutations, no pushes. Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - After every task: `mise run test` passes. Accept golden only via `UPDATE=1 mise run test`, after reading the diff.
@@ -36,7 +36,7 @@
 
 **Files:**
 - Modify: `platform/render/app.cue` (`#App`, near `image?`)
-- Modify: every `capabilities/*/apps/*/app.yml` (4) and `platform/render/testdata/root/capabilities/*/apps/*/app.yml` (6). Add `sourceRepo: pitoniak32/gitops-cd`, except testdata `payments/apps/my-app`, which gets `sourceRepo: acme/my-app` (used in Task 3).
+- Modify: every `systems/*/apps/*/app.yml` (4) and `platform/render/testdata/root/systems/*/apps/*/app.yml` (6). Add `sourceRepo: pitoniak32/gitops-cd`, except testdata `payments/apps/my-app`, which gets `sourceRepo: acme/my-app` (used in Task 3).
 - Modify: `platform/render/schemas/*` (regenerated)
 - Test: `platform/cli/internal/lint/cases_test.go`
 
@@ -44,13 +44,13 @@
 - Produces: `apps[<app>].sourceRepo: string` (always set after validation)
 
 - [ ] **Step 1: Add lint cases** to `lintCases` and bump the row-count guard `64` → `66`:
-  - `{"del(.sourceRepo)", "capabilities/payments/apps/infra/app.yml", delAt("sourceRepo"), `^capabilities/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*sourceRepo`}`. `infra` is terraform. Covers Review Focus 4: the field is required regardless of targets.
-  - `{".sourceRepo = \"nope\"", appW, setTo("nope", "sourceRepo"), `^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: sourceRepo: expected <owner>/<name>$`}`
+  - `{"del(.sourceRepo)", "systems/payments/apps/infra/app.yml", delAt("sourceRepo"), `^systems/payments/apps/infra/app\.yml:[0-9]+:[0-9]+: .*sourceRepo`}`. `infra` is terraform. Covers Review Focus 4: the field is required regardless of targets.
+  - `{".sourceRepo = \"nope\"", appW, setTo("nope", "sourceRepo"), `^systems/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: sourceRepo: expected <owner>/<name>$`}`
 - [ ] **Step 2:** `cd platform/cli && go test ./internal/lint/ -run TestLintCases`. Expected: FAIL, field unknown or no error.
 - [ ] **Step 3:** Add `sourceRepo!: =~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" | error("expected <owner>/<name>")` to `#App`, with a comment: GitHub repo of the app's code; pre-deploy checks are dispatched there. If the missing-field message doesn't locate at the file, add a `_appFiles` check in the style of the image/module rule: `if v.sourceRepo == _|_ {apps: (an): sourceRepo: error("sourceRepo required: <owner>/<name> of the app's GitHub repo")}`.
 - [ ] **Step 4:** Add `sourceRepo` to all 10 `app.yml` files (values above), then run `mise run schemas`.
 - [ ] **Step 5:** `mise run test`. Expected: PASS. Golden doesn't change, because `sourceRepo` isn't rendered yet.
-- [ ] **Step 6:** `mise run lint` on the real capabilities. Expected: no output.
+- [ ] **Step 6:** `mise run lint` on the real systems. Expected: no output.
 - [ ] **Step 7:** `jj commit -m "feat(render): required app sourceRepo"`
 
 ### Task 2: `gha-check` ClusterPromotionTask + platform config
@@ -62,8 +62,8 @@
 
 **Interfaces:**
 - Produces:
-  - `#PreDeployCheck` and `preDeploy: [#EnvironmentType]: [...#PreDeployCheck]` in package `render`. `prechecks.cue` is *not* added to `cueload.Platform(...)` lists. Capability loads get it via the package.
-  - ClusterPromotionTask `gha-check`. Vars in this order: `repo, image, capability, app, stage, target, artifactKey, workflowRepo, workflowFile, workflowRef, checkTimeout`. Steps: `dispatch` (http POST), `wait` (http GET, `retry.timeout: 2h`).
+  - `#PreDeployCheck` and `preDeploy: [#EnvironmentType]: [...#PreDeployCheck]` in package `render`. `prechecks.cue` is *not* added to `cueload.Platform(...)` lists. System loads get it via the package.
+  - ClusterPromotionTask `gha-check`. Vars in this order: `repo, image, system, app, stage, target, artifactKey, workflowRepo, workflowFile, workflowRef, checkTimeout`. Steps: `dispatch` (http POST), `wait` (http GET, `retry.timeout: 2h`).
   - CUE definitions `_ghaDispatch`/`_ghaWait`, reused by `promote-gha`.
 
 - [ ] **Step 1: Write the failing test** `TestGhaCheckTask` in `gha_test.go`:
@@ -119,8 +119,8 @@
 - Create: `.github/workflows/precheck.yaml`
 
 - [ ] **Step 1:** Write the workflow, modelled on `deploy.yaml`:
-  - `workflow_dispatch` inputs: `capability, app, stage, target, commit` (required) and both `image` and `module` (`required: false`). Image apps send `image`, terraform apps send `module`, and GitHub rejects undeclared inputs with a 422.
-  - `run-name: "precheck ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }}"`
+  - `workflow_dispatch` inputs: `system, app, stage, target, commit` (required) and both `image` and `module` (`required: false`). Image apps send `image`, terraform apps send `module`, and GitHub rejects undeclared inputs with a 422.
+  - `run-name: "precheck ${{ inputs.system }}/${{ inputs.app }} → ${{ inputs.target }}"`
   - inputs passed through `env:` only
   - a step that fails with `::error::PRECHECK_FAIL is set` when `vars.PRECHECK_FAIL == 'true'`
   - a job summary listing the inputs
@@ -143,6 +143,6 @@
 Not runnable by the agent (no pushes). The user pushes, CI renders `rendered`, then on kind:
 
 - [ ] `gh variable set PRECHECK_FAIL --body false`. Promote Freight to a prod target. Expected: `pre-1::dispatch` → run succeeds → `promote::*` steps run.
-- [ ] `gh variable set PRECHECK_FAIL --body true`. Promote again. Expected: Promotion Errored at `pre-1::wait`; `git ls-remote origin env/<cap>/<app>/<target>` head unchanged.
+- [ ] `gh variable set PRECHECK_FAIL --body true`. Promote again. Expected: Promotion Errored at `pre-1::wait`; `git ls-remote origin env/<sys>/<app>/<target>` head unchanged.
 - [ ] Temporarily set `timeout: "1m"` and make `precheck.yaml` sleep 120s, then push. Expected: fails at ~1m with "exceeded 1m". If the error says `now`/`date`/`duration` is unknown, switch to the spec's bucket fallback (new plan).
 - [ ] Revert the temporary changes.

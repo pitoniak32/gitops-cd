@@ -85,10 +85,10 @@ func firstDiff(a, b string) string {
 	return ""
 }
 
-func renderTestRoot(t *testing.T, root, out string, caps ...string) {
+func renderTestRoot(t *testing.T, root, out string, systems ...string) {
 	t.Helper()
-	for _, c := range caps {
-		if _, err := Capability(root, c, out); err != nil {
+	for _, c := range systems {
+		if _, err := System(root, c, out); err != nil {
 			t.Fatalf("%s: %v", c, err)
 		}
 	}
@@ -141,8 +141,8 @@ func TestCodeOwnersGolden(t *testing.T) {
 	if string(got) != string(want) {
 		t.Errorf("CODEOWNERS differs: %s", firstDiff(string(want), string(got)))
 	}
-	// deleted capability drops out on the next render
-	if err := os.RemoveAll(filepath.Join(root, "capabilities", "search")); err != nil {
+	// deleted system drops out on the next render
+	if err := os.RemoveAll(filepath.Join(root, "systems", "search")); err != nil {
 		t.Fatal(err)
 	}
 	out2 := t.TempDir()
@@ -152,7 +152,7 @@ func TestCodeOwnersGolden(t *testing.T) {
 	}
 	got, _ = os.ReadFile(filepath.Join(root, ".github", "CODEOWNERS"))
 	if strings.Contains(string(got), "search") {
-		t.Error("deleted capability still in CODEOWNERS")
+		t.Error("deleted system still in CODEOWNERS")
 	}
 }
 
@@ -195,7 +195,7 @@ func TestUniqueApps(t *testing.T) {
 	}
 }
 
-// kargo-<cap>-<app> can collide across capabilities (cap a-b + app c vs cap a + app b-c, ADR 0029)
+// kargo-<sys>-<app> can collide across systems (sys a-b + app c vs sys a + app b-c, ADR 0029)
 func TestUniqueKargoProjects(t *testing.T) {
 	t.Parallel()
 	out := t.TempDir()
@@ -204,7 +204,7 @@ func TestUniqueKargoProjects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// platform files (_-prefixed) are not capabilities
+	// platform files (_-prefixed) are not systems
 	if err := os.WriteFile(filepath.Join(out, "kargo/_promotion-tasks.yaml"), b, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -220,17 +220,17 @@ func TestUniqueKargoProjects(t *testing.T) {
 	}
 }
 
-func TestCapabilityEmptyGlobs(t *testing.T) {
+func TestSystemEmptyGlobs(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, "capabilities", "empty"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "systems", "empty"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Capability(root, "empty", t.TempDir()); err == nil {
-		t.Fatal("expected a validation error for a capability with no inputs")
+	if _, err := System(root, "empty", t.TempDir()); err == nil {
+		t.Fatal("expected a validation error for a system with no inputs")
 	}
-	if _, err := Capability(root, "missing", t.TempDir()); err == nil || !strings.Contains(err.Error(), "no capability dir") {
-		t.Fatalf("want no capability dir, got %v", err)
+	if _, err := System(root, "missing", t.TempDir()); err == nil || !strings.Contains(err.Error(), "no system dir") {
+		t.Fatalf("want no system dir, got %v", err)
 	}
 }
 
@@ -257,10 +257,10 @@ func TestRenderPrunes(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(out, "apps/payments/worker")); err != nil {
 		t.Fatal("worker not rendered: ", err)
 	}
-	if err := os.RemoveAll(filepath.Join(root, "capabilities/payments/apps/worker")); err != nil {
+	if err := os.RemoveAll(filepath.Join(root, "systems/payments/apps/worker")); err != nil {
 		t.Fatal(err)
 	}
-	ow := filepath.Join(root, "capabilities/payments/owners.yml")
+	ow := filepath.Join(root, "systems/payments/owners.yml")
 	b, err := os.ReadFile(ow)
 	if err != nil {
 		t.Fatal(err)
@@ -288,12 +288,12 @@ func TestAll(t *testing.T) {
 	}
 }
 
-func TestAllReportsEveryBrokenCapability(t *testing.T) {
+func TestAllReportsEveryBrokenSystem(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
 	for _, c := range []string{"payments", "search"} {
-		if err := os.Remove(filepath.Join(root, "capabilities", c, "owners.yml")); err != nil {
+		if err := os.Remove(filepath.Join(root, "systems", c, "owners.yml")); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -307,7 +307,7 @@ func TestAllReportsEveryBrokenCapability(t *testing.T) {
 			t.Errorf("missing %q in:\n%s", w, msg)
 		}
 	}
-	if strings.Count(msg, "capability needs owners.yml") < 2 {
+	if strings.Count(msg, "system needs owners.yml") < 2 {
 		t.Errorf("want both messages:\n%s", msg)
 	}
 }
@@ -323,21 +323,21 @@ func TestWrap(t *testing.T) {
 	}
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
-	if err := os.Remove(filepath.Join(root, "capabilities/payments/owners.yml")); err != nil {
+	if err := os.Remove(filepath.Join(root, "systems/payments/owners.yml")); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Capability(root, "payments", t.TempDir())
-	if w := Wrap(err); w == nil || !strings.Contains(w.Error(), "capability needs owners.yml") {
+	_, err := System(root, "payments", t.TempDir())
+	if w := Wrap(err); w == nil || !strings.Contains(w.Error(), "system needs owners.yml") {
 		t.Fatalf("got %v", w)
 	}
 }
 
-func TestFragmentsAndSelectedReportEveryBrokenCapability(t *testing.T) {
+func TestFragmentsAndSelectedReportEveryBrokenSystem(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	copyTree(t, abs(t, "testdata/root"), root)
 	for _, c := range []string{"payments", "search"} {
-		if err := os.Remove(filepath.Join(root, "capabilities", c, "owners.yml")); err != nil {
+		if err := os.Remove(filepath.Join(root, "systems", c, "owners.yml")); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -352,7 +352,7 @@ func TestFragmentsAndSelectedReportEveryBrokenCapability(t *testing.T) {
 				t.Errorf("%s: missing %q in:\n%s", name, w, msg)
 			}
 		}
-		if strings.Count(msg, "capability needs owners.yml") < 2 {
+		if strings.Count(msg, "system needs owners.yml") < 2 {
 			t.Errorf("%s: want both messages:\n%s", name, msg)
 		}
 	}
@@ -360,7 +360,7 @@ func TestFragmentsAndSelectedReportEveryBrokenCapability(t *testing.T) {
 	check("Selected", Selected(root, []string{"payments", "search"}, t.TempDir(), io.Discard, nil))
 }
 
-// With progress, the phases replace the per-capability lines on w.
+// With progress, the phases replace the per-system lines on w.
 func TestAllProgressPhases(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -370,9 +370,9 @@ func TestAllProgressPhases(t *testing.T) {
 		t.Fatal(err)
 	}
 	if strings.Contains(w.String(), "rendered payments") {
-		t.Errorf("per-capability lines with progress on: %q", w.String())
+		t.Errorf("per-system lines with progress on: %q", w.String())
 	}
-	for _, ph := range []string{`✓ capabilities +2/2 `, `✓ platform files +1/1 `, `✓ unique names +1/1 `, `✓ CODEOWNERS +1/1 `} {
+	for _, ph := range []string{`✓ systems +2/2 `, `✓ platform files +1/1 `, `✓ unique names +1/1 `, `✓ CODEOWNERS +1/1 `} {
 		if !regexp.MustCompile(ph).MatchString(bar.String()) {
 			t.Errorf("missing phase %q in %q", ph, bar.String())
 		}

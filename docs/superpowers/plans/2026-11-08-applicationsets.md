@@ -17,7 +17,7 @@
 - Every AppSet: `goTemplate: true`, `goTemplateOptions: ["missingkey=error"]`, `syncPolicy.preserveResourcesOnDeletion: true`, namespace `argocd`.
 - Cluster gen exposes region as `values: {region: '{{index .metadata.labels "example.com/region"}}'}`; templates use `{{.values.region}}` (never the raw label expr elsewhere — `infra` seds `{{.values.region}}` for helm bootstrap).
 - Repo `https://github.com/pitoniak32/gitops-cd`, `targetRevision: main` for every git source.
-- Generated Application names unchanged: addons keep current names (`traefik`, …, hub `argocd`, `kargo-ctrl-<r>` on hub, `argocd-ui-<r>` on hub, region `argocd`, region `kargo-ctrl`); workloads `<cap>-<app>-<target>`. Hub kargo root app `rendered-kargo`. New: `root`, `argocd-projects`.
+- Generated Application names unchanged: addons keep current names (`traefik`, …, hub `argocd`, `kargo-ctrl-<r>` on hub, `argocd-ui-<r>` on hub, region `argocd`, region `kargo-ctrl`); workloads `<sys>-<app>-<target>`. Hub kargo root app `rendered-kargo`. New: `root`, `argocd-projects`.
 - Add-on syncOptions carried over (`CreateNamespace=true`, `ServerSideApply=true`, retry limit 10 backoff 5s×2 max 1m) + `SkipDryRunOnMissingResource=true`.
 - Hub addon order (infra waits in this order): traefik cert-manager argo-rollouts keycloak kargo kargo-config break-glass argocd.
 - Migration: clean `mise run up` only. No upgrade code paths; delete the old `rendered-argocd` upgrade block in `infra`.
@@ -26,7 +26,7 @@
 ## Review Focus
 
 - Kargo `argocd-update` on AppSet-owned Apps: AppSet controller must not revert anything Kargo writes (promotion must finish, not stay Running). Pinned by e2e in Task 7.
-- Capability names that prefix-collide (`a` vs `a-b`): render.sh wipe must not delete another cap's deploy files. Pinned by test in Task 2 (per-cap subdir).
+- System names that prefix-collide (`a` vs `a-b`): render.sh wipe must not delete another cap's deploy files. Pinned by test in Task 2 (per-cap subdir).
 - Deleting/renaming an AppSet file must not cascade-delete Argo CD itself or workloads. Pinned by `preserveResourcesOnDeletion` check in Task 3.
 - Template key typo → silently empty field. Pinned by `missingkey=error` check (Task 3) + workloads key-coverage check (Task 4).
 - Region with zero targets: projects app path must exist or it shows ComparisonError. Pinned in Task 1 (`projects/<r>/.keep` per region).
@@ -48,7 +48,7 @@
 **Interfaces:**
 - Produces: `cue export clusters.cue regions.cue -e regionFiles --out json` → `{ "<path under rendered/>": "<content>" }` with `infrastructure/regions/<r>.json` = `{"region":"<r>"}\n` and `argocd/projects/<r>/.keep` = `""`, for every distinct `clusters[].region`.
 - Produces: `cue export clusters.cue regions.cue -e regionConfig --out json` → `{regions: [...string] (sorted unique), keycloakClients: [...{clientId,…}], kargoArgocdUrls: {<r>: "https://argocd-<r>.localhost"}}`. Client shape = exactly what `infra-render` builds today (clientId `argocd-<r>`, name `Argo CD (<r>)`, publicClient, standardFlowEnabled, directAccessGrantsEnabled false, 3 redirectUris, webOrigins, attributes pkce S256 + post.logout.redirect.uris).
-- Produces: `platform/render/scripts/regions.sh <out>` writes `regionFiles` under `<out>`; must evaluate only `clusters.cue regions.cue` (package eval without capability input fails).
+- Produces: `platform/render/scripts/regions.sh <out>` writes `regionFiles` under `<out>`; must evaluate only `clusters.cue regions.cue` (package eval without system input fails).
 - Produces: `mise run regions` rewrites: `platform/cluster/regions` (header comment kept, one region per line), realm `.clients` (drop all `clientId` matching `^argocd-`, append `keycloakClients`), kargo values `.api.argocd.urls = kargoArgocdUrls`. Idempotent.
 
 - [ ] **Step 1: Add failing assertions to `test.sh`** (after golden render, call `scripts/regions.sh "$tmp"` before the diff):
@@ -56,7 +56,7 @@
   - `ls "$tmp/infrastructure/regions" | paste -sd' '` == `onprem.json us.json`
   - `[[ -f "$tmp/argocd/projects/onprem/.keep" ]]`
 - [ ] **Step 2: Run `mise run test`** → FAIL (regions.sh missing).
-- [ ] **Step 3: Implement `regions.cue` + `regions.sh`**; `render` task: `rm -rf "$OUT/infrastructure"` then `platform/render/scripts/regions.sh "$OUT"` after capabilities.
+- [ ] **Step 3: Implement `regions.cue` + `regions.sh`**; `render` task: `rm -rf "$OUT/infrastructure"` then `platform/render/scripts/regions.sh "$OUT"` after systems.
 - [ ] **Step 4: Implement `mise run regions`** (yq/jq from `regionConfig`).
 - [ ] **Step 5: Run `mise run regions && jj diff --stat`** → realm gains `argocd-us`, `argocd-onprem`; kargo values gain `api.argocd.urls`; regions file unchanged except header. Run again → no diff.
 - [ ] **Step 6: `UPDATE=1 mise run test && mise run test`** → `golden ok` … all PASS; golden has `infrastructure/regions/{us,onprem}.json`.
@@ -74,14 +74,14 @@
 
 **Interfaces:**
 - Produces files (consumed by Task 4 templates):
-  - `argocd/projects/<r>/<cap>.yaml`: single AppProject, unchanged content.
-  - `argocd/deploys/<r>/<cap>/<app>-<target>.json`: `json.Indent`, keys exactly: `appName` (`<cap>-<app>-<target>`), `capability`, `app`, `stage`, `target`, `namespace`, `branch` (`env/<cap>/<app>/<target>`), `destination` (argocdName), `authorizedStage` (`<kargoProject>:<tgtStage>`). No key named `path` or `values` (git files gen reserves them).
+  - `argocd/projects/<r>/<sys>.yaml`: single AppProject, unchanged content.
+  - `argocd/deploys/<r>/<sys>/<app>-<target>.json`: `json.Indent`, keys exactly: `appName` (`<sys>-<app>-<target>`), `system`, `app`, `stage`, `target`, `namespace`, `branch` (`env/<sys>/<app>/<target>`), `destination` (argocdName), `authorizedStage` (`<kargoProject>:<tgtStage>`). No key named `path` or `values` (git files gen reserves them).
 - render.sh wipe: `"$OUT"/argocd/projects/*/"$CAP.yaml"` and `"$OUT"/argocd/deploys/*/"$CAP"` (dir). Remove old `argocd/*/$CAP.yaml` patterns.
 
 - [ ] **Step 1: Update `test.sh` assertions** (replace the Application/argocd-layout checks):
   - file list: `cd "$tmp/argocd" && find . -type f ! -name .keep | sort` == `./deploys/onprem/payments/my-app-onprem-dev.json …` (write the full expected list from fixtures) + `./projects/onprem/payments.yaml ./projects/us/payments.yaml ./projects/us/search.yaml`
   - `jq -r '.branch + " " + .authorizedStage + " " + .destination + "/" + .namespace' "$tmp/argocd/deploys/onprem/payments/my-app-onprem-prod.json"` == `env/payments/my-app/onprem-prod kargo-payments:my-app-onprem-prod in-cluster/payments-onprem-prod`
-  - `jq -r 'keys | join(",")'` on that file == `app,appName,authorizedStage,branch,capability,destination,namespace,stage,target`
+  - `jq -r 'keys | join(",")'` on that file == `app,appName,authorizedStage,branch,system,destination,namespace,stage,target`
   - no `kind: Application` anywhere under `$tmp/argocd`
   - AppProject viewer + onprem destinations checks: same assertions, path `argocd/projects/<r>/payments.yaml`.
   - prefix-collision: copy fixture `payments` to cap `pay`, render both into one out dir, re-render `pay` → `payments` deploy files still present.
@@ -131,7 +131,7 @@
 
 **Interfaces:**
 - Consumes: Task 2 deploy JSON keys; Task 3 conventions.
-- workloads generator: `matrix: [clusters (role=region, values.region), git files rendered/argocd/deploys/{{.values.region}}/*/*.json]`. Template = today's Application exactly (Task 2 test fixture `my-app-onprem-prod` is the reference): name `{{.appName}}`, annotation `kargo.akuity.io/authorized-stage: {{.authorizedStage}}`, 4 labels, project `{{.capability}}`, source repo/`{{.branch}}`/path `.`, destination `{{.destination}}`/`{{.namespace}}`, automated prune+selfHeal, CreateNamespace.
+- workloads generator: `matrix: [clusters (role=region, values.region), git files rendered/argocd/deploys/{{.values.region}}/*/*.json]`. Template = today's Application exactly (Task 2 test fixture `my-app-onprem-prod` is the reference): name `{{.appName}}`, annotation `kargo.akuity.io/authorized-stage: {{.authorizedStage}}`, 4 labels, project `{{.system}}`, source repo/`{{.branch}}`/path `.`, destination `{{.destination}}`/`{{.namespace}}`, automated prune+selfHeal, CreateNamespace.
 - check.sh addition: every `{{.x}}` (x not `values.*`) in `workloads.yaml` is a key of `platform/render/testdata/golden/argocd/deploys/onprem/payments/my-app-onprem-prod.json`; `root.yaml` path dir exists.
 
 - [ ] **Step 1: Add check.sh assertions** → `mise run test` FAIL.

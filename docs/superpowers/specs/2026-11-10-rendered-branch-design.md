@@ -19,7 +19,7 @@ No CI commits on `main`. Today every merge is followed by a bot `render: <sha>` 
 ## Components
 
 - `.github/workflows/ci.yaml`: drop `paths-ignore`, CI-owned guard becomes "CODEOWNERS up to date" + "no `rendered/` on main"; render/diff/comment against `origin/rendered`; push job commits to `rendered`.
-- `platform/mise-tasks/codeowners`: new; renders capability fragments to a temp dir, assembles `.github/CODEOWNERS`.
+- `platform/mise-tasks/codeowners`: new; renders system fragments to a temp dir, assembles `.github/CODEOWNERS`.
 - `platform/appsets/*`: revisions above. `platform/appsets/check.sh`: every git generator/source whose path starts `rendered/` uses revision `rendered`; no other uses `rendered`.
 - `platform/render/delivery.cue`: Warehouse `branch: "rendered"` (constant `renderedBranch` next to `renderedDir`).
 - `.gitignore`: `/rendered/`.

@@ -1,5 +1,5 @@
 # each region: one Application per app+target deployed there, from the renderer's params files
-# rendered/argocd/deploys/<region>/<cap>/<app>-<target>.json (keys: platform/render/delivery.cue argocdDeploys).
+# rendered/argocd/deploys/<region>/<sys>/<app>-<target>.json (keys: platform/render/delivery.cue argocdDeploys).
 # Tracks the target's env/* branch; Kargo's argocd-update (authorized-stage) syncs it on promotion.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -34,12 +34,12 @@ spec:
       annotations:
         kargo.akuity.io/authorized-stage: "{{.authorizedStage}}"
       labels:
-        example.com/capability: "{{.capability}}"
+        example.com/system: "{{.system}}"
         example.com/app: "{{.app}}"
         example.com/stage: "{{.stage}}"
         example.com/target: "{{.target}}"
     spec:
-      project: "{{.capability}}"  # AppProject per capability (argocd-projects)
+      project: "{{.system}}"  # AppProject per system (argocd-projects)
       source:
         repoURL: https://github.com/pitoniak32/gitops-cd
         targetRevision: "{{.branch}}"

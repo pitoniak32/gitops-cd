@@ -36,11 +36,11 @@ func renderFixture(t *testing.T, root string) string {
 	return out
 }
 
-// renderCap renders one capability from root into a fresh dir.
-func renderCap(t *testing.T, root, capName string) string {
+// renderSystem renders one system from root into a fresh dir.
+func renderSystem(t *testing.T, root, sysName string) string {
 	t.Helper()
 	out := t.TempDir()
-	renderTestRoot(t, root, out, capName)
+	renderTestRoot(t, root, out, sysName)
 	return out
 }
 

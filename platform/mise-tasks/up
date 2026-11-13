@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-#MISE description="Fresh demo cluster: tear down existing, create, install infrastructure + rendered capabilities"
+#MISE description="Fresh demo cluster: tear down existing, create, install infrastructure + rendered systems"
 #MISE depends=["cli"]
 exec "$MISE_PROJECT_ROOT/.bin/gcd" up "$@"

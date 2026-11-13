@@ -1,6 +1,6 @@
 # Renderer in plain Go
 
-The renderer is plain Go: `platform/cli/internal/capability` reads the team YAML (ADR 0006), validates it into located diagnostics, and builds every file under `rendered/`. It was CUE first (typed schemas, cross-file validation and one source for validation and generation), with generated editor JSON Schemas and later Go tooling around the CUE rules. Teams only ever wrote YAML, so CUE was purely an implementation language, and most of the renderer worked against it:
+The renderer is plain Go: `platform/cli/internal/system` reads the team YAML (ADR 0006), validates it into located diagnostics, and builds every file under `rendered/`. It was CUE first (typed schemas, cross-file validation and one source for validation and generation), with generated editor JSON Schemas and later Go tooling around the CUE rules. Teams only ever wrote YAML, so CUE was purely an implementation language, and most of the renderer worked against it:
 
 - **Layered override** (ADR 0004): unification can't override, so every setting was a hand-written "first defined" ladder.
 - **Checks on derived values**: a rule that reads the value it constrains is a cycle in CUE.

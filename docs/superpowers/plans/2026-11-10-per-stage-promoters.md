@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** One `capabilities/<cap>/owners.yml` with `codeOwners`, per-stage `promoters`, `viewers`, `breakGlass` and an `apps:` override map; one Kargo promote SA+Role per (app, stage).
+**Goal:** One `systems/<sys>/owners.yml` with `codeOwners`, per-stage `promoters`, `viewers`, `breakGlass` and an `apps:` override map; one Kargo promote SA+Role per (app, stage).
 
 **Architecture:** Only the CUE renderer changes (`platform/render/`). Task 1 replaces the owners schema/merge and keeps the RBAC output identical: a temporary per-app union of all stages' promoters, so the golden output must not change. Task 2 splits `promote-<app>` into `promote-<app>-<stage>`. Task 3 updates the docs.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Teams never write CUE. User-facing messages come from `error("...")` placed on the owners.yml field, so `mise run lint` prints `capabilities/<cap>/owners.yml:L:C: ...`.
+- Teams never write CUE. User-facing messages come from `error("...")` placed on the owners.yml field, so `mise run lint` prints `systems/<sys>/owners.yml:L:C: ...`.
 - Watch for CUE field shadowing (`x: x`). Use `_`-prefixed aliases.
 - Emails must match `#Email` (lowercase `@example.com`). Teams must be names from `teams/`.
 - An empty `resourceNames` grants every Stage: never render a promote Role with no Stages.
@@ -23,11 +23,11 @@
 
 ## Review Focus
 
-1. **App overrides only some stages:** stages it leaves out must inherit the capability's list, not end up with no promoters. Test: `promote-worker-staging` claims (Task 2).
+1. **App overrides only some stages:** stages it leaves out must inherit the system's list, not end up with no promoters. Test: `promote-worker-staging` claims (Task 2).
 2. **Shared control-flow Stage (`my-app-dev-done`):** it must land in the Role of every stage that consumes it, and the union of all `promote-my-app-*` resourceNames must equal the old `promote-my-app` list (Task 2).
 3. **Old-shape files** (`owners:` key, list-form `promoters`, `apps/<app>/owners.yml`): lint must say how to migrate, not print a raw CUE conflict (lint cases, Task 1).
 4. **A stage key that exists in `stages/` but no app uses it:** allowed, and no Role is rendered for it (Task 2 assertion: no `promote-*-<unused stage>`).
-5. **Capability with no apps:** `_allEmails`/CODEOWNERS fallback still uses the capability fields (existing `len(_effective) == 0` branch, kept in Task 1).
+5. **System with no apps:** `_allEmails`/CODEOWNERS fallback still uses the system fields (existing `len(_effective) == 0` branch, kept in Task 1).
 
 ---
 
@@ -38,21 +38,21 @@
 - Modify: `platform/render/input.cue:26-34` (drop `appOwners` route; add legacy-file error)
 - Modify: `platform/render/files.cue:38-43` (uses renamed `codeOwners`)
 - Modify: `platform/render/delivery.cue:48,268` (read the new exports)
-- Modify fixtures: `platform/render/testdata/root/capabilities/payments/owners.yml`, `.../search/owners.yml`; delete `.../payments/apps/worker/owners.yml`
+- Modify fixtures: `platform/render/testdata/root/systems/payments/owners.yml`, `.../search/owners.yml`; delete `.../payments/apps/worker/owners.yml`
 - Modify: `platform/render/testdata/lint-cases.tsv` (owners rows)
 - Modify: `platform/render/scripts/test.sh:181-190` ("override-all owners" case)
-- Modify real data: `capabilities/payments/owners.yml`, `capabilities/search/owners.yml`
+- Modify real data: `systems/payments/owners.yml`, `systems/search/owners.yml`
 - Regenerate: `platform/render/schemas/owners.json`
 
 **Interfaces:**
 - Produces, used by Task 2 and the existing consumers (all keyed by app name `an`):
   - `codeOwners: [an]: [...team]`: renamed from `owners` (used in files.cue).
   - `_promoters: [an]: [stage]: [...email]`: merged and sorted, only for stages in `apps[an].stages`.
-  - `_breakGlass: [...email]`: capability-wide, sorted. **No longer keyed by app**: update `delivery.cue:48` to `json.Marshal(_breakGlass)`.
+  - `_breakGlass: [...email]`: system-wide, sorted. **No longer keyed by app**: update `delivery.cue:48` to `json.Marshal(_breakGlass)`.
   - `_canPromote: [an]: [...email]`: TEMPORARY. Sorted union of every stage in `_promoters[an]` + `_breakGlass`. Task 2 deletes it.
-  - `_allOwners`, `_allEmails`: same meaning as before. `_allEmails` covers capability promoters (all stages), app-override promoters, viewers and breakGlass.
+  - `_allOwners`, `_allEmails`: same meaning as before. `_allEmails` covers system promoters (all stages), app-override promoters, viewers and breakGlass.
 
-New fixture `testdata/root/capabilities/payments/owners.yml` (worker's union stays `{alice, doug}`, so the golden output is unchanged):
+New fixture `testdata/root/systems/payments/owners.yml` (worker's union stays `{alice, doug}`, so the golden output is unchanged):
 
 ```yaml
 # yaml-language-server: $schema=../../render/schemas/owners.json
@@ -72,14 +72,14 @@ apps:
       prod: [alice@example.com]
 ```
 
-`testdata/root/capabilities/search/owners.yml`: `codeOwners: [team2]`, `promoters: {dev: [alice@example.com]}`.
+`testdata/root/systems/search/owners.yml`: `codeOwners: [team2]`, `promoters: {dev: [alice@example.com]}`.
 
 Error messages (exact text, each placed on the named field):
 
 | Condition | Field | Message |
 |---|---|---|
-| no `codeOwners` | `codeOwners` | `capability owners.yml needs codeOwners: [team, ..]` |
-| no `promoters` | `promoters` | `capability owners.yml needs promoters: {<stage>: [email, ..]}` |
+| no `codeOwners` | `codeOwners` | `system owners.yml needs codeOwners: [team, ..]` |
+| no `promoters` | `promoters` | `system owners.yml needs promoters: {<stage>: [email, ..]}` |
 | `owners:` key present | `owners` | `renamed to codeOwners` |
 | `promoters` is a list | `promoters` | `expected a map: <stage>: [email, ..]` |
 | stage key not in `stages/` | `promoters.<k>` (or `apps.<a>.promoters.<k>`) | `unknown stage; allowed: <sorted stage names, ", ">` |
@@ -87,12 +87,12 @@ Error messages (exact text, each placed on the named field):
 | an app uses stage S with no promoter after the merge | `promoters` | `app <an> uses stage <S>: needs promoters.<S> (or apps.<an>.promoters.<S>)` |
 | empty list (`codeOwners`, any stage's promoters) | that field | `needs at least one <team\|email>` (existing wording) |
 | repeat in a list | that field | `<team\|email>s must not repeat` (existing wording) |
-| `breakGlass` under `apps.<a>` | `apps.<a>.breakGlass` | `breakGlass is capability-wide; set it at the top level` |
-| file `apps/<a>/owners.yml` exists | via `legacyAppOwners: (a)` like `legacyTargets` | `move into capabilities/<cap>/owners.yml apps.<a>` |
+| `breakGlass` under `apps.<a>` | `apps.<a>.breakGlass` | `breakGlass is system-wide; set it at the top level` |
+| file `apps/<a>/owners.yml` exists | via `legacyAppOwners: (a)` like `legacyTargets` | `move into systems/<sys>/owners.yml apps.<a>` |
 
 `inputs.sh` must keep passing `apps/*/owners.yml` so the legacy error fires. Check this and keep it if it's already there.
 
-- [ ] **Step 1: Write the failing lint cases.** Replace the owners rows in `lint-cases.tsv` (lines with `owners.yml`) with rows against the new fixture. Format: `<file>\t<yq -i expr>\t<ERE>`. File = `capabilities/payments/owners.yml`, ERE prefix `^capabilities/payments/owners\.yml:[0-9]+:[0-9]+: `.
+- [ ] **Step 1: Write the failing lint cases.** Replace the owners rows in `lint-cases.tsv` (lines with `owners.yml`) with rows against the new fixture. Format: `<file>\t<yq -i expr>\t<ERE>`. File = `systems/payments/owners.yml`, ERE prefix `^systems/payments/owners\.yml:[0-9]+:[0-9]+: `.
 
   | yq expr | ERE tail |
   |---|---|
@@ -109,21 +109,21 @@ Error messages (exact text, each placed on the named field):
   | `del(.promoters.staging)` | `.*app my-app uses stage staging: needs promoters\.staging` |
   | `.promoters.dev = []` | `.*needs at least one email` |
   | `.apps.worker.promoters.dev = ["doug@example.com", "doug@example.com"]` | `.*emails must not repeat` |
-  | `.apps.worker.breakGlass = ["carol@example.com"]` | `.*breakGlass is capability-wide` |
+  | `.apps.worker.breakGlass = ["carol@example.com"]` | `.*breakGlass is system-wide` |
   | `.breakGlass = ["Oncall@example.com"]` | `breakGlass\.0: .*expected a lowercase @example\.com email` |
   | `.breakGlass = ["carol@example.com", "carol@example.com"]` | `.*emails must not repeat` |
 
-  Add the legacy-file case to `test.sh` next to the "override-all owners" block (the TSV can't create files): copy root, `printf 'owners: [team1]\n' > $r/capabilities/payments/apps/worker/owners.yml`, run lint, then `grep -qE 'apps/worker/owners\.yml:[0-9]+:[0-9]+: .*move into capabilities/payments/owners\.yml apps\.worker'`. If lint can't locate the error in a file it never reads, accept `owners\.yml.*move into` and note it.
+  Add the legacy-file case to `test.sh` next to the "override-all owners" block (the TSV can't create files): copy root, `printf 'owners: [team1]\n' > $r/systems/payments/apps/worker/owners.yml`, run lint, then `grep -qE 'apps/worker/owners\.yml:[0-9]+:[0-9]+: .*move into systems/payments/owners\.yml apps\.worker'`. If lint can't locate the error in a file it never reads, accept `owners\.yml.*move into` and note it.
 
-  Rewrite the "override-all owners" block in `test.sh:181-190` to the new shape: search `owners.yml` = `codeOwners: [team1]`, `promoters: {dev: [carol@example.com]}`, `apps: {api: {codeOwners: [team2], promoters: {dev: [dave@example.com]}}}`. Leave its claims assertion on `promote-api` for now (Task 2 renames it). The CODEOWNERS assertion `/capabilities/search/ @acme/team2` is unchanged.
+  Rewrite the "override-all owners" block in `test.sh:181-190` to the new shape: search `owners.yml` = `codeOwners: [team1]`, `promoters: {dev: [carol@example.com]}`, `apps: {api: {codeOwners: [team2], promoters: {dev: [dave@example.com]}}}`. Leave its claims assertion on `promote-api` for now (Task 2 renames it). The CODEOWNERS assertion `/systems/search/ @acme/team2` is unchanged.
 
-- [ ] **Step 2: Update the fixtures** (above) and delete `testdata/root/capabilities/payments/apps/worker/owners.yml`. Run `mise run test`. Expected: FAIL (old schema rejects `codeOwners`).
+- [ ] **Step 2: Update the fixtures** (above) and delete `testdata/root/systems/payments/apps/worker/owners.yml`. Run `mise run test`. Expected: FAIL (old schema rejects `codeOwners`).
 
-- [ ] **Step 3: Implement `#Owners`, validation and exports in `owners.cue`, and the `input.cue`/`files.cue`/`delivery.cue` edits.** Validation reads the raw YAML (`_capOwnerFiles[0]`), as the current code does, to avoid cycles. Merge: `_promoters[an][sn]` = `apps[an].promoters[sn]` if set, else capability `promoters[sn]`, for each `sn` in `apps[an].stages`. Keep `if generic` editor-schema constraints (`minItems`, `uniqueItems`) on every list, including map values and `apps.<a>.*`.
+- [ ] **Step 3: Implement `#Owners`, validation and exports in `owners.cue`, and the `input.cue`/`files.cue`/`delivery.cue` edits.** Validation reads the raw YAML (`_capOwnerFiles[0]`), as the current code does, to avoid cycles. Merge: `_promoters[an][sn]` = `apps[an].promoters[sn]` if set, else system `promoters[sn]`, for each `sn` in `apps[an].stages`. Keep `if generic` editor-schema constraints (`minItems`, `uniqueItems`) on every list, including map values and `apps.<a>.*`.
 
 - [ ] **Step 4: Run `mise run test`.** Expected: all pass, **golden unchanged** (`golden ok`), `codeowners ok`, every new `lint case ok`. Any golden diff means the merge is wrong: fix it, don't run `UPDATE=1`.
 
-- [ ] **Step 5: Migrate the real files.** Rewrite `capabilities/payments/owners.yml` and `capabilities/search/owners.yml` to the new shape: every stage the capability's apps use gets that capability's current promoters, and the `$schema` comment stays. Run `mise run schemas`, `mise run lint`, `mise run render` (no errors), and `mise run codeowners` (expect no `.github/CODEOWNERS` diff).
+- [ ] **Step 5: Migrate the real files.** Rewrite `systems/payments/owners.yml` and `systems/search/owners.yml` to the new shape: every stage the system's apps use gets that system's current promoters, and the `$schema` comment stays. Run `mise run schemas`, `mise run lint`, `mise run render` (no errors), and `mise run codeowners` (expect no `.github/CODEOWNERS` diff).
 
 - [ ] **Step 6: Commit.**
 ```bash
@@ -142,7 +142,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && jj new
 
 **Interfaces:**
 - Consumes: `_promoters[an][sn]`, `_breakGlass` (Task 1); `_graph[an][n]` and `_gp[an].grp` (`graph.cue`).
-- Produces: `_nodeStages: [an]: [node]: [...stage]`, the capability stages a Kargo Stage belongs to:
+- Produces: `_nodeStages: [an]: [node]: [...stage]`, the system stages a Kargo Stage belongs to:
   - `kind: "target"` or entry control-flow (`n == "\(an)-\(x.stage)"`): `[x.stage]`.
   - shared control-flow (`n == g.name` for a `g` in `_gp[an].grp` with `g.shared`): `g.mem` (its consumer stages).
 
@@ -168,7 +168,7 @@ Rendering per app `an` and each `sn` in `_promoters[an]`, if the Stage list is n
 
 - [ ] **Step 4: Review the golden diff, then accept it.** Run `cd platform/render && bash scripts/test.sh`. The diff should show only `kargo/*.yaml`: each `promote-<app>` SA/Role/RoleBinding replaced by `promote-<app>-<stage>`, and nothing else. Then run `UPDATE=1 mise run test` followed by `mise run test`. Expected: all pass.
 
-- [ ] **Step 5: Run `mise run lint` and `mise run render`** on the real capabilities. Expected: no errors.
+- [ ] **Step 5: Run `mise run lint` and `mise run render`** on the real systems. Expected: no errors.
 
 - [ ] **Step 6: Commit.**
 ```bash

@@ -49,7 +49,7 @@ func TestLintClean(t *testing.T) {
 func TestLintYamlExtension(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	st := filepath.Join(r, "capabilities/payments/stages")
+	st := filepath.Join(r, "systems/payments/stages")
 	if err := os.Rename(filepath.Join(st, "dev.yml"), filepath.Join(st, "dev.yaml")); err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestDiagString(t *testing.T) {
 func TestAllSortsAndDedupes(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	// a teams/ error is reported once, however many capabilities
+	// a teams/ error is reported once, however many systems
 	if err := os.WriteFile(filepath.Join(r, "teams/team1.yml"), []byte("githubTeam: Bad_Name\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -118,10 +118,10 @@ func TestAllSortsAndDedupes(t *testing.T) {
 func TestLintYamlSyntaxErrorIsDiagAndOthersStillPrint(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	if err := os.WriteFile(filepath.Join(r, "capabilities/payments/stages/dev.yml"), []byte("a: b\n  c: [\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(r, "systems/payments/stages/dev.yml"), []byte("a: b\n  c: [\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	st := filepath.Join(r, "capabilities/search/stages")
+	st := filepath.Join(r, "systems/search/stages")
 	ents, _ := os.ReadDir(st)
 	if len(ents) == 0 {
 		t.Fatal("no search stages")
@@ -136,10 +136,10 @@ func TestLintYamlSyntaxErrorIsDiagAndOthersStillPrint(t *testing.T) {
 	var syn, lintErr bool
 	for _, x := range d {
 		t.Log(x)
-		if x.File == "capabilities/payments/stages/dev.yml" && x.Line > 0 {
+		if x.File == "systems/payments/stages/dev.yml" && x.Line > 0 {
 			syn = true
 		}
-		if strings.HasPrefix(x.File, "capabilities/search/stages/") {
+		if strings.HasPrefix(x.File, "systems/search/stages/") {
 			lintErr = true
 		}
 		if filepath.IsAbs(x.File) {

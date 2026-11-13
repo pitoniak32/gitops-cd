@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 )
 
 // ReferenceDir holds the hand-written reference pages, relative to the repo root.
@@ -30,10 +30,10 @@ var (
 )
 
 // Embeds rewrites the embed blocks of every *.md in Dirs under root from the fixture
-// (capability.FixtureRoot). changed lists the repo-relative pages whose text differs; they are
+// (system.FixtureRoot). changed lists the repo-relative pages whose text differs; they are
 // written only if write. Missing dirs are skipped.
-func Embeds(root string, write bool) (changed []string, diags []capability.Diag, err error) {
-	fixture := os.DirFS(filepath.Join(root, filepath.FromSlash(capability.FixtureRoot)))
+func Embeds(root string, write bool) (changed []string, diags []system.Diag, err error) {
+	fixture := os.DirFS(filepath.Join(root, filepath.FromSlash(system.FixtureRoot)))
 	for _, dir := range Dirs {
 		pages, err := filepath.Glob(filepath.Join(root, filepath.FromSlash(dir), "*.md"))
 		if err != nil {
@@ -65,13 +65,13 @@ func Embeds(root string, write bool) (changed []string, diags []capability.Diag,
 // (page = its repo-relative path) with a fence of those lines of the fixture file p, dedented, and a
 // source link. Markers inside code fences are ignored. A broken block is left as is, with a diag at
 // its opening marker.
-func Embed(page, text string, fixture fs.FS) (string, []capability.Diag) {
-	at := func(i int, msg string) capability.Diag {
-		return capability.Diag{File: page, Line: i + 1, Col: 1, Msg: msg}
+func Embed(page, text string, fixture fs.FS) (string, []system.Diag) {
+	at := func(i int, msg string) system.Diag {
+		return system.Diag{File: page, Line: i + 1, Col: 1, Msg: msg}
 	}
 	lines := strings.Split(text, "\n")
 	var out []string
-	var diags []capability.Diag
+	var diags []system.Diag
 	inFence := false
 	for i := 0; i < len(lines); i++ {
 		l := lines[i]
@@ -150,7 +150,7 @@ func embedBody(page, attrs string, fixture fs.FS) ([]string, error) {
 	}
 	src := strings.Split(strings.TrimSuffix(string(b), "\n"), "\n")
 	hunks := []hunk{{a: 1, z: len(src)}}
-	label, anchor := strings.TrimPrefix(p, "capabilities/"), ""
+	label, anchor := strings.TrimPrefix(p, "systems/"), ""
 	if rng, ok := kv["lines"]; ok {
 		if hunks, err = parseHunks(rng, len(src)); err != nil {
 			return nil, err
@@ -174,7 +174,7 @@ func embedBody(page, attrs string, fixture fs.FS) ([]string, error) {
 	if lang == "yml" {
 		lang = "yaml"
 	}
-	link := strings.Repeat("../", strings.Count(page, "/")) + capability.FixtureRoot + "/" + p + anchor
+	link := strings.Repeat("../", strings.Count(page, "/")) + system.FixtureRoot + "/" + p + anchor
 	out := append([]string{"```" + lang}, renderHunks(src, hunks)...)
 	return append(out, "```", "", "Source: [`"+label+"`]("+link+")"), nil
 }

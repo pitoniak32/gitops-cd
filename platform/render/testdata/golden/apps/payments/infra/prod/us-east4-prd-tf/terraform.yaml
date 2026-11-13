@@ -1,4 +1,4 @@
-capability: payments
+system: payments
 app: infra
 stage: prod
 target: us-east4-prd-tf

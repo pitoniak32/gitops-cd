@@ -6,13 +6,13 @@ import (
 	"io"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/ghactions"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"github.com/spf13/cobra"
 )
 
 // printDiags writes diags one per line: text (file:line:col: message) or GitHub ::error annotations.
-func printDiags(w io.Writer, diags []capability.Diag, github bool) {
+func printDiags(w io.Writer, diags []system.Diag, github bool) {
 	for _, d := range diags {
 		if github {
 			msg := d.Msg
@@ -36,7 +36,7 @@ func inGitHubActions() (bool, error) {
 // and returns a short error that points at lint. An err without diagnostics is returned as is.
 // what names the command's subject ("payments", "diff") in the short error.
 func reportErr(cmd *cobra.Command, err error, what string) error {
-	diags := capability.DiagsOf(err)
+	diags := system.DiagsOf(err)
 	if len(diags) == 0 {
 		return err
 	}
@@ -67,13 +67,13 @@ func diagFormat(format string, inGitHub bool) (github, asJSON bool, err error) {
 }
 
 // writeDiags writes diags as a JSON array ([] for none) or one per line (printDiags).
-func writeDiags(w io.Writer, diags []capability.Diag, github, asJSON bool) error {
+func writeDiags(w io.Writer, diags []system.Diag, github, asJSON bool) error {
 	if !asJSON {
 		printDiags(w, diags, github)
 		return nil
 	}
 	if diags == nil {
-		diags = []capability.Diag{}
+		diags = []system.Diag{}
 	}
 	b, err := json.MarshalIndent(diags, "", "  ")
 	if err != nil {

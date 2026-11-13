@@ -1,6 +1,6 @@
 {
   "flagged": {
-    "capability": "payments",
+    "system": "payments",
     "app": "flagged",
     "stages": {
       "dev": {
@@ -27,7 +27,7 @@
     ]
   },
   "infra": {
-    "capability": "payments",
+    "system": "payments",
     "app": "infra",
     "stages": {
       "dev": {
@@ -73,7 +73,7 @@
     ]
   },
   "my-app": {
-    "capability": "payments",
+    "system": "payments",
     "app": "my-app",
     "stages": {
       "dev": {
@@ -189,7 +189,7 @@
     ]
   },
   "payments": {
-    "capability": "payments",
+    "system": "payments",
     "app": "payments",
     "stages": {
       "dev": {
@@ -258,7 +258,7 @@
     ]
   },
   "web": {
-    "capability": "payments",
+    "system": "payments",
     "app": "web",
     "stages": {
       "dev": {
@@ -306,7 +306,7 @@
     ]
   },
   "worker": {
-    "capability": "payments",
+    "system": "payments",
     "app": "worker",
     "stages": {
       "dev": {

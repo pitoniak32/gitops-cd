@@ -1,15 +1,15 @@
 # app
 
 An app is one deployable thing: the artifact it ships (a container image or a Terraform module) and
-how it runs in each stage and target of its capability. It lives at
-`capabilities/<cap>/apps/<app>/app.yml`; the directory name is the app name. The capability's
+how it runs in each stage and target of its system. It lives at
+`systems/<sys>/apps/<app>/app.yml`; the directory name is the app name. The system's
 `codeOwners` approve changes to it.
 
 How-to: [configure apps](../guide/apps.md).
 
 ## Defining an app
 
-<!-- embed path=capabilities/payments/apps/my-app/app.yml -->
+<!-- embed path=systems/payments/apps/my-app/app.yml -->
 ```yaml
 image: ghcr.io/pitoniak32/nginx
 sourceRepo: acme/my-app
@@ -57,7 +57,7 @@ stages:
       dc1-prd-k8s: {}
 ```
 
-Source: [`payments/apps/my-app/app.yml`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml)
+Source: [`payments/apps/my-app/app.yml`](../../platform/render/testdata/root/systems/payments/apps/my-app/app.yml)
 <!-- /embed -->
 
 An `app.yml` has two parts:
@@ -79,14 +79,14 @@ Kargo watches the repository for SemVer tags. `imageConstraint` / `moduleConstra
 constraint such as `^1`) limits which tags count. A promoter picks the tag when assembling Freight, and
 the Freight pins its digest ([ADR 0016](../adr/0016-image-discovery-freight-assembly.md)).
 
-<!-- embed path=capabilities/payments/apps/infra/app.yml lines=1-3 -->
+<!-- embed path=systems/payments/apps/infra/app.yml lines=1-3 -->
 ```yaml
 module: ghcr.io/pitoniak32/tf-bucket
 sourceRepo: pitoniak32/gitops-cd
 moduleConstraint: ^1
 ```
 
-Source: [`payments/apps/infra/app.yml:1-3`](../../platform/render/testdata/root/capabilities/payments/apps/infra/app.yml#L1-L3)
+Source: [`payments/apps/infra/app.yml:1-3`](../../platform/render/testdata/root/systems/payments/apps/infra/app.yml#L1-L3)
 <!-- /embed -->
 
 The rest of the app identity:
@@ -102,7 +102,7 @@ These fields are app-level only: the artifact promotes as one unit across every 
 `stages` maps a stage name (a file in `stages/`) to the targets the app deploys to in that stage. A
 target name is a directory in `targets/`. Stages the app doesn't list are skipped in its pipeline.
 
-<!-- embed path=capabilities/payments/apps/infra/app.yml lines=8-17 -->
+<!-- embed path=systems/payments/apps/infra/app.yml lines=8-17 -->
 ```yaml
 stages:
   dev:
@@ -116,7 +116,7 @@ stages:
           TF_VAR_region: us-east1
 ```
 
-Source: [`payments/apps/infra/app.yml:8-17`](../../platform/render/testdata/root/capabilities/payments/apps/infra/app.yml#L8-L17)
+Source: [`payments/apps/infra/app.yml:8-17`](../../platform/render/testdata/root/systems/payments/apps/infra/app.yml#L8-L17)
 <!-- /embed -->
 
 `{}` deploys to the target with no overrides; here `us-east4-prd-tf` overrides one `env` key. Each target the app lists becomes its own Kargo Stage.
@@ -124,11 +124,11 @@ Source: [`payments/apps/infra/app.yml:8-17`](../../platform/render/testdata/root
 ### Auto-promotion per app
 
 Promotion is manual unless turned on. `stages/<stage>.yml` `autoPromote` sets it for every app in the
-capability; `stages.<stage>.autoPromote` in `app.yml` overrides it for this app only (each app has its
+system; `stages.<stage>.autoPromote` in `app.yml` overrides it for this app only (each app has its
 own Kargo project, [ADR 0029](../adr/0029-kargo-project-per-app.md)). Here `worker` opts out of the
 `dev` stage's auto-promotion:
 
-<!-- embed path=capabilities/payments/apps/worker/app.yml lines=4-8 -->
+<!-- embed path=systems/payments/apps/worker/app.yml lines=4-8 -->
 ```yaml
 stages:
   dev:
@@ -137,10 +137,10 @@ stages:
       us-east4-dev-k8s: {}
 ```
 
-Source: [`payments/apps/worker/app.yml:4-8`](../../platform/render/testdata/root/capabilities/payments/apps/worker/app.yml#L4-L8)
+Source: [`payments/apps/worker/app.yml:4-8`](../../platform/render/testdata/root/systems/payments/apps/worker/app.yml#L4-L8)
 <!-- /embed -->
 
-Order: app override, then the stage file, then `false`. `gcd show <cap>/<app> -s` prints the effective
+Order: app override, then the stage file, then `false`. `gcd show <sys>/<app> -s` prints the effective
 `autoPromote` of each target and where it comes from. A stage that deploys to a `prd` target can't
 auto-promote, from either place.
 
@@ -161,7 +161,7 @@ Below the app level come the target platform's defaults, then global defaults
 ([ADR 0004](../adr/0004-layered-override-merge.md)). Here the `dc1-dev-k8s` target overrides
 `APP_ENV`, `replicas` and `resources` of its stage and app:
 
-<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="(5-8;text='app level'),(9-14;text='stage level: dev'),15,(17-23;text='target level: dc1-dev-k8s')" -->
+<!-- embed path=systems/payments/apps/my-app/app.yml lines="(5-8;text='app level'),(9-14;text='stage level: dev'),15,(17-23;text='target level: dc1-dev-k8s')" -->
 ```yaml
 # app level
 replicas: 2
@@ -187,10 +187,10 @@ stages:
           memory: 256Mi
 ```
 
-Source: [`payments/apps/my-app/app.yml:5-15,17-23`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L5-L23)
+Source: [`payments/apps/my-app/app.yml:5-15,17-23`](../../platform/render/testdata/root/systems/payments/apps/my-app/app.yml#L5-L23)
 <!-- /embed -->
 
-`gcd show <cap>/<app> -s` prints the merged result with the file and line each value came from.
+`gcd show <sys>/<app> -s` prints the merged result with the file and line each value came from.
 
 ## Environment variables
 
@@ -198,14 +198,14 @@ Source: [`payments/apps/my-app/app.yml:5-15,17-23`](../../platform/render/testda
 references a Secret Manager secret instead of a plain string; without `@<version>` the latest version
 is used.
 
-<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=6-8 -->
+<!-- embed path=systems/payments/apps/my-app/app.yml lines=6-8 -->
 ```yaml
 env:
   APP_ENV: 'true'
   APP_SECRET: 'secret:acme-proj1/my-app-secret'
 ```
 
-Source: [`payments/apps/my-app/app.yml:6-8`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L6-L8)
+Source: [`payments/apps/my-app/app.yml:6-8`](../../platform/render/testdata/root/systems/payments/apps/my-app/app.yml#L6-L8)
 <!-- /embed -->
 
 `envFrom` lists names of the target's shared files, `targets/<target>/environment-variables/<name>.yml`
@@ -236,7 +236,7 @@ Actions.
 | `file` | `<name>.yml` or `.yaml` | the platform's: `deploy.yaml` (K8S), `cloud-run.yaml`, `terraform.yaml` |
 | `ref` | git ref | `main` |
 
-<!-- embed path=capabilities/payments/apps/flagged/app.yml lines=8-19 -->
+<!-- embed path=systems/payments/apps/flagged/app.yml lines=8-19 -->
 ```yaml
 deployWith: gha
 workflow:  # fields default separately: repo, file, ref
@@ -252,7 +252,7 @@ stages:
       us-east4-dev-k8s: {}
 ```
 
-Source: [`payments/apps/flagged/app.yml:8-19`](../../platform/render/testdata/root/capabilities/payments/apps/flagged/app.yml#L8-L19)
+Source: [`payments/apps/flagged/app.yml:8-19`](../../platform/render/testdata/root/systems/payments/apps/flagged/app.yml#L8-L19)
 <!-- /embed -->
 
 Every field: `gcd schema app`.

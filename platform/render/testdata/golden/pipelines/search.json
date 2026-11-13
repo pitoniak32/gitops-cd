@@ -1,6 +1,6 @@
 {
   "api": {
-    "capability": "search",
+    "system": "search",
     "app": "api",
     "stages": {
       "dev": {

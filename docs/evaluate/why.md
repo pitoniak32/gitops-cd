@@ -12,7 +12,7 @@ YAML, the review, the promotion and the guardrails are the same whichever deploy
 | | gitops-cd | Argo CD / Flux | Kargo alone | CI pipelines | Commercial / IDP |
 |---|---|---|---|---|---|
 | **Governance**: mandatory checks and restrictions on every platform | ✓ platform-owned, teams can't edit or skip | ~ cluster admission policy only; no gate before deploy | ~ verification after deploy; config teams can edit | ~ per-repo rules; teams own the pipeline file | ✓ policy engines and approvals, at license cost |
-| **Consistent access** from one file | ✓ one `owners.yml` per capability generates Kargo, Argo CD and CODEOWNERS access | ✗ AppProject roles and IdP groups, set per cluster | ✗ project RBAC written per project | ~ repo and environment permissions, per repo | ~ the portal's roles, plus each underlying tool's |
+| **Consistent access** from one file | ✓ one `owners.yml` per system generates Kargo, Argo CD and CODEOWNERS access | ✗ AppProject roles and IdP groups, set per cluster | ✗ project RBAC written per project | ~ repo and environment permissions, per repo | ~ the portal's roles, plus each underlying tool's |
 | **Learn with guardrails**: new members can't ship a broken config | ✓ one schema, located errors in the PR and locally | ✗ errors surface at sync | ✗ hand-written Kargo resources | ~ reusable workflows, errors at run time | ~ templates at scaffold time, drift after |
 | **Consistency** across apps, targets and platforms | ✓ every app renders through the same model | ~ by convention (shared charts) | ✗ each pipeline built by hand | ✗ pipelines drift between repos | ~ per vendor model |
 | **Full picture** for teams | ✓ merged config with sources, render diff per PR, pipeline view | ~ sync status per app | ✓ pipeline view | ✗ run logs, no environment state | ✓ dashboards |
@@ -22,9 +22,9 @@ YAML, the review, the promotion and the guardrails are the same whichever deploy
 
 ## Governance
 
-The platform team sets mandatory checks and restrictions once, and every capability, app and target gets
+The platform team sets mandatory checks and restrictions once, and every system, app and target gets
 them, whatever platform it deploys to. Teams can't configure them away: the policy lives in platform-owned
-code (`platform/cli/internal/capability/config.go`), not in team YAML.
+code (`platform/cli/internal/system/config.go`), not in team YAML.
 
 **What the platform enforces today**
 
@@ -35,14 +35,14 @@ code (`platform/cli/internal/capability/config.go`), not in team YAML.
 - **No automatic promotion into production**: a stage that deploys to a `prd` target is promoted by a
   person.
 
-  ```yaml path=capabilities/payments/stages/prod.yml expect="autoPromote not allowed"
+  ```yaml path=systems/payments/stages/prod.yml expect="autoPromote not allowed"
   dependsOn: [staging, perf]
   autoPromote: true
   ```
 
 - **Replica floors** per environment type (`npr` and `prd` need at least 1):
 
-  ```yaml path=capabilities/payments/apps/web/app.yml expect="prd requires replicas >= 1"
+  ```yaml path=systems/payments/apps/web/app.yml expect="prd requires replicas >= 1"
   image: ghcr.io/example/web
   sourceRepo: pitoniak32/gitops-cd
   stages:
@@ -66,13 +66,13 @@ code (`platform/cli/internal/capability/config.go`), not in team YAML.
 
 ### Consistent access from one file
 
-Each capability's `owners.yml` is the only place permissions are set. From it the platform generates who
+Each system's `owners.yml` is the only place permissions are set. From it the platform generates who
 may approve PRs (CODEOWNERS), promote each stage and view each app in Kargo, view apps in Argo CD, and break
 glass, matched on login email, never on identity-provider groups
 ([ADR 0011](../adr/0011-access-by-email.md)). Nobody grants access by hand in a UI, so the tools can't
 drift apart: what the file says is what every tool enforces. Changes to it need platform approval.
 
-<!-- embed path=capabilities/payments/owners.yml lines=1-8 -->
+<!-- embed path=systems/payments/owners.yml lines=1-8 -->
 ```yaml
 codeOwners: [team1]
 promoters:
@@ -84,7 +84,7 @@ viewers: [bob@example.com]
 breakGlass: [oncall@example.com]
 ```
 
-Source: [`payments/owners.yml:1-8`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L1-L8)
+Source: [`payments/owners.yml:1-8`](../../platform/render/testdata/root/systems/payments/owners.yml#L1-L8)
 <!-- /embed -->
 
 With Argo CD, Kargo and CI configured separately, the same permissions live in several places (AppProject
@@ -93,7 +93,7 @@ in step.
 
 ### Full picture for teams
 
-**Teams still see everything about their apps.** `gcd show <cap>/<app> -s` prints the merged config of
+**Teams still see everything about their apps.** `gcd show <sys>/<app> -s` prints the merged config of
 every target with the file and line each value came from; every PR gets a comment with the rendered diff;
 each app has its own Kargo project showing its whole pipeline
 ([ADR 0029](../adr/0029-kargo-project-per-app.md)).
@@ -106,7 +106,7 @@ before review.
 - `gcd schema app` prints every field with its type, pattern and description.
 - `gcd lint` (locally and in the PR) reports `file:line:col: field: message`:
 
-  ```yaml path=capabilities/payments/apps/web/app.yml expect="image: invalid value"
+  ```yaml path=systems/payments/apps/web/app.yml expect="image: invalid value"
   image: ghcr.io/example/web:1.2.3
   sourceRepo: pitoniak32/gitops-cd
   stages:
@@ -115,7 +115,7 @@ before review.
   ```
 
 - A sandbox (`gcd --root platform/render/testdata/root …`) to try anything without touching real
-  capabilities.
+  systems.
 - A [guide](../guide/) whose every example is checked against lint, so it can't teach something that no
   longer works.
 
@@ -125,7 +125,7 @@ Every app, target and platform goes through the same model: the same files, the 
 ([ADR 0004](../adr/0004-layered-override-merge.md)), the same promotion graph and the same access model.
 One app can even span platforms. This one runs on Kubernetes in `dev` and on Cloud Run in `staging`:
 
-<!-- embed path=capabilities/payments/apps/web/app.yml -->
+<!-- embed path=systems/payments/apps/web/app.yml -->
 ```yaml
 # mixed app (ADR 0024): dev on K8S, staging on CLOUD_RUN
 image: ghcr.io/example/web
@@ -142,7 +142,7 @@ stages:
     targets: {us-east4-npr-cr: {}}
 ```
 
-Source: [`payments/apps/web/app.yml`](../../platform/render/testdata/root/capabilities/payments/apps/web/app.yml)
+Source: [`payments/apps/web/app.yml`](../../platform/render/testdata/root/systems/payments/apps/web/app.yml)
 <!-- /embed -->
 
 Teams write only YAML ([ADR 0006](../adr/0006-teams-write-only-yaml.md)); the Kubernetes manifests,
@@ -160,14 +160,14 @@ Deploy methods are chosen per target, and every one promotes the same way:
 
 A Terraform app is the same `app.yml` with a module instead of an image:
 
-<!-- embed path=capabilities/payments/apps/infra/app.yml lines=1-3 -->
+<!-- embed path=systems/payments/apps/infra/app.yml lines=1-3 -->
 ```yaml
 module: ghcr.io/pitoniak32/tf-bucket
 sourceRepo: pitoniak32/gitops-cd
 moduleConstraint: ^1
 ```
 
-Source: [`payments/apps/infra/app.yml:1-3`](../../platform/render/testdata/root/capabilities/payments/apps/infra/app.yml#L1-L3)
+Source: [`payments/apps/infra/app.yml:1-3`](../../platform/render/testdata/root/systems/payments/apps/infra/app.yml#L1-L3)
 <!-- /embed -->
 
 The core is open source and widely used: Kargo for promotion, Argo CD for sync, GitHub Actions for
@@ -182,7 +182,7 @@ platform table plus its output.
   docs), not a team edit. That is the point, but it puts the platform team on the path for new needs.
 - **`gcd` is code the platform team owns.** The renderer, linter and their tests need maintaining, as any
   internal tool does.
-- **One repo for every capability.** Reviews, CI and history are shared; ownership is enforced through
+- **One repo for every system.** Reviews, CI and history are shared; ownership is enforced through
   generated CODEOWNERS rather than separate repos ([ADR 0003](../adr/0003-monorepo.md)).
 - **Rendered manifests are a second artifact.** Every merge renders to the `rendered` branch, which Kargo
   and Argo CD read ([ADR 0002](../adr/0002-rendered-manifests-with-kargo.md)).
@@ -191,13 +191,13 @@ platform table plus its output.
 
 - **Team deploy templates**: the platform declares a required pipeline, a set of stages in order (for
   example `dev → staging → prod`) with the checks and rules each one carries, and applies it to a list of
-  capabilities or apps. Like pre-deploy checks, the template lives in platform-owned config, not team YAML.
+  systems or apps. Like pre-deploy checks, the template lives in platform-owned config, not team YAML.
   Lint then rejects any covered app that skips a required stage or whose `dependsOn` graph doesn't put
   each required stage upstream of the next. Because Kargo only promotes Freight that was verified in the
   upstream stages, the order can't be skipped at deploy time either; the break-glass approval stays the
   one audited exception.
-- **Config in the monorepo or in a team's own repo**: a team either keeps its capabilities in the GitOps
-  monorepo, as today, or in its own config repo with the same structure (`capabilities/<cap>/…`). The same
+- **Config in the monorepo or in a team's own repo**: a team either keeps its systems in the GitOps
+  monorepo, as today, or in its own config repo with the same structure (`systems/<sys>/…`). The same
   `gcd lint` runs in that repo's PRs, and the platform renders and promotes both the same way, with the
   same schema, guardrails and access model. Teams get their own repo, reviews and history without giving
   up any platform rule.

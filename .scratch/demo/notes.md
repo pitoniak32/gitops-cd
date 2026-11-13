@@ -23,7 +23,7 @@ Keep these in mind while recording. Details in `docs/gotchas.md`.
 
 - **Workload apps missing right after `up`**: AppSet generated them before the AppProject existed; requeues in ~3 min. Skip the wait:
   `kubectl --context kind-region-<r> -n argocd annotate applicationset workloads argocd.argoproj.io/application-set-refresh=true`
-- **Argo CD sync `Unknown` / ComparisonError "revision not found"** until a target's first promotion (its `env/<cap>/<app>/<target>` branch doesn't exist yet). Normal for prod. Promote first or explain it.
+- **Argo CD sync `Unknown` / ComparisonError "revision not found"** until a target's first promotion (its `env/<sys>/<app>/<target>` branch doesn't exist yet). Normal for prod. Promote first or explain it.
 - **Old Freight can't be promoted** (pre-ADR 0016: no image, old layout). Assemble fresh Freight on camera: newest commit + image tag.
 - **No auto-promotion until Freight exists.** Nothing reaches dev until someone assembles Freight, even with `autoPromote`.
 - **"Auto-promotion paused"** after a manual rollback to older Freight. Intended: show it on purpose. "Resume auto-promotion" in the UI releases it.
@@ -33,7 +33,7 @@ Keep these in mind while recording. Details in `docs/gotchas.md`.
 ## Auto-promotion (manual by default)
 
 - Default: manual. `stages/<s>.yml` `autoPromote` sets it for every app; `app.yml` `stages.<s>.autoPromote` overrides for one app.
-- Demo: payments `dev` stage is manual; `my-app` opts in (`capabilities/payments/apps/my-app/app.yml`), `worker` doesn't. Search `dev` stage sets it at stage level.
+- Demo: payments `dev` stage is manual; `my-app` opts in (`systems/payments/apps/my-app/app.yml`), `worker` doesn't. Search `dev` stage sets it at stage level.
 - Show `gcd show payments/my-app --stage dev -s` → `autoPromote: true  # apps/my-app/app.yml:…` vs worker `# default: manual`.
 - Show lint refusing it on prod: set `autoPromote: true` under `prod` in an app.yml → `stage prod deploys to prod targets; autoPromote not allowed`.
 

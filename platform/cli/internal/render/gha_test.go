@@ -134,7 +134,7 @@ func stepUsing(t *testing.T, ds []map[string]any, name, uses string) map[string]
 }
 
 const (
-	commonVars = "repo,src,branch,image,capability,app,stage,target,pinFile,pinKey,artifactKey"
+	commonVars = "repo,src,branch,image,system,app,stage,target,pinFile,pinKey,artifactKey"
 	ghaVars    = commonVars + ",workflowRepo,workflowFile,workflowRef"
 )
 
@@ -207,7 +207,7 @@ func TestGhaTargets(t *testing.T) {
 	if wf(kargoApp(t, "my-app"), "dc1-npr-k8s") != "acme/deploys onprem.yml v1" {
 		t.Error("target workflow override")
 	}
-	if varValue(k, w, "capability")+" "+varValue(k, w, "app")+" "+varValue(k, w, "stage")+" "+varValue(k, w, "target")+" "+varValue(k, w, "artifactKey") != "payments worker dev us-east4-dev-k8s image" {
+	if varValue(k, w, "system")+" "+varValue(k, w, "app")+" "+varValue(k, w, "stage")+" "+varValue(k, w, "target")+" "+varValue(k, w, "artifactKey") != "payments worker dev us-east4-dev-k8s image" {
 		t.Error("identity vars (dispatch inputs, commit message)")
 	}
 	d := stepAs(t, k, w, "dispatch")
@@ -254,7 +254,7 @@ func TestGhaTargets(t *testing.T) {
 		t.Error("wait error message (non-200 has no run fields)")
 	}
 	au := stepUsing(t, k, "us-east4-npr-k8s", "argocd-update")
-	if str(get(au, "config.apps.0.name"))+" "+str(get(au, "config.apps.0.sources.0.desiredRevision")) != "${{ vars.capability }}-${{ vars.app }}-${{ vars.target }} ${{ task.outputs.commit.commit }}" {
+	if str(get(au, "config.apps.0.name"))+" "+str(get(au, "config.apps.0.sources.0.desiredRevision")) != "${{ vars.system }}-${{ vars.app }}-${{ vars.target }} ${{ task.outputs.commit.commit }}" {
 		t.Error("argocd-update app name / revision")
 	}
 }
@@ -273,7 +273,7 @@ func TestGhaCheckTask(t *testing.T) {
 	for _, v := range list(c, "spec.vars") {
 		vs = append(vs, str(get(v, "name")))
 	}
-	if strings.Join(vs, ",") != "repo,image,capability,app,stage,target,artifactKey,workflowRepo,workflowFile,workflowRef,checkTimeout" {
+	if strings.Join(vs, ",") != "repo,image,system,app,stage,target,artifactKey,workflowRepo,workflowFile,workflowRef,checkTimeout" {
 		t.Errorf("gha-check vars: %s", strings.Join(vs, ","))
 	}
 	stepByAs := func(task map[string]any, as string) map[string]any {
@@ -312,7 +312,7 @@ func TestGhaCheckTask(t *testing.T) {
 	}
 	cw, gw := stepByAs(c, "wait"), stepByAs(g, "wait")
 	if str(get(cw, "retry.timeout")) != "2h" {
-		t.Errorf("gha-check wait cap: %s", str(get(cw, "retry.timeout")))
+		t.Errorf("gha-check wait sys: %s", str(get(cw, "retry.timeout")))
 	}
 	if str(get(cw, "config.url")) != str(get(gw, "config.url")) || str(get(cw, "config.successExpression")) != str(get(gw, "config.successExpression")) {
 		t.Error("gha-check wait url/success differ from promote-gha")

@@ -1,5 +1,5 @@
-# e.g. paths are under platform/render/testdata/root/capabilities/
-# app: capabilities/{cap}/apps/*/app.yml — an app: what it ships and its settings at app, stage and target level
+# e.g. paths are under platform/render/testdata/root/systems/
+# app: systems/{sys}/apps/*/app.yml — an app: what it ships and its settings at app, stage and target level
 replicas: <int>                 # number of replicas, 0 to 100 (e.g. payments/apps/my-app/app.yml:5)
 env:                            # environment variables, KEY: value; a value may be secret:<gcp-project>/<secret>[@<version>]; merged per key (e.g. payments/apps/infra/app.yml:4)
   <KEY>: <str>                  # (e.g. payments/apps/infra/app.yml:5)

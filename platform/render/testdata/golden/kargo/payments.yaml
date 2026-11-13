@@ -4,7 +4,7 @@ metadata:
   name: kargo-payments-flagged
   labels:
     kargo.akuity.io/project: "true"
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: flagged
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -47,7 +47,7 @@ metadata:
   name: us-east4-dev-k8s
   namespace: kargo-payments-flagged
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: flagged
     example.com/kind: target
     example.com/stage: dev
@@ -76,7 +76,7 @@ spec:
           value: env/payments/flagged/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: flagged
@@ -200,7 +200,7 @@ metadata:
   name: kargo-payments-infra
   labels:
     kargo.akuity.io/project: "true"
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: infra
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -244,7 +244,7 @@ metadata:
   name: us-east4-dev-tf
   namespace: kargo-payments-infra
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: infra
     example.com/kind: target
     example.com/stage: dev
@@ -272,7 +272,7 @@ spec:
           value: env/payments/infra/us-east4-dev-tf
         - name: image
           value: ghcr.io/pitoniak32/tf-bucket
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: infra
@@ -304,7 +304,7 @@ metadata:
   name: us-east4-prd-tf
   namespace: kargo-payments-infra
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: infra
     example.com/kind: target
     example.com/stage: prod
@@ -334,7 +334,7 @@ spec:
           value: env/payments/infra/us-east4-prd-tf
         - name: image
           value: ghcr.io/pitoniak32/tf-bucket
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: infra
@@ -534,7 +534,7 @@ metadata:
   name: kargo-payments-my-app
   labels:
     kargo.akuity.io/project: "true"
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -593,7 +593,7 @@ metadata:
   name: dev-done
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: control-flow
     example.com/stage: dev
@@ -617,7 +617,7 @@ metadata:
   name: prod
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: control-flow
     example.com/stage: prod
@@ -642,7 +642,7 @@ metadata:
   name: dev
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: control-flow
     example.com/stage: dev
@@ -663,7 +663,7 @@ metadata:
   name: staging
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: control-flow
     example.com/stage: staging
@@ -685,7 +685,7 @@ metadata:
   name: us-east4-dev-k8s
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: dev
@@ -715,7 +715,7 @@ spec:
           value: env/payments/my-app/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: my-app
@@ -741,7 +741,7 @@ metadata:
   name: dc1-dev-k8s
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: dev
@@ -771,7 +771,7 @@ spec:
           value: env/payments/my-app/dc1-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: my-app
@@ -797,7 +797,7 @@ metadata:
   name: us-east4-npr-k8s
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: staging
@@ -827,7 +827,7 @@ spec:
           value: env/payments/my-app/us-east4-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: my-app
@@ -853,7 +853,7 @@ metadata:
   name: dc1-npr-k8s
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: staging
@@ -883,7 +883,7 @@ spec:
           value: env/payments/my-app/dc1-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: my-app
@@ -915,7 +915,7 @@ metadata:
   name: us-east4-npr-k8s-perf
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: perf
@@ -945,7 +945,7 @@ spec:
           value: env/payments/my-app/us-east4-npr-k8s-perf
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: my-app
@@ -971,7 +971,7 @@ metadata:
   name: us-east4-prd-k8s
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: prod
@@ -1002,7 +1002,7 @@ spec:
           value: env/payments/my-app/us-east4-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: my-app
@@ -1041,7 +1041,7 @@ metadata:
   name: dc1-prd-k8s
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: prod
@@ -1072,7 +1072,7 @@ spec:
           value: env/payments/my-app/dc1-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: my-app
@@ -1400,7 +1400,7 @@ metadata:
   name: kargo-payments-payments
   labels:
     kargo.akuity.io/project: "true"
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: payments
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -1443,7 +1443,7 @@ metadata:
   name: us-east4-dev-k8s
   namespace: kargo-payments-payments
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: payments
     example.com/kind: target
     example.com/stage: dev
@@ -1472,7 +1472,7 @@ spec:
           value: env/payments/payments/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: payments
@@ -1498,7 +1498,7 @@ metadata:
   name: us-east4-npr-k8s
   namespace: kargo-payments-payments
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: payments
     example.com/kind: target
     example.com/stage: staging
@@ -1528,7 +1528,7 @@ spec:
           value: env/payments/payments/us-east4-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: payments
@@ -1554,7 +1554,7 @@ metadata:
   name: us-east4-prd-k8s
   namespace: kargo-payments-payments
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: payments
     example.com/kind: target
     example.com/stage: prod
@@ -1585,7 +1585,7 @@ spec:
           value: env/payments/payments/us-east4-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: payments
@@ -1842,7 +1842,7 @@ metadata:
   name: kargo-payments-web
   labels:
     kargo.akuity.io/project: "true"
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: web
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -1885,7 +1885,7 @@ metadata:
   name: us-east4-dev-k8s
   namespace: kargo-payments-web
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: web
     example.com/kind: target
     example.com/stage: dev
@@ -1914,7 +1914,7 @@ spec:
           value: env/payments/web/us-east4-dev-k8s
         - name: image
           value: ghcr.io/example/web
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: web
@@ -1940,7 +1940,7 @@ metadata:
   name: us-east4-npr-cr
   namespace: kargo-payments-web
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: web
     example.com/kind: target
     example.com/stage: staging
@@ -1969,7 +1969,7 @@ spec:
           value: env/payments/web/us-east4-npr-cr
         - name: image
           value: ghcr.io/example/web
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: web
@@ -2156,7 +2156,7 @@ metadata:
   name: kargo-payments-worker
   labels:
     kargo.akuity.io/project: "true"
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: worker
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -2196,7 +2196,7 @@ metadata:
   name: us-east4-dev-k8s
   namespace: kargo-payments-worker
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: worker
     example.com/kind: target
     example.com/stage: dev
@@ -2225,7 +2225,7 @@ spec:
           value: env/payments/worker/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: worker
@@ -2257,7 +2257,7 @@ metadata:
   name: us-east4-npr-k8s
   namespace: kargo-payments-worker
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: worker
     example.com/kind: target
     example.com/stage: staging
@@ -2287,7 +2287,7 @@ spec:
           value: env/payments/worker/us-east4-npr-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: worker
@@ -2313,7 +2313,7 @@ metadata:
   name: us-east4-prd-k8s
   namespace: kargo-payments-worker
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: worker
     example.com/kind: target
     example.com/stage: prod
@@ -2344,7 +2344,7 @@ spec:
           value: env/payments/worker/us-east4-prd-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: worker

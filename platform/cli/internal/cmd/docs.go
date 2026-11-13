@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/docs"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,7 @@ func init() {
 			Long: `Maintain the hand-written pages in ` + docs.GuideDir + `, ` + docs.ReferenceDir + ` and ` + docs.EvaluateDir + `:
 
 1. Rewrite each <!-- embed path=<file> [lines=A-B] --> … <!-- /embed --> block from that file of the
-   fixture (` + capability.FixtureRoot + `): a fence of those lines, dedented, plus a source link.
+   fixture (` + system.FixtureRoot + `): a fence of those lines, dedented, plus a source link.
 2. Lint the fixture, so every embedded example is valid config.
 3. Lint every other yaml block: a fence must say path=<file> (lints clean), path=<file> expect="<text>"
    (lint reports a matching error) or fragment (not checked). Each is written over its own fixture copy.

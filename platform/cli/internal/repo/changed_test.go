@@ -34,26 +34,26 @@ func TestChangedFilesGit(t *testing.T) {
 	t.Parallel()
 	d := t.TempDir()
 	run(t, d, "init", "-q", "-b", "main")
-	write(t, d, "capabilities/a/owners.yml", "x: 1\n")
-	write(t, d, "capabilities/b/owners.yml", "x: 1\n")
+	write(t, d, "systems/a/owners.yml", "x: 1\n")
+	write(t, d, "systems/b/owners.yml", "x: 1\n")
 	write(t, d, "teams/old.yml", "x: 1\n")
 	write(t, d, ".gitignore", "ignored/\n")
 	run(t, d, "add", "-A")
 	run(t, d, "commit", "-qm", "base")
 	run(t, d, "checkout", "-qb", "feature")
 	// committed on the branch, uncommitted, renamed, untracked, ignored
-	write(t, d, "capabilities/a/owners.yml", "x: 2\n")
+	write(t, d, "systems/a/owners.yml", "x: 2\n")
 	run(t, d, "commit", "-qam", "a")
 	// main moves on after the branch point: not a change of this branch
 	run(t, d, "checkout", "-q", "main")
-	write(t, d, "capabilities/b/owners.yml", "x: 3\n")
+	write(t, d, "systems/b/owners.yml", "x: 3\n")
 	run(t, d, "commit", "-qam", "b")
 	run(t, d, "checkout", "-q", "feature")
 	run(t, d, "mv", "teams/old.yml", "teams/new.yml")
-	write(t, d, "capabilities/c/owners.yml", "x: 1\n")
+	write(t, d, "systems/c/owners.yml", "x: 1\n")
 	write(t, d, "ignored/x.yml", "x: 1\n")
 
-	want := []string{"capabilities/a/owners.yml", "capabilities/c/owners.yml", "teams/new.yml", "teams/old.yml"}
+	want := []string{"systems/a/owners.yml", "systems/c/owners.yml", "teams/new.yml", "teams/old.yml"}
 	// explicit base and the default (no origin/main here, so main) fork from main
 	for _, base := range []string{"main", ""} {
 		id, err := ResolveForkBase(d, base)
@@ -85,7 +85,7 @@ func TestChangedFilesJJ(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := ChangedFiles(root, base)
-	want := []string{"capabilities/a b/x y.yml", "capabilities/new.yml"}
+	want := []string{"systems/a b/x y.yml", "systems/new.yml"}
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v (%v) want %v", got, err, want)
 	}

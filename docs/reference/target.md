@@ -2,14 +2,14 @@
 
 A target is one place a stage can deploy to: a namespace on a platform cluster, a Cloud Run project and
 region, or a Terraform project with its state backend. It lives at
-`capabilities/<cap>/targets/<target>/target.yml` and is shared by every app in the capability. A target
+`systems/<sys>/targets/<target>/target.yml` and is shared by every app in the system. A target
 does nothing until an app lists it under `stages.<stage>.targets`.
 
 How-to: [targets and stages](../guide/targets-stages.md).
 
 ## Defining a target
 
-<!-- embed path=capabilities/payments/targets/us-east4-prd-k8s/target.yml -->
+<!-- embed path=systems/payments/targets/us-east4-prd-k8s/target.yml -->
 ```yaml
 config:
   cluster: us-east4
@@ -22,7 +22,7 @@ config:
   platform: K8S
 ```
 
-Source: [`payments/targets/us-east4-prd-k8s/target.yml`](../../platform/render/testdata/root/capabilities/payments/targets/us-east4-prd-k8s/target.yml)
+Source: [`payments/targets/us-east4-prd-k8s/target.yml`](../../platform/render/testdata/root/systems/payments/targets/us-east4-prd-k8s/target.yml)
 <!-- /embed -->
 
 Everything sits under `config` (required):
@@ -39,7 +39,7 @@ Lint checks it against the target's own fields: the region is the K8S `cluster`'
 ([ADR 0025](../adr/0025-target-naming-convention.md)). Add a qualifier to tell apart two targets that
 would otherwise share a name, like `us-east4-npr-k8s-perf`.
 
-```yaml path=capabilities/payments/targets/us-east4-dev-k8s/target.yml expect="name must be <region>-<env>-<platform>"
+```yaml path=systems/payments/targets/us-east4-dev-k8s/target.yml expect="name must be <region>-<env>-<platform>"
 config:
   cluster: us-east4
   namespace: payments-us-dev
@@ -86,7 +86,7 @@ another platform are rejected.
 **CLOUD_RUN** renders a Knative service; apps default to scale to zero, port 8080, 1 CPU / `512Mi`
 ([ADR 0024](../adr/0024-cloud-run-targets.md)).
 
-<!-- embed path=capabilities/payments/targets/us-east4-npr-cr/target.yml lines=2-9 -->
+<!-- embed path=systems/payments/targets/us-east4-npr-cr/target.yml lines=2-9 -->
 ```yaml
 config:
   platform: CLOUD_RUN
@@ -98,13 +98,13 @@ config:
   region: us-east4
 ```
 
-Source: [`payments/targets/us-east4-npr-cr/target.yml:2-9`](../../platform/render/testdata/root/capabilities/payments/targets/us-east4-npr-cr/target.yml#L2-L9)
+Source: [`payments/targets/us-east4-npr-cr/target.yml:2-9`](../../platform/render/testdata/root/systems/payments/targets/us-east4-npr-cr/target.yml#L2-L9)
 <!-- /embed -->
 
 **TERRAFORM** plans then applies the app's module with state in the GCS `backend`
 ([ADR 0021](../adr/0021-terraform-apps.md)).
 
-<!-- embed path=capabilities/payments/targets/us-east4-prd-tf/target.yml -->
+<!-- embed path=systems/payments/targets/us-east4-prd-tf/target.yml -->
 ```yaml
 config:
   platform: TERRAFORM
@@ -120,7 +120,7 @@ config:
     prefix: payments/custom
 ```
 
-Source: [`payments/targets/us-east4-prd-tf/target.yml`](../../platform/render/testdata/root/capabilities/payments/targets/us-east4-prd-tf/target.yml)
+Source: [`payments/targets/us-east4-prd-tf/target.yml`](../../platform/render/testdata/root/systems/payments/targets/us-east4-prd-tf/target.yml)
 <!-- /embed -->
 
 ## Auth and billing

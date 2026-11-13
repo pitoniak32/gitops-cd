@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/render"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/yamledit"
 	"gopkg.in/yaml.v3"
 )
@@ -43,7 +43,7 @@ func matches(t *testing.T, got, re string) bool {
 	return regexp.MustCompile("(?m)" + re).MatchString(got)
 }
 
-const payments = "capabilities/payments"
+const payments = "systems/payments"
 
 // test.sh: "lowercase env ok"
 // env keys: any C identifier (some apps need lowercase, terraform TF_VAR_<name>)
@@ -95,7 +95,7 @@ func TestLegacyAppOwners(t *testing.T) {
 	r := fixture(t)
 	write(t, filepath.Join(r, payments, "apps/worker/owners.yml"), "owners: [team1]\n")
 	got := lintOut(t, r)
-	if !matches(t, got, `apps/worker/owners\.yml:[0-9]+:[0-9]+: .*move into capabilities/payments/owners\.yml apps\.worker`) {
+	if !matches(t, got, `apps/worker/owners\.yml:[0-9]+:[0-9]+: .*move into systems/payments/owners\.yml apps\.worker`) {
 		t.Errorf("legacy app owners.yml not rejected:\n%s", got)
 	}
 }
@@ -114,7 +114,7 @@ func TestInvalidDirNames(t *testing.T) {
 				must(t, os.Rename(filepath.Join(c, d+".yml"), filepath.Join(c, dir, "Bad_Name.yml")))
 			}
 			got := lintOut(t, r)
-			if !matches(t, got, `^capabilities/payments/[a-z]+/Bad_Name(/app|/target)?\.yml:[0-9]+:[0-9]+: .*invalid name`) {
+			if !matches(t, got, `^systems/payments/[a-z]+/Bad_Name(/app|/target)?\.yml:[0-9]+:[0-9]+: .*invalid name`) {
 				t.Errorf("bad name not rejected for %s:\n%s", d, got)
 			}
 		})
@@ -128,7 +128,7 @@ func TestReservedStageName(t *testing.T) {
 	c := filepath.Join(r, payments, "stages")
 	must(t, os.Rename(filepath.Join(c, "perf.yml"), filepath.Join(c, "owners.yml")))
 	got := lintOut(t, r)
-	if !matches(t, got, `^capabilities/payments/stages/owners\.yml:[0-9]+:[0-9]+: stage name "owners" is reserved`) {
+	if !matches(t, got, `^systems/payments/stages/owners\.yml:[0-9]+:[0-9]+: stage name "owners" is reserved`) {
 		t.Errorf("reserved stage name not rejected:\n%s", got)
 	}
 }
@@ -139,7 +139,7 @@ func TestTargetStageNameCollision(t *testing.T) {
 	r := fixture(t)
 	cp(t, filepath.Join(r, payments, "targets/dc1-dev-k8s"), filepath.Join(r, payments, "targets/dev"))
 	got := lintOut(t, r)
-	if !matches(t, got, `^capabilities/payments/targets/dev/target\.yml:[0-9]+:[0-9]+: .*also a stage name`) {
+	if !matches(t, got, `^systems/payments/targets/dev/target\.yml:[0-9]+:[0-9]+: .*also a stage name`) {
 		t.Errorf("target/stage name collision not rejected:\n%s", got)
 	}
 }
@@ -150,7 +150,7 @@ func TestTargetDoneCollision(t *testing.T) {
 	r := fixture(t)
 	cp(t, filepath.Join(r, payments, "targets/dc1-dev-k8s"), filepath.Join(r, payments, "targets/dev-done"))
 	got := lintOut(t, r)
-	if !matches(t, got, `^capabilities/payments/targets/dev-done/target\.yml:[0-9]+:[0-9]+: .*target name dev-done is <stage>-done; Kargo control-flow Stage name dev-done would collide`) {
+	if !matches(t, got, `^systems/payments/targets/dev-done/target\.yml:[0-9]+:[0-9]+: .*target name dev-done is <stage>-done; Kargo control-flow Stage name dev-done would collide`) {
 		t.Errorf("target named <stage>-done not rejected:\n%s", got)
 	}
 }
@@ -166,10 +166,10 @@ func TestTargetLayout(t *testing.T) {
 	write(t, filepath.Join(tg, "old.yml"), string(b))
 	write(t, filepath.Join(tg, "ghost/environment-variables/x.yml"), "A: b\n")
 	got := lintOut(t, r)
-	if !matches(t, got, `^capabilities/payments/targets/old\.yml:1:1: .*move to targets/old/target\.yml`) {
+	if !matches(t, got, `^systems/payments/targets/old\.yml:1:1: .*move to targets/old/target\.yml`) {
 		t.Errorf("legacy target file not rejected:\n%s", got)
 	}
-	if !matches(t, got, `^capabilities/payments/targets/ghost/environment-variables/x\.yml:[0-9]+:[0-9]+: .*without targets/ghost/target\.yml`) {
+	if !matches(t, got, `^systems/payments/targets/ghost/environment-variables/x\.yml:[0-9]+:[0-9]+: .*without targets/ghost/target\.yml`) {
 		t.Errorf("bundle without target not rejected:\n%s", got)
 	}
 }
@@ -185,7 +185,7 @@ func TestEnvFromClash(t *testing.T) {
 	envFrom := []string{"stages", "dev", "targets", "us-east4-dev-k8s", "envFrom"}
 	must(t, yamledit.Set(app, envFrom, []string{"flags"}))
 	o := t.TempDir()
-	if _, err := render.Capability(r, "payments", o); err != nil {
+	if _, err := render.System(r, "payments", o); err != nil {
 		t.Fatal(err)
 	}
 	dec := yaml.NewDecoder(strings.NewReader(readFile(t, filepath.Join(o, "apps/payments/my-app/dev/us-east4-dev-k8s/deployment.yaml"))))
@@ -220,7 +220,7 @@ func TestEnvFromClash(t *testing.T) {
 	}
 	must(t, yamledit.Set(app, envFrom, []string{"flags", "launchdarkly"}))
 	got := lintOut(t, r)
-	if !matches(t, got, `^capabilities/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.us-east4-dev-k8s\.envFrom: .*LD_RELAY_URL differs between environment-variables/\{flags,launchdarkly\}\.yml \(both in target-level`) {
+	if !matches(t, got, `^systems/payments/apps/my-app/app\.yml:[0-9]+:[0-9]+: targets\.us-east4-dev-k8s\.envFrom: .*LD_RELAY_URL differs between environment-variables/\{flags,launchdarkly\}\.yml \(both in target-level`) {
 		t.Errorf("same-layer clash not rejected:\n%s", got)
 	}
 	if strings.Contains(got, "LD_SDK_KEY") {
@@ -249,7 +249,7 @@ func TestDeployWithResolution(t *testing.T) {
 		t.Fatalf("app-level workflow with argocd targets must lint clean:\n%s", got)
 	}
 	o := t.TempDir()
-	if _, err := render.Capability(r, "payments", o); err != nil {
+	if _, err := render.System(r, "payments", o); err != nil {
 		t.Fatal(err)
 	}
 	var pl map[string]any
@@ -272,7 +272,7 @@ func TestDeployWithResolution(t *testing.T) {
 func TestClusterTypes(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	cfg := capability.Default()
+	cfg := system.Default()
 	narrowed := false
 	for i := range cfg.Clusters {
 		if cfg.Clusters[i].Name == "dc1" {
@@ -283,14 +283,14 @@ func TestClusterTypes(t *testing.T) {
 	if !narrowed {
 		t.Fatal("cluster-types case: no dc1 cluster to narrow")
 	}
-	d, err := Run(cfg, r, Scope{Caps: []string{"payments"}}, nil)
+	d, err := Run(cfg, r, Scope{Systems: []string{"payments"}}, nil)
 	must(t, err)
 	var lines []string
 	for _, x := range d {
 		lines = append(lines, x.String())
 	}
 	got := strings.Join(lines, "\n")
-	if !matches(t, got, `^capabilities/payments/targets/dc1-prd-k8s/target\.yml:[0-9]+:[0-9]+: config\.environmentType: cluster dc1 accepts environment types: dev$`) {
+	if !matches(t, got, `^systems/payments/targets/dc1-prd-k8s/target\.yml:[0-9]+:[0-9]+: config\.environmentType: cluster dc1 accepts environment types: dev$`) {
 		t.Errorf("cluster environment-type check failed:\n%s", got)
 	}
 }
@@ -309,7 +309,7 @@ func TestKargoStageNameLength(t *testing.T) {
 	must(t, yamledit.Set(filepath.Join(c, "targets", longTgt, "target.yml"), []string{"config", "namespace"}, "payments-long"))
 	must(t, yamledit.Set(filepath.Join(c, "apps/web/app.yml"), []string{"stages", "dev", "targets"}, map[string]any{longTgt: map[string]any{}}))
 	got := lintOut(t, r)
-	if !matches(t, got, fmt.Sprintf(`^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s is 64 characters \(max 63\): shorten the target name$`, longTgt)) {
+	if !matches(t, got, fmt.Sprintf(`^systems/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s is 64 characters \(max 63\): shorten the target name$`, longTgt)) {
 		t.Errorf("long target Stage name not rejected:\n%s", got)
 	}
 
@@ -326,21 +326,21 @@ func TestKargoStageNameLength(t *testing.T) {
 		longA: tg("us-east4-dev-k8s"), longB: tg("dc1-dev-k8s"), "c": tg("us-east4-npr-k8s"), "d": tg("dc1-npr-k8s"),
 	}))
 	got = lintOut(t, r)
-	if !matches(t, got, fmt.Sprintf(`^capabilities/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s-%s-done is 66 characters \(max 63\): shorten the stage names$`, longA, longB)) {
+	if !matches(t, got, fmt.Sprintf(`^systems/payments/apps/web/app\.yml:[0-9]+:[0-9]+: .*Kargo Stage name %s-%s-done is 66 characters \(max 63\): shorten the stage names$`, longA, longB)) {
 		t.Errorf("long control-flow Stage name not rejected:\n%s", got)
 	}
 }
 
-// The Kargo project kargo-<cap>-<app> is also a namespace: 63 characters max (ADR 0029).
+// The Kargo project kargo-<sys>-<app> is also a namespace: 63 characters max (ADR 0029).
 func TestProjectNameTooLong(t *testing.T) {
 	t.Parallel()
 	app := "w" + strings.Repeat("x", 39) // 40, the name max
 	r := fixture(t)
-	c := filepath.Join(r, "capabilities/search")
+	c := filepath.Join(r, "systems/search")
 	must(t, os.Rename(filepath.Join(c, "apps/api"), filepath.Join(c, "apps", app)))
-	capName := "searchsearchsearc" // kargo- (6) + 17 + - (1) + 40 = 64
-	must(t, os.Rename(c, filepath.Join(r, "capabilities", capName)))
-	d, err := All(r, []string{capName})
+	sysName := "searchsearchsearc" // kargo- (6) + 17 + - (1) + 40 = 64
+	must(t, os.Rename(c, filepath.Join(r, "systems", sysName)))
+	d, err := All(r, []string{sysName})
 	var ls []string
 	for _, x := range d {
 		ls = append(ls, x.String())
@@ -349,7 +349,7 @@ func TestProjectNameTooLong(t *testing.T) {
 		ls = append(ls, "error: "+err.Error())
 	}
 	got := strings.Join(ls, "\n")
-	if !matches(t, got, fmt.Sprintf(`^capabilities/%s/apps/%s/app\.yml:1:1: .*Kargo project name kargo-%s-%s is 64 characters \(max 63\): shorten the app name$`, capName, app, capName, app)) {
+	if !matches(t, got, fmt.Sprintf(`^systems/%s/apps/%s/app\.yml:1:1: .*Kargo project name kargo-%s-%s is 64 characters \(max 63\): shorten the app name$`, sysName, app, sysName, app)) {
 		t.Errorf("long project name not rejected:\n%s", got)
 	}
 }
@@ -377,12 +377,12 @@ func replaceToken(s, from, to string) string {
 func TestTargetNameConvention(t *testing.T) {
 	t.Parallel()
 	for _, c := range []struct{ from, to, want string }{
-		{"us-east4-npr-k8s", "dc1-npr-k8s-x", `^capabilities/payments/targets/dc1-npr-k8s-x/target\.yml:[0-9]+:[0-9]+: .*name must be <region>-<env>-<platform>\[-<qualifier>\]: expected us-east4-npr-k8s\[-<qualifier>\]`},
-		{"us-east4-npr-k8s", "us-east4-npr-k8sperf", `^capabilities/payments/targets/us-east4-npr-k8sperf/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-k8s\[-<qualifier>\]`},
-		{"us-east4-npr-k8s", "us-east4-npr-k8s-", `^capabilities/payments/targets/us-east4-npr-k8s-/target\.yml:[0-9]+:[0-9]+: `},
+		{"us-east4-npr-k8s", "dc1-npr-k8s-x", `^systems/payments/targets/dc1-npr-k8s-x/target\.yml:[0-9]+:[0-9]+: .*name must be <region>-<env>-<platform>\[-<qualifier>\]: expected us-east4-npr-k8s\[-<qualifier>\]`},
+		{"us-east4-npr-k8s", "us-east4-npr-k8sperf", `^systems/payments/targets/us-east4-npr-k8sperf/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-k8s\[-<qualifier>\]`},
+		{"us-east4-npr-k8s", "us-east4-npr-k8s-", `^systems/payments/targets/us-east4-npr-k8s-/target\.yml:[0-9]+:[0-9]+: `},
 		{"us-east4-npr-k8s", "us-east4-npr-k8s-blue", "ok"},
-		{"us-east4-npr-cr", "us-east4-npr-k8s-x", `^capabilities/payments/targets/us-east4-npr-k8s-x/target\.yml:[0-9]+:[0-9]+: .*name must be <region>-<env>-<platform>\[-<qualifier>\]: expected us-east4-npr-cr\[-<qualifier>\]`},
-		{"us-east4-npr-cr", "dc1-npr-cr", `^capabilities/payments/targets/dc1-npr-cr/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-cr\[-<qualifier>\]`},
+		{"us-east4-npr-cr", "us-east4-npr-k8s-x", `^systems/payments/targets/us-east4-npr-k8s-x/target\.yml:[0-9]+:[0-9]+: .*name must be <region>-<env>-<platform>\[-<qualifier>\]: expected us-east4-npr-cr\[-<qualifier>\]`},
+		{"us-east4-npr-cr", "dc1-npr-cr", `^systems/payments/targets/dc1-npr-cr/target\.yml:[0-9]+:[0-9]+: .*expected us-east4-npr-cr\[-<qualifier>\]`},
 		{"us-east4-npr-cr", "us-east4-npr-cr-blue", "ok"},
 	} {
 		t.Run(c.to, func(t *testing.T) {

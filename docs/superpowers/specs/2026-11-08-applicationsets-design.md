@@ -7,7 +7,7 @@ Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapp
 
 Every Argo CD (hub + each region) runs the same root "app of ApplicationSets". ApplicationSets with the
 cluster generator decide what each Argo CD deploys, from labels on its own `in-cluster` cluster Secret.
-Covers both infrastructure add-ons and capability workloads.
+Covers both infrastructure add-ons and system workloads.
 
 ## Decisions (from brainstorming)
 
@@ -80,11 +80,11 @@ Covers both infrastructure add-ons and capability workloads.
   1. cluster gen, selector `example.com/role: region`;
   2. git files gen `rendered/argocd/deploys/{{region}}/*.json`.
 - Renderer (`delivery.cue`) stops emitting Applications. Emits per region:
-  - `rendered/argocd/deploys/<r>/<cap>-<app>-<target>.json`: name, capability, app, stage, target,
-    namespace, branch (`env/<cap>/<app>/<target>`), project, argocdName, kargo stage ref.
-  - `rendered/argocd/projects/<r>/<cap>.yaml`: AppProject as today (region destinations, viewer roles).
-- Template reproduces today's Application exactly: name `<cap>-<app>-<target>`, labels
-  `example.com/{capability,app,stage,target}`, annotation `kargo.akuity.io/authorized-stage`, automated
+  - `rendered/argocd/deploys/<r>/<sys>-<app>-<target>.json`: name, system, app, stage, target,
+    namespace, branch (`env/<sys>/<app>/<target>`), project, argocdName, kargo stage ref.
+  - `rendered/argocd/projects/<r>/<sys>.yaml`: AppProject as today (region destinations, viewer roles).
+- Template reproduces today's Application exactly: name `<sys>-<app>-<target>`, labels
+  `example.com/{system,app,stage,target}`, annotation `kargo.akuity.io/authorized-stage`, automated
   prune/selfHeal, CreateNamespace. Same names → Kargo Stages unchanged.
 
 ## Kargo interplay

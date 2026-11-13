@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Merge the CUE gitops POC (`~/code/personal/gitops-cd-initial`) into kargo-demo, so that one repo renders capabilities and Kargo/Argo CD on kind run them.
+**Goal:** Merge the CUE gitops POC (`~/code/personal/gitops-cd-initial`) into kargo-demo, so that one repo renders systems and Kargo/Argo CD on kind run them.
 
 **Architecture:** A single CUE module sits at the repo root, with the renderer in package `render/`. Cluster add-ons live in `infrastructure/`, still inlined into Argo CD apps by `mise run infra`. `bootstrap/rendered.yaml` makes Argo CD sync `rendered/{argocd,kargo}` from GitHub. Keycloak groups drive the generated Kargo promote roles.
 
@@ -36,7 +36,7 @@
 **Files:**
 - Copy from `~/code/personal/gitops-cd-initial`:
   - `platform/*.cue`, `platform/{schemas,testdata,scripts,README.md}` → `render/`
-  - `capabilities/`, `teams/`
+  - `systems/`, `teams/`
   - `.github/{CODEOWNERS.tmpl,CODEOWNERS,workflows/ci.yaml}`
   - `rendered/`, except `rendered/bootstrap` → `bootstrap/`
   - `GLOSSARY.md`, `docs/{adr,agents}`
@@ -45,13 +45,13 @@
 - Modify: every `render/*.cue` (`package platform` → `package render`)
 
 **Interfaces:**
-- Produces: `render/scripts/{render,lint,codeowners,test,schemas,inputs}.sh`, with the same CLIs as the POC (`render.sh <root> <cap> <out>`, `lint.sh <root> <cap>`, `codeowners.sh <root> <out>`).
+- Produces: `render/scripts/{render,lint,codeowners,test,schemas,inputs}.sh`, with the same CLIs as the POC (`render.sh <root> <sys> <out>`, `lint.sh <root> <sys>`, `codeowners.sh <root> <out>`).
 
 - [ ] **Step 1:** Copy the files (`cp -R`). Don't copy `.jj`, POC root `scripts/`, POC `README.md`/`CLAUDE.md`, or `platform/cue.mod`.
 - [ ] **Step 2:** Run `render/scripts/test.sh`. Expected: FAIL, because of `package platform` and no module at the root.
 - [ ] **Step 3:** Rename the package, create `cue.mod/module.cue`, and run `cue mod tidy` from the repo root.
 - [ ] **Step 4:** Run `render/scripts/test.sh`. Expected: `golden ok`, `codeowners ok`, `codeowners prune ok`, `override-all owners ok`, `lint ok`, 5 `lint case ok`, 3 `bad name ok`.
-- [ ] **Step 5:** `jj commit -m "import CUE renderer, capabilities, teams, docs from POC"`
+- [ ] **Step 5:** `jj commit -m "import CUE renderer, systems, teams, docs from POC"`
 
 ### Task 2: `platform/` → `infrastructure/`; retire example-project
 
@@ -79,7 +79,7 @@
 **Files:**
 - Create:
   - `mise-tasks/render`: the POC's `scripts/render.sh` body; `#MISE description`; optional out-dir arg
-  - `mise-tasks/lint`: the POC's `scripts/lint.sh`; `#USAGE arg "[caps]..."`
+  - `mise-tasks/lint`: the POC's `scripts/lint.sh`; `#USAGE arg "[systems]..."`
   - `mise-tasks/test`: runs `render/scripts/test.sh`
   - `mise-tasks/schemas`: runs `render/scripts/schemas.sh`
 - Modify:
@@ -110,12 +110,12 @@
   - `render/k8s.cue`: if `!clusters[d.tgt.cluster].secretStore`, skip the ExternalSecret and the secret-backed env entries
   - `render/delivery.cue`: AppProject
   - `render/input.cue`: repoURL default
-  - `capabilities/*/targets/*.yml`, `capabilities/*/apps/*/app.yml`
+  - `systems/*/targets/*.yml`, `systems/*/apps/*/app.yml`
   - the matching `render/testdata/root/**`
   - golden
 
 **Interfaces:**
-- Produces: in the `argocd` list, one `AppProject` per capability, before the Applications:
+- Produces: in the `argocd` list, one `AppProject` per system, before the Applications:
   ```
   {apiVersion: "argoproj.io/v1alpha1", kind: "AppProject",
    metadata: {name: _cap, namespace: "argocd"},
@@ -128,7 +128,7 @@
 
 - [ ] **Step 1:** Update the fixture `render/testdata/root`:
   - every target `cluster: in-cluster`
-  - namespace `<cap>-<target>`, unique per target, because the placement check forbids two targets of one app sharing a cluster and namespace
+  - namespace `<sys>-<target>`, unique per target, because the placement check forbids two targets of one app sharing a cluster and namespace
   - images `ghcr.io/pitoniak32/nginx:1.27`
   - keep a `secret:` env value in `my-app`
 
@@ -139,7 +139,7 @@
 - [ ] **Step 2:** Run `render/scripts/test.sh`. Expected: FAIL (unknown cluster `in-cluster`).
 - [ ] **Step 3:** Implement the changes from the Interfaces block.
 - [ ] **Step 4:** Run `UPDATE=1 render/scripts/test.sh`, review the diff, then run `render/scripts/test.sh` and expect a pass. Run `mise run schemas`. Expected: the `target.json` cluster enum is now `["in-cluster"]`.
-- [ ] **Step 5:** Apply the same data changes to the real `capabilities/` (team1 → payments, team2 → search). Then run `mise run lint && mise run render`. Expected: clean, and `rendered/` shows the new namespaces, image and AppProjects.
+- [ ] **Step 5:** Apply the same data changes to the real `systems/` (team1 → payments, team2 → search). Then run `mise run lint && mise run render`. Expected: clean, and `rendered/` shows the new namespaces, image and AppProjects.
 - [ ] **Step 6:** `jj commit -m "render: kind in-cluster, skip secrets without store, AppProjects"`
 
 ### Task 5: Platform wiring: bootstrap, Keycloak groups, Kargo creds

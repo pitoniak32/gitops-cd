@@ -17,7 +17,7 @@ Kargo watches the repository for SemVer tags. `imageConstraint` / `moduleConstra
 count (`^1` = 1.x only). When promoting, a promoter picks a tag; Freight pins its digest
 ([ADR 0016](../adr/0016-image-discovery-freight-assembly.md)).
 
-<!-- embed path=capabilities/payments/apps/infra/app.yml -->
+<!-- embed path=systems/payments/apps/infra/app.yml -->
 ```yaml
 module: ghcr.io/pitoniak32/tf-bucket
 sourceRepo: pitoniak32/gitops-cd
@@ -38,7 +38,7 @@ stages:
           TF_VAR_region: us-east1
 ```
 
-Source: [`payments/apps/infra/app.yml`](../../platform/render/testdata/root/capabilities/payments/apps/infra/app.yml)
+Source: [`payments/apps/infra/app.yml`](../../platform/render/testdata/root/systems/payments/apps/infra/app.yml)
 <!-- /embed -->
 
 `image`, `module`, their constraints, `port` and `sourceRepo` are app-level only. The artifact promotes as
@@ -58,7 +58,7 @@ specific wins ([ADR 0004](../adr/0004-layered-override-merge.md)):
 removes them. `workflow` and `resources` resolve per field. `replicas` and `deployWith` take the most
 specific layer that sets them.
 
-<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="(1-8;text='app level'),(9-14;text='stage level: dev'),15,(17-23;text='target level: dc1-dev-k8s'),(24-34;text='staging: dc1-npr-k8s deploys with GitHub Actions')" -->
+<!-- embed path=systems/payments/apps/my-app/app.yml lines="(1-8;text='app level'),(9-14;text='stage level: dev'),15,(17-23;text='target level: dc1-dev-k8s'),(24-34;text='staging: dc1-npr-k8s deploys with GitHub Actions')" -->
 ```yaml
 # app level
 image: ghcr.io/pitoniak32/nginx
@@ -100,7 +100,7 @@ stages:
           ref: v1
 ```
 
-Source: [`payments/apps/my-app/app.yml:1-15,17-34`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L1-L34)
+Source: [`payments/apps/my-app/app.yml:1-15,17-34`](../../platform/render/testdata/root/systems/payments/apps/my-app/app.yml#L1-L34)
 <!-- /embed -->
 
 `gcd show -s` shows which layer each value came from. For `dc1-dev-k8s` in `dev`, the target level wins
@@ -136,14 +136,14 @@ If you edit a wider layer and nothing changes, a narrower layer overrides it. `-
   ([ADR 0014](../adr/0014-target-environment-variables.md)). Every target the setting reaches must have
   that file. Keys in `env` win over keys from `envFrom`.
 
-<!-- embed path=capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml -->
+<!-- embed path=systems/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml -->
 ```yaml
 LD_SDK_KEY: 'secret:acme-dev-onprem/launchdarkly-sdk-key'
 LD_RELAY_URL: https://ld-relay.onprem-dev.example.com
 APP_ENV: 'from-bundle'
 ```
 
-Source: [`payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml`](../../platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml)
+Source: [`payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml`](../../platform/render/testdata/root/systems/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml)
 <!-- /embed -->
 
 Fields: [reference/env-vars.md](../reference/env-vars.md).

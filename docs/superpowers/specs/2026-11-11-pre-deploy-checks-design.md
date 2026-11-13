@@ -11,7 +11,7 @@ Teams don't configure the checks and write no CUE (ADR 0006); the checks are pla
 ## Non-goals
 
 - Post-deploy verification. That is Kargo Stage `spec.verification` (AnalysisTemplates), a separate piece of work.
-- Per-capability or per-stage check config.
+- Per-system or per-stage check config.
 - Splitting `promote-argocd`/`promote-gha` into composable tasks (Approach A). The config interface is independent of that, so it can move later without touching config.
 
 ## Kargo facts this relies on (verified, Kargo 1.12.5 source)
@@ -23,7 +23,7 @@ Teams don't configure the checks and write no CUE (ADR 0006); the checks are pla
 
 ## Configuration
 
-New file `platform/render/prechecks.cue` in package `render`, consumed by `delivery.cue` during capability renders (resolving the check repo needs the capability's `apps`, so the platform-only `--platform` load must not depend on it):
+New file `platform/render/prechecks.cue` in package `render`, consumed by `delivery.cue` during system renders (resolving the check repo needs the system's `apps`, so the platform-only `--platform` load must not depend on it):
 
 ```cue
 #PreDeployCheck: {
@@ -38,20 +38,20 @@ preDeploy: prd: [{file: "precheck.yaml"}]
 - No `repo`: every check is dispatched to the app's `sourceRepo` (below), so the same check reaches each team's repo. The demo apps set `sourceRepo` to this repo, so the demo check is `.github/workflows/precheck.yaml` here. A fixed central repo (optional `repo`) can be added later without breaking config.
 - Keyed on the **target's** `environmentType`, not the stage name. A stage that mixes npr and prd targets gates only its prd target Stages.
 - Timeout over 120m or not whole minutes fails the render (CUE `error(...)`).
-- Changes reach every capability on the next render (no per-stage rollout), like ClusterPromotionTask changes (ADR 0027).
+- Changes reach every system on the next render (no per-stage rollout), like ClusterPromotionTask changes (ADR 0027).
 
 ## App source repo (team-facing)
 
 New **required** field in `#App` (top level only, not `#Layer`: an app has one repo, not one per stage/target):
 
 ```yaml
-# capabilities/payments/apps/api/app.yml
+# systems/payments/apps/api/app.yml
 image: registry.example.com/payments/api
 sourceRepo: example-org/payments-api   # required
 ```
 
 - Validation: `sourceRepo!: =~"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" | error("expected <owner>/<name>")`. Required for every app (image and terraform), whether or not it deploys to an environment type with checks: one rule, no surprise when an app first reaches prod. Missing ⇒ lint error at the app.yml.
-- Migration (same change): add `sourceRepo: <this repo>` to every existing `capabilities/*/apps/*/app.yml` and `platform/render/testdata/root/.../app.yml`.
+- Migration (same change): add `sourceRepo: <this repo>` to every existing `systems/*/apps/*/app.yml` and `platform/render/testdata/root/.../app.yml`.
 - `mise run schemas` regenerates `app.json`; lint cases cover a bad value.
 - **Contract for teams** (documented in the README/gotchas, not enforced at render): the repo must contain every check file the platform lists for an environment type the app deploys to, on the check's `ref`, declaring the inputs below (`image` and `module` both optional). Missing file ⇒ dispatch 404 ⇒ that prod Promotion fails, with GitHub's message.
 - Only used for pre-deploy checks here. Defaulting `workflow.repo` (gha deploys) to it is a possible follow-up, not in scope.
@@ -60,7 +60,7 @@ sourceRepo: example-org/payments-api   # required
 
 - Runs on every **target Stage** (app × target) whose target's environment type has checks, before `git-clone`, in list order. N apps × M prd targets ⇒ N×M dispatches per check, each with its own `app`/`target`.
 - Dispatch inputs (fixed set; GitHub returns 422 for undeclared inputs, so each check workflow must declare all of them as `workflow_dispatch` inputs; `image` and `module` both, optional, since an app sends one):
-  - `capability`, `app`, `stage`, `target`
+  - `system`, `app`, `stage`, `target`
   - `commit`: the Freight's rendered-branch commit (`commitFrom(vars.repo).ID`); nothing is pushed yet
   - `image`: `<repo>:<tag>@<digest>` (terraform apps: key `module`, same as `promote-gha` via `artifactKey`)
 - Fails the Promotion on: a dispatch that isn't a 200, a non-200 poll other than 404, `completed` with a conclusion that isn't `success`, or the timeout.
@@ -75,7 +75,7 @@ sourceRepo: example-org/payments-api   # required
 
 - Extract `promote-gha`'s two http steps into CUE definitions `_ghaDispatch` (parameterised by the inputs expression) and `_ghaWait` (parameterised by the failure expression and timeout).
 - `promote-gha` = `_promoteSteps` + `_ghaDispatch` + `_ghaWait` (rendered output unchanged).
-- New `ClusterPromotionTask` `gha-check`: `_ghaDispatch` (Freight-based inputs) + `_ghaWait` (2h cap + `checkTimeout` expression). Vars: `repo`, `image`, `capability`, `app`, `stage`, `target`, `artifactKey`, `workflowRepo`, `workflowFile`, `workflowRef`, `checkTimeout`.
+- New `ClusterPromotionTask` `gha-check`: `_ghaDispatch` (Freight-based inputs) + `_ghaWait` (2h cap + `checkTimeout` expression). Vars: `repo`, `image`, `system`, `app`, `stage`, `target`, `artifactKey`, `workflowRepo`, `workflowFile`, `workflowRef`, `checkTimeout`.
 - All three tasks are in `rendered/kargo/_promotion-tasks.yaml`.
 
 `platform/render/delivery.cue`, target Stage `promotionTemplate.spec`:

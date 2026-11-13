@@ -5,7 +5,7 @@ The demo mirrors the target setup: one Kargo instance and one Argo CD per region
 Locally, these are kind clusters on the docker network `kargo-demo`:
 
 - **Hub** `kargo-demo`: the Kargo control plane (API, management controller, webhooks, and the default controller, which runs Warehouses, control-flow Stages and non-K8s target Stages), Keycloak, Traefik (the only cluster bound to host 80/443), cert-manager and break-glass. Its Argo CD manages hub add-ons only, no workloads.
-- **Regions** `region-<r>` (`us-east4`, `dc1`; from the cluster registry in `capability/config.go`): their own self-managed Argo CD, a Kargo controller with `shardName: <r>`, and the workloads.
+- **Regions** `region-<r>` (`us-east4`, `dc1`; from the cluster registry in `system/config.go`): their own self-managed Argo CD, a Kargo controller with `shardName: <r>`, and the workloads.
 
 How it fits together (deploy wiring: ADR 0017):
 

@@ -14,9 +14,9 @@
 
 - VCS is jj: one change (`docs(gcd): hand-written reference with embedded examples`) off `main`; `jj describe`/`jj new` per task, no git mutations, no push until asked.
 - Embed marker: `<!-- embed path=<fixture-relative> [lines=A-B] -->` … `<!-- /embed -->`, each alone on its line, no indent.
-- `path` relative to `capability.FixtureRoot` (`platform/render/testdata/root`).
-- Output between markers, exactly: "```yaml\n" + dedented lines + "```\n\nSource: [`<label>`](<link>)\n" where label = path minus `capabilities/` + `:A-B` (no `:…` for whole file), link = `../`×(slashes in page path) + FixtureRoot + "/" + path + `#LA-LB` (none for whole file). Fence language: `yaml` for `.yml`/`.yaml`, else the extension.
-- Embed errors are `capability.Diag{File: page, Line: marker line, Col: 1}`; text inside a broken embed is left unchanged.
+- `path` relative to `system.FixtureRoot` (`platform/render/testdata/root`).
+- Output between markers, exactly: "```yaml\n" + dedented lines + "```\n\nSource: [`<label>`](<link>)\n" where label = path minus `systems/` + `:A-B` (no `:…` for whole file), link = `../`×(slashes in page path) + FixtureRoot + "/" + path + `#LA-LB` (none for whole file). Fence language: `yaml` for `.yml`/`.yaml`, else the extension.
+- Embed errors are `system.Diag{File: page, Line: marker line, Col: 1}`; text inside a broken embed is left unchanged.
 - `gcd docs` flags: `--format` only.
 - Docs prose: concise, user's style; no "TODO".
 
@@ -38,13 +38,13 @@
 **Interfaces:**
 - Produces:
   - `const ReferenceDir = "docs/reference"`; `var Dirs = []string{GuideDir, ReferenceDir}`
-  - `func Embed(page, text string, fixture fs.FS) (string, []capability.Diag)`: rewrite one page (page = repo-relative, e.g. `docs/reference/app.md`).
-  - `func Embeds(root string, write bool) (changed []string, diags []capability.Diag, err error)`: every `*.md` in `Dirs` under root; `changed` = repo-relative pages whose text differs; writes them only if `write`. Missing dirs are skipped.
+  - `func Embed(page, text string, fixture fs.FS) (string, []system.Diag)`: rewrite one page (page = repo-relative, e.g. `docs/reference/app.md`).
+  - `func Embeds(root string, write bool) (changed []string, diags []system.Diag, err error)`: every `*.md` in `Dirs` under root; `changed` = repo-relative pages whose text differs; writes them only if `write`. Missing dirs are skipped.
   - `var embedOpenRx, embedCloseRx` (shared with Task 2).
 
 - [ ] **Step 1: Write failing tests** in `embed_test.go` using `os.DirFS(fixture)` (`fixture` const from `check_test.go`):
-  - `TestEmbedWholeFile`: page `"x\n<!-- embed path=capabilities/payments/stages/dev.yml -->\nold\n<!-- /embed -->\ny\n"` → output equals `"x\n<!-- embed …-->\n```yaml\n" + fixtureFile(dev.yml) + "```\n\nSource: [`payments/stages/dev.yml`](../../platform/render/testdata/root/capabilities/payments/stages/dev.yml)\n<!-- /embed -->\ny\n"`, no diags.
-  - `TestEmbedRange`: `lines=2-3` of `capabilities/payments/apps/my-app/app.yml` → body = those 2 lines; source label `payments/apps/my-app/app.yml:2-3`, link `…#L2-L3`.
+  - `TestEmbedWholeFile`: page `"x\n<!-- embed path=systems/payments/stages/dev.yml -->\nold\n<!-- /embed -->\ny\n"` → output equals `"x\n<!-- embed …-->\n```yaml\n" + fixtureFile(dev.yml) + "```\n\nSource: [`payments/stages/dev.yml`](../../platform/render/testdata/root/systems/payments/stages/dev.yml)\n<!-- /embed -->\ny\n"`, no diags.
+  - `TestEmbedRange`: `lines=2-3` of `systems/payments/apps/my-app/app.yml` → body = those 2 lines; source label `payments/apps/my-app/app.yml:2-3`, link `…#L2-L3`.
   - `TestEmbedDedent`: range of indented lines (e.g. lines under `stages:` in my-app) → common indent removed.
   - `TestEmbedIdempotent`: `Embed(Embed(p))` == `Embed(p)`.
   - `TestEmbedNoTrailingNewline`: use `fstest.MapFS{"a.yml": {Data: []byte("a: 1")}}` → body `"a: 1\n"`.
@@ -63,12 +63,12 @@
 
 **Interfaces:**
 - Consumes: Task 1 `Dirs`, `Embeds`, `embedOpenRx`, `embedCloseRx`.
-- Produces: `func Check(root string) ([]capability.Diag, error)` now scans every `Dirs` page; `func Run(root string, write bool) (changed []string, diags []capability.Diag, err error)` = `Embeds` → if any docs dir exists, `lint.All(<root>/FixtureRoot, nil)` with `File` prefixed `FixtureRoot+"/"` → `Check`; diags `SortDedupe`d.
+- Produces: `func Check(root string) ([]system.Diag, error)` now scans every `Dirs` page; `func Run(root string, write bool) (changed []string, diags []system.Diag, err error)` = `Embeds` → if any docs dir exists, `lint.All(<root>/FixtureRoot, nil)` with `File` prefixed `FixtureRoot+"/"` → `Check`; diags `SortDedupe`d.
 
 - [ ] **Step 1: Failing tests:**
   - `TestCheckReferenceDir`: bad `path=` fence in `docs/reference/x.md` → `docs/reference/x.md:2:1: bogus: field not allowed`.
-  - `TestCheckEmbedFenceExempt`: page `"<!-- embed path=capabilities/payments/stages/dev.yml -->\n```yaml\na: 1\n```\n<!-- /embed -->\n```yaml\nb: 1\n```\n"` → only `docs/guide/x.md:6:1: yaml block needs …`.
-  - `TestRunFixtureLint`: guideRoot, then append `bogus: 1\n` to the copied fixture's `capabilities/payments/stages/dev.yml` → `Run(root,false)` diags include `platform/render/testdata/root/capabilities/payments/stages/dev.yml:…: bogus: field not allowed`.
+  - `TestCheckEmbedFenceExempt`: page `"<!-- embed path=systems/payments/stages/dev.yml -->\n```yaml\na: 1\n```\n<!-- /embed -->\n```yaml\nb: 1\n```\n"` → only `docs/guide/x.md:6:1: yaml block needs …`.
+  - `TestRunFixtureLint`: guideRoot, then append `bogus: 1\n` to the copied fixture's `systems/payments/stages/dev.yml` → `Run(root,false)` diags include `platform/render/testdata/root/systems/payments/stages/dev.yml:…: bogus: field not allowed`.
   - `TestRepoDocs` replaces `TestRepoGuides`: `Run("../../../..", false)` → no changed, no diags (`t.Errorf("stale: %v; run gcd docs")`).
 - [ ] **Step 2: Run** `go test ./internal/docs` → the new tests FAIL.
 - [ ] **Step 3: Implement**: `Check` globs each of `Dirs`; `parse` skips the annotation rule between embed markers (fences still parsed so they close); add `Run`.
@@ -79,13 +79,13 @@
 
 **Files:**
 - Modify: `platform/cli/internal/cmd/docs.go`, `docs_test.go`, `platform/mise-tasks/test-cli`
-- Delete: `platform/cli/internal/capability/schemamd.go`, `schemamd_test.go`
+- Delete: `platform/cli/internal/system/schemamd.go`, `schemamd_test.go`
 
 **Interfaces:**
 - Consumes: `docs.Run`.
 
 - [ ] **Step 1: Failing tests** (`docs_test.go`; delete `TestDocsReferenceGolden`, `TestDocsIdempotent`, `referencePages`; drop `--out` from the rest):
-  - `TestDocsRewritesEmbed`: badGuideRoot-style root with `docs/reference/a.md` holding a stale embed of `capabilities/payments/stages/dev.yml` → `gcd docs` succeeds; file now contains `Source: [`; stderr says `docs: updated 1 page(s)`.
+  - `TestDocsRewritesEmbed`: badGuideRoot-style root with `docs/reference/a.md` holding a stale embed of `systems/payments/stages/dev.yml` → `gcd docs` succeeds; file now contains `Source: [`; stderr says `docs: updated 1 page(s)`.
   - `TestDocsGuideErrors`: unchanged except no `--out`.
   - `TestDocsSandboxRoot`: `--root ../../../render/testdata/root` → no error.
 - [ ] **Step 2: Run** `go test ./internal/cmd -run TestDocs` → FAIL (unknown flag / no rewrite).

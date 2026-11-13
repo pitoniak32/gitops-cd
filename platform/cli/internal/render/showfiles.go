@@ -11,16 +11,16 @@ import (
 // Pick is one deploy whose rendered files are wanted.
 type Pick struct{ App, Stage, Target string }
 
-// SelectFiles picks from a capability's rendered files those of the deploys: workload files
-// apps/<cap>/<app>/<stage>/<target>/*; with platform also the Argo CD params
-// argocd/deploys/<region>/<cap>/<app>-<target>.json and the deploy's Kargo Stage doc, keyed
-// "kargo/<cap>.yaml#Stage/<namespace>/<name>".
-func SelectFiles(rendered map[string]string, capName string, picks []Pick, platform bool) map[string]string {
+// SelectFiles picks from a system's rendered files those of the deploys: workload files
+// apps/<sys>/<app>/<stage>/<target>/*; with platform also the Argo CD params
+// argocd/deploys/<region>/<sys>/<app>-<target>.json and the deploy's Kargo Stage doc, keyed
+// "kargo/<sys>.yaml#Stage/<namespace>/<name>".
+func SelectFiles(rendered map[string]string, sysName string, picks []Pick, platform bool) map[string]string {
 	out := map[string]string{}
 	var stageDocs map[string]string
 	for _, p := range picks {
-		dir := fmt.Sprintf("apps/%s/%s/%s/%s/", capName, p.App, p.Stage, p.Target)
-		suffix := fmt.Sprintf("/%s/%s-%s.json", capName, p.App, p.Target)
+		dir := fmt.Sprintf("apps/%s/%s/%s/%s/", sysName, p.App, p.Stage, p.Target)
+		suffix := fmt.Sprintf("/%s/%s-%s.json", sysName, p.App, p.Target)
 		for path, c := range rendered {
 			if strings.HasPrefix(path, dir) || (platform && strings.HasPrefix(path, "argocd/deploys/") && strings.HasSuffix(path, suffix)) {
 				out[path] = c
@@ -28,10 +28,10 @@ func SelectFiles(rendered map[string]string, capName string, picks []Pick, platf
 		}
 		if platform {
 			if stageDocs == nil {
-				stageDocs = kargoStages("kargo/"+capName+".yaml", rendered["kargo/"+capName+".yaml"])
+				stageDocs = kargoStages("kargo/"+sysName+".yaml", rendered["kargo/"+sysName+".yaml"])
 			}
 			// the target Stage: named after the target, in the app's Kargo project (ADR 0029)
-			key := fmt.Sprintf("kargo/%s.yaml#Stage/kargo-%s-%s/%s", capName, capName, p.App, p.Target)
+			key := fmt.Sprintf("kargo/%s.yaml#Stage/kargo-%s-%s/%s", sysName, sysName, p.App, p.Target)
 			if d, ok := stageDocs[key]; ok {
 				out[key] = d
 			}

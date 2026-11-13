@@ -46,7 +46,7 @@ Default repo: `pitoniak32/gitops-cd`, derived from `_repoURL`.
 
 - `rendered/apps/...`: unchanged. Every target folder is rendered regardless of deployWith.
 - `argocdDeploys`: only deploys with `deployWith == "argocd"` → no Application for GHA targets.
-- `_appProject` destinations / `_deployRegion`: only argocd deploys. A region with no argocd deploys for a capability gets no AppProject.
+- `_appProject` destinations / `_deployRegion`: only argocd deploys. A region with no argocd deploys for a system gets no AppProject.
 - Target Stage: label `example.com/deploy-with: <argocd|gha>`. Shared steps `git-clone` … `git-push` unchanged. Then:
   - **argocd**: `argocd-update` (unchanged).
   - **gha**:
@@ -62,7 +62,7 @@ Default repo: `pitoniak32/gitops-cd`, derived from `_repoURL`.
       - {name: Accept, value: application/vnd.github+json}
       - {name: X-GitHub-Api-Version, value: "2022-11-28"}
       - {name: Content-Type, value: application/json}
-    body: <JSON: ref, return_run_details: true, inputs {capability, app, stage, target, commit: ${{ outputs.commit.commit }}, image: <repo>:<tag>@<digest>}>
+    body: <JSON: ref, return_run_details: true, inputs {system, app, stage, target, commit: ${{ outputs.commit.commit }}, image: <repo>:<tag>@<digest>}>
     successExpression: response.status == 200
     failureExpression: response.status != 200
     outputs:
@@ -85,11 +85,11 @@ Neither expression true → step Running → Kargo retries until `retry.timeout`
 
 - **Creds** (`platform/cli/internal/creds`): `Run` also applies `kargo-shared-resources/github-actions`, label `kargo.akuity.io/cred-type: generic`, key `token` = `fnox get GITHUB_PAT`. Idempotent (apply). Shards read it from the hub via `kargo-hub-kubeconfig`, like git creds. PAT: fine-grained, `Actions: read and write` on the repos that hold workflows.
 - **Example workflow** `.github/workflows/deploy.yaml`:
-  - `on: workflow_dispatch`, inputs `capability, app, stage, target, commit, image` (all required strings).
-  - `run-name: deploy ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }}`.
+  - `on: workflow_dispatch`, inputs `system, app, stage, target, commit, image` (all required strings).
+  - `run-name: deploy ${{ inputs.system }}/${{ inputs.app }} → ${{ inputs.target }}`.
   - `permissions: contents: read`.
-  - Steps: checkout `inputs.commit`; print `deployment.yaml` image + `manifests.yaml`; job summary (cap/app/stage/target, commit, image); exit 0.
-- **Example config**: `capabilities/payments/apps/worker/app.yml`: `stages.dev.deployWith: gha` (staging, prod stay argocd).
+  - Steps: checkout `inputs.commit`; print `deployment.yaml` image + `manifests.yaml`; job summary (sys/app/stage/target, commit, image); exit 0.
+- **Example config**: `systems/payments/apps/worker/app.yml`: `stages.dev.deployWith: gha` (staging, prod stay argocd).
 - **Docs**: ADR 0020 "GitHub Actions as a deploy method"; GLOSSARY *Deploy with*; `docs/sync-boundaries.md` (workflow file is read from GitHub at dispatch; PAT via `mise run creds`); README/`docs/operations.md` creds note if they list secrets.
 
 ## 4. Testing

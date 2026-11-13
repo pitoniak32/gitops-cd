@@ -4,7 +4,7 @@ metadata:
   name: kargo-search-api
   labels:
     kargo.akuity.io/project: "true"
-    example.com/capability: search
+    example.com/system: search
     example.com/app: api
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -47,7 +47,7 @@ metadata:
   name: us-east4-dev-k8s
   namespace: kargo-search-api
   labels:
-    example.com/capability: search
+    example.com/system: search
     example.com/app: api
     example.com/kind: target
     example.com/stage: dev
@@ -76,7 +76,7 @@ spec:
           value: env/search/api/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: search
         - name: app
           value: api

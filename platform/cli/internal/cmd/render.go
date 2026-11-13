@@ -14,14 +14,14 @@ func init() {
 		var out string
 		var withPlatform, everything, noProgress bool
 		c := &cobra.Command{
-			Use:   "render [cap...]",
-			Short: "Render every capability (or the named ones) into rendered/ (or --out) and regenerate .github/CODEOWNERS",
-			Long: `Render every capability, the platform files and CODEOWNERS into --out (default rendered).
+			Use:   "render [sys...]",
+			Short: "Render every system (or the named ones) into rendered/ (or --out) and regenerate .github/CODEOWNERS",
+			Long: `Render every system, the platform files and CODEOWNERS into --out (default rendered).
 
-Named capabilities render alone: no wipe of the others, no platform files, no CODEOWNERS; add --platform
-for the platform files. --all renders everything and overrides named capabilities and --platform.
+Named systems render alone: no wipe of the others, no platform files, no CODEOWNERS; add --platform
+for the platform files. --all renders everything and overrides named systems and --platform.
 Validation errors print like gcd lint.`,
-			RunE: func(cmd *cobra.Command, caps []string) error {
+			RunE: func(cmd *cobra.Command, systems []string) error {
 				root, err := resolveRoot(cmd)
 				if err != nil {
 					return err
@@ -30,14 +30,14 @@ Validation errors print like gcd lint.`,
 					return err
 				}
 				prog := progress.Auto(stderrFile(cmd), noProgress)
-				if everything && (len(caps) > 0 || withPlatform) {
-					fmt.Fprintln(cmd.ErrOrStderr(), "render: --all: everything (overrides named capabilities, --platform)")
+				if everything && (len(systems) > 0 || withPlatform) {
+					fmt.Fprintln(cmd.ErrOrStderr(), "render: --all: everything (overrides named systems, --platform)")
 				}
-				if everything || len(caps) == 0 && !withPlatform {
+				if everything || len(systems) == 0 && !withPlatform {
 					return reportErr(cmd, render.All(root, out, cmd.OutOrStdout(), prog), "render")
 				}
-				// selected capabilities only: no wipe of others, no platform files/CODEOWNERS
-				if err := render.Selected(root, caps, out, cmd.OutOrStdout(), prog); err != nil {
+				// selected systems only: no wipe of others, no platform files/CODEOWNERS
+				if err := render.Selected(root, systems, out, cmd.OutOrStdout(), prog); err != nil {
 					return reportErr(cmd, err, "render")
 				}
 				if withPlatform {
@@ -48,7 +48,7 @@ Validation errors print like gcd lint.`,
 		}
 		c.Flags().StringVar(&out, "out", "rendered", "output directory")
 		c.Flags().BoolVar(&withPlatform, "platform", false, "also write the platform-level files: regions, promotion tasks (alone: only those)")
-		c.Flags().BoolVar(&everything, "all", false, "render everything (the default); overrides named capabilities and --platform")
+		c.Flags().BoolVar(&everything, "all", false, "render everything (the default); overrides named systems and --platform")
 		c.Flags().BoolVar(&noProgress, "no-progress", false, "no progress bars (they show only when stderr is a terminal)")
 		return c
 	})

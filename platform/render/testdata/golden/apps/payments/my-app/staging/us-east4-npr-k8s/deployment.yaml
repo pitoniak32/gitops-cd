@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: staging
     example.com/target: us-east4-npr-k8s
     example.com/environment: staging
@@ -22,7 +22,7 @@ spec:
       labels:
         app.kubernetes.io/managed-by: cue-platform
         app.kubernetes.io/name: my-app
-        example.com/capability: payments
+        example.com/system: payments
         example.com/stage: staging
         example.com/target: us-east4-npr-k8s
         example.com/environment: staging

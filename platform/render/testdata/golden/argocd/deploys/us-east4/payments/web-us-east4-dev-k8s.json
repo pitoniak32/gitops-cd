@@ -1,6 +1,6 @@
 {
   "appName": "payments-web-us-east4-dev-k8s",
-  "capability": "payments",
+  "system": "payments",
   "app": "web",
   "stage": "dev",
   "target": "us-east4-dev-k8s",

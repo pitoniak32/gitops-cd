@@ -2,13 +2,13 @@
 
 You want to decide who can promote, view or break glass for your apps, and then promote a release.
 
-All access is generated from your capability's `owners.yml`. Nobody gets it by clicking in a UI or through
+All access is generated from your system's `owners.yml`. Nobody gets it by clicking in a UI or through
 identity-provider groups: people are matched by the `email` of their login
 ([ADR 0011](../adr/0011-access-by-email.md)). Fields: [reference/owners.md](../reference/owners.md).
 
 ## `owners.yml`
 
-<!-- embed path=capabilities/payments/owners.yml -->
+<!-- embed path=systems/payments/owners.yml -->
 ```yaml
 codeOwners: [team1]
 promoters:
@@ -28,12 +28,12 @@ apps:
       prod: [alice@example.com]
 ```
 
-Source: [`payments/owners.yml`](../../platform/render/testdata/root/capabilities/payments/owners.yml)
+Source: [`payments/owners.yml`](../../platform/render/testdata/root/systems/payments/owners.yml)
 <!-- /embed -->
 
 | Key | Who | Can |
 |---|---|---|
-| `codeOwners` | GitHub teams (from `teams/`) | approve PRs to the capability (generated CODEOWNERS) |
+| `codeOwners` | GitHub teams (from `teams/`) | approve PRs to the system (generated CODEOWNERS) |
 | `promoters.<stage>` | emails | promote that stage's targets in Kargo; see the app |
 | `viewers` | emails | see the apps in Kargo and Argo CD, read-only |
 | `breakGlass` | emails | also approve Freight that skipped verification ([below](#break-glass)) |
@@ -42,10 +42,10 @@ Source: [`payments/owners.yml`](../../platform/render/testdata/root/capabilities
 
 ### Per-app overrides
 
-`apps.<app>` overrides the capability-wide lists for one app. Each key **replaces** its list: in the
+`apps.<app>` overrides the system-wide lists for one app. Each key **replaces** its list: in the
 example, `worker`'s `prod` promoters are only `alice@example.com`, and its `staging` promoters
 (not overridden) stay `doug@example.com`. To add one person, copy the current list first.
-`gcd show <cap>/<app>` shows the effective owners at the top:
+`gcd show <sys>/<app>` shows the effective owners at the top:
 
 ```sh
 gcd show payments/worker
@@ -56,9 +56,9 @@ gcd show payments/worker
 
 ## What you see
 
-Each app is its own Kargo project, `kargo-<cap>-<app>`
+Each app is its own Kargo project, `kargo-<sys>-<app>`
 ([ADR 0029](../adr/0029-kargo-project-per-app.md)). In Argo CD, each target is an application
-`<cap>-<app>-<target>`.
+`<sys>-<app>-<target>`.
 
 | You are | Kargo | Argo CD |
 |---|---|---|
@@ -76,7 +76,7 @@ No one but platform admins can create, edit or delete anything in either UI. Eve
    from a config commit plus an image (or module) tag. Nothing is assembled automatically
    ([ADR 0016](../adr/0016-image-discovery-freight-assembly.md)).
 3. **Promote** to each target of your first stage (or let `autoPromote` do it). The target's manifests are
-   copied to `env/<cap>/<app>/<target>` with the image digest pinned, and Argo CD syncs it. For `gha`
+   copied to `env/<sys>/<app>/<target>` with the image digest pinned, and Argo CD syncs it. For `gha`
    targets, a workflow runs instead.
 4. **Move down the graph**: once Freight is verified in a stage, promote it into the stages that depend on
    it. To release a whole multi-target stage at once, use **Promote to downstream** on the stage's

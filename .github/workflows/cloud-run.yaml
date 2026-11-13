@@ -3,15 +3,15 @@
 # pushed commit + pinned image, and waits up to 30m; the run's conclusion passes or fails the Promotion.
 # Demo only: nothing is deployed (no GCP here); the real steps are commented below.
 name: deploy cloud run (example)
-run-name: "cloud run ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }} (${{ inputs.image }})"
+run-name: "cloud run ${{ inputs.system }}/${{ inputs.app }} → ${{ inputs.target }} (${{ inputs.image }})"
 on:
   workflow_dispatch:
     inputs:
-      capability: {description: capability, required: true, type: string}
+      system: {description: system, required: true, type: string}
       app: {description: app, required: true, type: string}
       stage: {description: stage, required: true, type: string}
       target: {description: target, required: true, type: string}
-      commit: {description: "env/<cap>/<app>/<target> commit Kargo pushed", required: true, type: string}
+      commit: {description: "env/<sys>/<app>/<target> commit Kargo pushed", required: true, type: string}
       image: {description: "<repo>:<tag>@<digest> from the Freight", required: true, type: string}
 permissions:
   contents: read
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25  # under Kargo's 30m wait
     env:  # inputs via env, never inline in run: (script injection)
-      CAPABILITY: ${{ inputs.capability }}
+      SYSTEM: ${{ inputs.system }}
       APP: ${{ inputs.app }}
       STAGE: ${{ inputs.stage }}
       TARGET: ${{ inputs.target }}
@@ -47,7 +47,7 @@ jobs:
       - name: summary
         run: |
           {
-            echo "### $CAPABILITY/$APP → $TARGET"
+            echo "### $SYSTEM/$APP → $TARGET"
             echo "| stage | target | commit | image |"
             echo "|---|---|---|---|"
             echo "| $STAGE | $TARGET | \`$COMMIT\` | \`$IMAGE\` |"

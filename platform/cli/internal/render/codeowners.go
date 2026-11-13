@@ -12,9 +12,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// UniqueApps fails if two capabilities render the same workload Application name in one region
-// (<cap>-<app>-<target> can collide; one duplicate breaks the region's whole workloads AppSet) or the same
-// Kargo project (kargo-<cap>-<app>).
+// UniqueApps fails if two systems render the same workload Application name in one region
+// (<sys>-<app>-<target> can collide; one duplicate breaks the region's whole workloads AppSet) or the same
+// Kargo project (kargo-<sys>-<app>).
 func UniqueApps(out string) error {
 	regions, _ := filepath.Glob(filepath.Join(out, "argocd", "deploys", "*"))
 	sort.Strings(regions)
@@ -52,7 +52,7 @@ func UniqueApps(out string) error {
 		}
 		sort.Strings(names)
 		for _, n := range names {
-			msgs = append(msgs, fmt.Sprintf("duplicate workload Application name %s in region %s: rename a capability or app", n, filepath.Base(r)))
+			msgs = append(msgs, fmt.Sprintf("duplicate workload Application name %s in region %s: rename a system or app", n, filepath.Base(r)))
 		}
 	}
 	pm, err := duplicateProjects(out)
@@ -66,8 +66,8 @@ func UniqueApps(out string) error {
 	return nil
 }
 
-// duplicateProjects reports Kargo projects (kargo-<cap>-<app>, ADR 0029) rendered by more than one
-// capability file; _-prefixed files are platform-level.
+// duplicateProjects reports Kargo projects (kargo-<sys>-<app>, ADR 0029) rendered by more than one
+// system file; _-prefixed files are platform-level.
 func duplicateProjects(out string) ([]string, error) {
 	files, _ := filepath.Glob(filepath.Join(out, "kargo", "*.yaml"))
 	sort.Strings(files)
@@ -108,13 +108,13 @@ func duplicateProjects(out string) ([]string, error) {
 	sort.Strings(names)
 	var msgs []string
 	for _, n := range names {
-		msgs = append(msgs, fmt.Sprintf("duplicate Kargo project %s in %s: rename a capability or app", n, strings.Join(where[n], ", ")))
+		msgs = append(msgs, fmt.Sprintf("duplicate Kargo project %s in %s: rename a system or app", n, strings.Join(where[n], ", ")))
 	}
 	return msgs, nil
 }
 
 // CodeOwners assembles <root>/.github/CODEOWNERS from CODEOWNERS.tmpl: "#GENERATED" is replaced by the
-// capability fragments in <out>/codeowners/ (sorted) plus one line per teams/<team>.yml (the team's
+// system fragments in <out>/codeowners/ (sorted) plus one line per teams/<team>.yml (the team's
 // githubTeam plus the owners of the template's "/teams/" line). Lines after #GENERATED win.
 func CodeOwners(root, out string) error {
 	tmplPath := filepath.Join(root, ".github", "CODEOWNERS.tmpl")

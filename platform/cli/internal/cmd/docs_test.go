@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 )
 
 func runDocs(t *testing.T, args ...string) (string, error) {
@@ -32,7 +32,7 @@ func TestDocsRewritesEmbed(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := filepath.Join(ref, "a.md")
-	if err := os.WriteFile(p, []byte("<!-- embed path=capabilities/payments/stages/dev.yml -->\nold\n<!-- /embed -->\n"), 0o644); err != nil {
+	if err := os.WriteFile(p, []byte("<!-- embed path=systems/payments/stages/dev.yml -->\nold\n<!-- /embed -->\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	c := NewRoot()
@@ -56,14 +56,14 @@ func badGuideRoot(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	fx := "../../../render/testdata/root"
-	if err := os.CopyFS(filepath.Join(root, filepath.FromSlash(capability.FixtureRoot)), os.DirFS(fx)); err != nil {
+	if err := os.CopyFS(filepath.Join(root, filepath.FromSlash(system.FixtureRoot)), os.DirFS(fx)); err != nil {
 		t.Fatal(err)
 	}
 	g := filepath.Join(root, "docs", "guide")
 	if err := os.MkdirAll(g, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	page := "```yaml path=capabilities/payments/stages/dev.yml\nbogus: 1\n```\n"
+	page := "```yaml path=systems/payments/stages/dev.yml\nbogus: 1\n```\n"
 	if err := os.WriteFile(filepath.Join(g, "x.md"), []byte(page), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestDocsGuideErrors(t *testing.T) {
 		t.Errorf("text: err %v, out %q", err, out)
 	}
 	out, err = runDocs(t, "--root", root, "--format", "json")
-	var d []capability.Diag
+	var d []system.Diag
 	if err == nil || json.Unmarshal([]byte(out), &d) != nil || len(d) != 1 {
 		t.Errorf("json: err %v, out %q", err, out)
 	}

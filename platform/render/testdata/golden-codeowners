@@ -2,16 +2,16 @@
 /platform/ @acme/platform
 # teams/<team>.yml: per-team lines generated below (team + these owners)
 /teams/ @acme/platform
-/capabilities/payments/ @acme/team1 @acme/team2
-/capabilities/payments/apps/flagged/ @acme/team1
-/capabilities/payments/apps/infra/ @acme/team1
-/capabilities/payments/apps/my-app/ @acme/team1
-/capabilities/payments/apps/payments/ @acme/team1
-/capabilities/payments/apps/web/ @acme/team1
-/capabilities/payments/apps/worker/ @acme/team1 @acme/team2
-/capabilities/search/ @acme/team2
-/capabilities/search/apps/api/ @acme/team2
+/systems/payments/ @acme/team1 @acme/team2
+/systems/payments/apps/flagged/ @acme/team1
+/systems/payments/apps/infra/ @acme/team1
+/systems/payments/apps/my-app/ @acme/team1
+/systems/payments/apps/payments/ @acme/team1
+/systems/payments/apps/web/ @acme/team1
+/systems/payments/apps/worker/ @acme/team1 @acme/team2
+/systems/search/ @acme/team2
+/systems/search/apps/api/ @acme/team2
 /teams/team1.yml @acme/team1 @acme/platform
 /teams/team2.yaml @acme/team2 @acme/platform
-/capabilities/**/owners.yml @acme/platform
-/capabilities/**/owners.yaml @acme/platform
+/systems/**/owners.yml @acme/platform
+/systems/**/owners.yaml @acme/platform

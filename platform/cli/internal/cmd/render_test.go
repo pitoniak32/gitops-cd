@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// --all wins over named capabilities and --platform: every capability, platform files, README.
+// --all wins over named systems and --platform: every system, platform files, README.
 func TestRenderAllOverrides(t *testing.T) {
 	root := t.TempDir()
 	if err := os.CopyFS(root, os.DirFS("../../../render/testdata/root")); err != nil {
@@ -33,8 +33,8 @@ func TestRenderAllOverrides(t *testing.T) {
 	}
 }
 
-// Named capabilities render alone (no platform files, no other capability) into --out.
-func TestRenderPositionalCaps(t *testing.T) {
+// Named systems render alone (no platform files, no other system) into --out.
+func TestRenderPositionalSystems(t *testing.T) {
 	root := t.TempDir()
 	if err := os.CopyFS(root, os.DirFS("../../../render/testdata/root")); err != nil {
 		t.Fatal(err)
@@ -64,7 +64,7 @@ func TestRenderPrintsDiags(t *testing.T) {
 	if err := os.CopyFS(root, os.DirFS("../../../render/testdata/root")); err != nil {
 		t.Fatal(err)
 	}
-	p := filepath.Join(root, "capabilities/payments/apps/my-app/app.yml")
+	p := filepath.Join(root, "systems/payments/apps/my-app/app.yml")
 	b, _ := os.ReadFile(p)
 	if err := os.WriteFile(p, []byte(strings.Replace(string(b), "replicas: 2", "replicas: x", 1)), 0o644); err != nil {
 		t.Fatal(err)
@@ -74,7 +74,7 @@ func TestRenderPrintsDiags(t *testing.T) {
 	c.SetOut(&stdout)
 	c.SetErr(&errOut)
 	c.SetArgs([]string{"render", "--root", root, "payments", "--out", t.TempDir()})
-	if err := c.Execute(); err == nil || !strings.Contains(errOut.String(), "capabilities/payments/apps/my-app/app.yml:") {
+	if err := c.Execute(); err == nil || !strings.Contains(errOut.String(), "systems/payments/apps/my-app/app.yml:") {
 		t.Errorf("err=%v stderr=%q", err, errOut.String())
 	}
 }

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -43,12 +43,12 @@ func ReadFiles(root, dir string) (map[string]string, error) {
 	return m, err
 }
 
-// ChangedCaps lists the capabilities with any changed file under capabilities/<cap>/ between baseRoot
-// and root (new, modified or deleted); a changed teams/ file selects every capability on both sides.
-func ChangedCaps(baseRoot, root string) ([]string, error) {
+// ChangedSystems lists the systems with any changed file under systems/<sys>/ between baseRoot
+// and root (new, modified or deleted); a changed teams/ file selects every system on both sides.
+func ChangedSystems(baseRoot, root string) ([]string, error) {
 	set := map[string]bool{}
 	teams := false
-	for _, dir := range []string{"capabilities", "teams"} {
+	for _, dir := range []string{"systems", "teams"} {
 		a, err := ReadFiles(baseRoot, dir)
 		if err != nil {
 			return nil, err
@@ -77,7 +77,7 @@ func ChangedCaps(baseRoot, root string) ([]string, error) {
 	}
 	if teams {
 		for _, r := range []string{baseRoot, root} {
-			for _, n := range capability.Names(r) {
+			for _, n := range system.Names(r) {
 				set[n] = true
 			}
 		}
@@ -90,29 +90,29 @@ func ChangedCaps(baseRoot, root string) ([]string, error) {
 	return out, nil
 }
 
-// RenderCap renders capName from root in memory (rendered/-relative path -> content); a capability
+// RenderSystem renders sysName from root in memory (rendered/-relative path -> content); a system
 // absent from root yields no files.
-func RenderCap(cfg capability.Config, root, capName string) (map[string]string, error) {
-	if st, err := os.Stat(filepath.Join(root, "capabilities", capName)); err != nil || !st.IsDir() {
+func RenderSystem(cfg system.Config, root, sysName string) (map[string]string, error) {
+	if st, err := os.Stat(filepath.Join(root, "systems", sysName)); err != nil || !st.IsDir() {
 		return nil, nil
 	}
-	teams, err := capability.LoadTeams(root)
+	teams, err := system.LoadTeams(root)
 	if err != nil {
 		return nil, err
 	}
-	return capability.Render(cfg, root, capName, teams)
+	return system.Render(cfg, root, sysName, teams)
 }
 
-// Diff renders caps from baseRoot and root in memory and returns the rendered files that differ,
+// Diff renders systems from baseRoot and root in memory and returns the rendered files that differ,
 // sorted by path. A working-side error is returned as is (diags); a base-side one is prefixed "base: ".
-func Diff(cfg capability.Config, baseRoot, root string, caps []string) ([]FileDiff, error) {
+func Diff(cfg system.Config, baseRoot, root string, systems []string) ([]FileDiff, error) {
 	var out []FileDiff
-	for _, c := range caps {
-		now, err := RenderCap(cfg, root, c)
+	for _, c := range systems {
+		now, err := RenderSystem(cfg, root, c)
 		if err != nil {
 			return nil, err
 		}
-		was, err := RenderCap(cfg, baseRoot, c)
+		was, err := RenderSystem(cfg, baseRoot, c)
 		if err != nil {
 			return nil, fmt.Errorf("base: %w", err)
 		}

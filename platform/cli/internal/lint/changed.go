@@ -6,27 +6,27 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"gopkg.in/yaml.v3"
 )
 
 // Changed is the Scope for changed files (repo-relative, slash-separated, old and new paths of renames):
-//   - capabilities/<cap>/**: that capability, unless it was deleted.
-//   - teams/<t>.y*ml: the teams/ files, and every capability whose owners.yml names <t> in codeOwners
+//   - systems/<sys>/**: that system, unless it was deleted.
+//   - teams/<t>.y*ml: the teams/ files, and every system whose owners.yml names <t> in codeOwners
 //     (a removed or renamed team breaks them).
 //   - platform/cli/**: the rules themselves changed, so everything (all is true).
 //
 // Anything else needs no lint.
 func Changed(root string, files []string) (s Scope, all bool) {
-	caps := map[string]bool{}
+	systems := map[string]bool{}
 	teams := map[string]bool{}
 	for _, f := range files {
 		parts := strings.Split(f, "/")
 		switch {
 		case parts[0] == "platform" && len(parts) > 2 && parts[1] == "cli":
-			return Scope{Teams: true, Caps: capability.Names(root)}, true
-		case parts[0] == "capabilities" && len(parts) > 2:
-			caps[parts[1]] = true
+			return Scope{Teams: true, Systems: system.Names(root)}, true
+		case parts[0] == "systems" && len(parts) > 2:
+			systems[parts[1]] = true
 		case parts[0] == "teams" && len(parts) == 2:
 			if ext := filepath.Ext(f); ext == ".yml" || ext == ".yaml" {
 				teams[strings.TrimSuffix(parts[1], ext)] = true
@@ -35,26 +35,26 @@ func Changed(root string, files []string) (s Scope, all bool) {
 	}
 	if len(teams) > 0 {
 		s.Teams = true
-		for _, c := range capability.Names(root) {
-			if !caps[c] && namesTeam(root, c, teams) {
-				caps[c] = true
+		for _, c := range system.Names(root) {
+			if !systems[c] && namesTeam(root, c, teams) {
+				systems[c] = true
 			}
 		}
 	}
-	for c := range caps {
-		if st, err := os.Stat(filepath.Join(root, "capabilities", c)); err == nil && st.IsDir() {
-			s.Caps = append(s.Caps, c)
+	for c := range systems {
+		if st, err := os.Stat(filepath.Join(root, "systems", c)); err == nil && st.IsDir() {
+			s.Systems = append(s.Systems, c)
 		}
 	}
-	sort.Strings(s.Caps)
+	sort.Strings(s.Systems)
 	return s, false
 }
 
-// namesTeam: the capability's owners.yml lists one of teams in codeOwners (top level or under apps).
+// namesTeam: the system's owners.yml lists one of teams in codeOwners (top level or under apps).
 // An unreadable owners.yml counts as naming it, so lint reports what is wrong with it.
-func namesTeam(root, capName string, teams map[string]bool) bool {
+func namesTeam(root, sysName string, teams map[string]bool) bool {
 	for _, ext := range []string{".yml", ".yaml"} {
-		b, err := os.ReadFile(filepath.Join(root, "capabilities", capName, "owners"+ext))
+		b, err := os.ReadFile(filepath.Join(root, "systems", sysName, "owners"+ext))
 		if err != nil {
 			continue
 		}

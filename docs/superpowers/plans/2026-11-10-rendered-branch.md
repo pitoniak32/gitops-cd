@@ -22,7 +22,7 @@
 1. Bootstrap order: AppSets referencing a not-yet-existing `rendered` branch must retry, not wedge (check `retry.limit: -1` / ApplicationSet requeue). Pinned by: Task 2 check.sh rule + post-merge `mise run up`.
 2. PR comment when `origin/rendered` doesn't exist yet (first PR): must not fail CI. Pinned by: Task 3 step.
 3. A PR that edits `rendered/` on `main`: rejected. Pinned by: Task 3 guard.
-4. Deleted capability: full render on `rendered` must drop it (render task wipes generated dirs). Existing test covers render task wipe.
+4. Deleted system: full render on `rendered` must drop it (render task wipes generated dirs). Existing test covers render task wipe.
 5. Kargo `git-clone` of a Freight commit only reachable from `rendered`: must work. Pinned by: post-merge manual promotion.
 
 ---
@@ -33,7 +33,7 @@
 
 - [ ] Assert in test.sh: `yq 'select(.kind=="Warehouse") | .spec.subscriptions[0].git.branch' "$k" | sort -u` == `rendered`. Run → FAIL.
 - [ ] `branch: renderedBranch`. `UPDATE=1` golden after reviewing diff (only `branch:` lines). Run → PASS.
-- [ ] `codeowners` task: temp out dir, `render.sh . <cap> $tmp` for each capability, `codeowners.sh . $tmp`. Verify: `mise run codeowners && jj diff .github/CODEOWNERS` → empty.
+- [ ] `codeowners` task: temp out dir, `render.sh . <sys> $tmp` for each system, `codeowners.sh . $tmp`. Verify: `mise run codeowners && jj diff .github/CODEOWNERS` → empty.
 - [ ] Commit `render: Warehouse reads the rendered branch; mise run codeowners`.
 
 ### Task 2: AppSets read `rendered`

@@ -14,8 +14,8 @@
 
 - `cuelang.org/go` exactly `v0.17.0` (= `.mise.toml` `cue = '0.17.0'`).
 - Golden (`platform/render/testdata/golden`) and `.github/CODEOWNERS` byte-identical after every task; `UPDATE=1 mise run test` still rewrites golden.
-- `mise run lint` output identical to `lint.sh` on every lint case and on `capabilities/` (format `file:line:col: [label: ]message`, sorted, deduped; exit 1 on any diagnostic).
-- `mise run render [out]`, `mise run lint [caps…]`, `mise run codeowners`, `mise run schemas`, `mise run test` keep their args and stdout lines (`rendered <cap>`, `rendered regions`, `wrote .github/CODEOWNERS`, `wrote <schema file>`).
+- `mise run lint` output identical to `lint.sh` on every lint case and on `systems/` (format `file:line:col: [label: ]message`, sorted, deduped; exit 1 on any diagnostic).
+- `mise run render [out]`, `mise run lint [caps…]`, `mise run codeowners`, `mise run schemas`, `mise run test` keep their args and stdout lines (`rendered <sys>`, `rendered regions`, `wrote .github/CODEOWNERS`, `wrote <schema file>`).
 - `schemas/`: content-equal (`jq -S`) to today; key order may change.
 - Teams never write CUE; messages still come from CUE `error()`.
 - jj only; one jj change + bookmark per PR; never push. Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
@@ -24,7 +24,7 @@
 ## Review Focus
 
 1. Library error set vs `cue vet -c -E`: a lint case whose message only appears via a nested/follow-on path. Task 2's transitional diff test covers every case.
-2. Capability with no `environment-variables/` or no `stages/` dir (empty globs): render must still work. Task 1 test `TestCapabilityEmptyGlobs`.
+2. System with no `environment-variables/` or no `stages/` dir (empty globs): render must still work. Task 1 test `TestSystemEmptyGlobs`.
 3. `.yaml` vs `.yml` inputs: both picked up and located. Task 2 test `TestLintYamlExtension`.
 4. `GITOPS_REPO` set: `repo` tag passed. Task 1 test `TestRepoTag`.
 5. Stale outputs: re-render after deleting an app removes its files. Task 1 test `TestRenderPrunes`.
@@ -46,26 +46,26 @@
 - Create: `platform/cli/internal/cmd/render.go`, `codeowners.go`
 - Modify: `platform/cli/internal/regions/regions.go:32-45` (use `cueload.Platform`, drop `exec cue`)
 - Modify: `platform/mise-tasks/render`, `platform/mise-tasks/codeowners` → `#MISE depends=["cli"]` + `exec "$MISE_PROJECT_ROOT/.bin/gcd" <cmd> "$@"`
-- Modify: `platform/render/scripts/test.sh`: `scripts/render.sh <r> <cap> <out>` → `"$GCD" render <out> --root <r> --capability <cap>`; `regions.sh`/`codeowners.sh` likewise (`GCD=$MISE_PROJECT_ROOT/.bin/gcd`; test task gains `depends=["cli"]`). `inputs.sh` stays (lint.sh) until Task 2.
+- Modify: `platform/render/scripts/test.sh`: `scripts/render.sh <r> <sys> <out>` → `"$GCD" render <out> --root <r> --system <sys>`; `regions.sh`/`codeowners.sh` likewise (`GCD=$MISE_PROJECT_ROOT/.bin/gcd`; test task gains `depends=["cli"]`). `inputs.sh` stays (lint.sh) until Task 2.
 - Delete: `platform/render/scripts/{render,regions,unique-apps,codeowners}.sh`
 
 **Interfaces (Produces):**
-- `cueload.Capability(root, cap string) (cue.Value, error)`: load package `.` in `<root>/platform/render` with `load.Config{Dir, Tags: ["capability=<cap>", "repo=$GITOPS_REPO" if set]}`; for each input (globs in this order, `filepath.Glob`: `teams/*.y*ml`, `capabilities/<cap>/owners.y*ml`, `stages/*.y*ml`, `targets/*.y*ml`, `targets/*/target.y*ml`, `targets/*/environment-variables/*.y*ml`, `apps/*/app.y*ml`, `apps/*/owners.y*ml`) `yaml.Extract(absPath, bytes)` → `ctx.BuildFile` → `FillPath(cue.MakePath(cue.Str("in"), cue.Str(relPath)))`. Returns build/extract errors as-is (they carry positions).
+- `cueload.System(root, cap string) (cue.Value, error)`: load package `.` in `<root>/platform/render` with `load.Config{Dir, Tags: ["system=<sys>", "repo=$GITOPS_REPO" if set]}`; for each input (globs in this order, `filepath.Glob`: `teams/*.y*ml`, `systems/<sys>/owners.y*ml`, `stages/*.y*ml`, `targets/*.y*ml`, `targets/*/target.y*ml`, `targets/*/environment-variables/*.y*ml`, `apps/*/app.y*ml`, `apps/*/owners.y*ml`) `yaml.Extract(absPath, bytes)` → `ctx.BuildFile` → `FillPath(cue.MakePath(cue.Str("in"), cue.Str(relPath)))`. Returns build/extract errors as-is (they carry positions).
 - `cueload.Platform(root string, files ...string) (cue.Value, error)`: `load.Instances(files, {Dir: <root>/platform/render})`.
 - `cueload.Generic(root string) (cue.Value, error)`: package with tag `generic=true`.
 - `cueload.Inputs(root, cap string) []string` (relative paths; used by lint).
-- `render.Capability(root, cap, out string) ([]string, error)`: `v.Validate(cue.Concrete(true))` (error returned unchanged), decode `files` to `map[string]string`, remove `apps/<cap>`, `kargo/<cap>.yaml`, `argocd/projects/*/<cap>.yaml`, `argocd/deploys/*/<cap>`, `pipelines/<cap>.json`, `codeowners/<cap>`, write each file (0644, dirs 0755); returns written paths sorted.
+- `render.System(root, cap, out string) ([]string, error)`: `v.Validate(cue.Concrete(true))` (error returned unchanged), decode `files` to `map[string]string`, remove `apps/<sys>`, `kargo/<sys>.yaml`, `argocd/projects/*/<sys>.yaml`, `argocd/deploys/*/<sys>`, `pipelines/<sys>.json`, `codeowners/<sys>`, write each file (0644, dirs 0755); returns written paths sorted.
 - `render.Regions(root, out string) error`: `Platform(root, "clusters.cue", "regions.cue")`, `regionFiles` map, `rm -rf <out>/infrastructure` first.
-- `render.UniqueApps(out string) error`: per `<out>/argocd/deploys/<r>/`, JSON `.appName` duplicates → error lines `duplicate workload Application name <n> in region <r>: rename a capability or app` (joined with `\n`).
+- `render.UniqueApps(out string) error`: per `<out>/argocd/deploys/<r>/`, JSON `.appName` duplicates → error lines `duplicate workload Application name <n> in region <r>: rename a system or app` (joined with `\n`).
 - `render.CodeOwners(root, out string) error`: rules of `codeowners.sh` (exactly one `#GENERATED`; fragments `<out>/codeowners/*` sorted, concatenated; per `teams/*.y*ml` line `/teams/<base> @<githubTeam>[ <owners of the template's "/teams/" line>]`).
-- `render.All(root, out string, w io.Writer) error`: the `render` task (wipe generated dirs, each capability → `rendered <cap>`, Regions, UniqueApps, `rendered regions`, CodeOwners, copy `platform/render/rendered-README.md` to `<out>/README.md`).
-- `gcd render [out] [--root <dir>] [--capability <cap>]…` (default out `rendered`, root = repo; `--capability` renders only those, no wipe of other caps, no Regions/CodeOwners: the `render.sh` replacement `test.sh` calls until Task 3), `gcd codeowners` (render to temp dir, CodeOwners, print `wrote .github/CODEOWNERS`).
+- `render.All(root, out string, w io.Writer) error`: the `render` task (wipe generated dirs, each system → `rendered <sys>`, Regions, UniqueApps, `rendered regions`, CodeOwners, copy `platform/render/rendered-README.md` to `<out>/README.md`).
+- `gcd render [out] [--root <dir>] [--system <sys>]…` (default out `rendered`, root = repo; `--system` renders only those, no wipe of other caps, no Regions/CodeOwners: the `render.sh` replacement `test.sh` calls until Task 3), `gcd codeowners` (render to temp dir, CodeOwners, print `wrote .github/CODEOWNERS`).
 
 - [ ] **Step 1: Failing tests** in `render_test.go`:
   - `TestGolden`: render `testdata/root` payments+search + Regions into `t.TempDir()`; compare tree to `platform/render/testdata/golden` file by file (missing/extra/different → `t.Errorf` with path; first differing line). `UPDATE=1` → replace golden dir and `t.Skip("updated")`.
   - `TestCodeOwnersGolden`: copy `testdata/root` + repo `.github/CODEOWNERS.tmpl` the way `test.sh:185-195` does; result equals `testdata/golden-codeowners`.
   - `TestUniqueApps`: the case at `test.sh:313-326` → error contains `duplicate workload Application name`.
-  - `TestCapabilityEmptyGlobs`, `TestRepoTag` (`GITOPS_REPO=https://example.com/x` → a Warehouse git `repoURL` equals it), `TestRenderPrunes` (render, delete `apps/worker`, render → no `apps/payments/worker`).
+  - `TestSystemEmptyGlobs`, `TestRepoTag` (`GITOPS_REPO=https://example.com/x` → a Warehouse git `repoURL` equals it), `TestRenderPrunes` (render, delete `apps/worker`, render → no `apps/payments/worker`).
 - [ ] **Step 2:** `go test ./internal/render/...` → FAIL (package missing).
 - [ ] **Step 3:** Implement `cueload`, `render`, cmds; `go get cuelang.org/go@v0.17.0 && go mod tidy`.
 - [ ] **Step 4:** `go test ./...` PASS; `mise run render /tmp/x` then `diff -r` vs old `render.sh` output from `main` (run before deleting scripts) → identical; `mise run regions && jj diff --stat` empty; `mise run test` PASS.
@@ -83,16 +83,16 @@
 **Interfaces (Produces):**
 - `yamlpos.Find(file string, path []string) (line, col int, ok bool)`: walk `yaml.v3` document; string segment = map key (return the key node's position), all-digits segment = sequence index (item position).
 - `lint.Diag{File string; Line, Col int; Label, Msg string}`; `(Diag) String()` = `File:Line:Col: [Label: ]Msg`.
-- `lint.Capability(root, cap string) ([]Diag, error)` (error only for I/O, not CUE): from `errors.Errors(err)` of `cueload.Capability` + `Validate(cue.Concrete(true))`:
+- `lint.System(root, cap string) ([]Diag, error)` (error only for I/O, not CUE): from `errors.Errors(err)` of `cueload.System` + `Validate(cue.Concrete(true))`:
   - path = `e.Path()`; msg = `fmt.Sprintf(e.Msg())`; yaml position = first of `errors.Positions(e)` whose filename ends `.yml`/`.yaml`.
   - drop disjunction-header errors (`errors in empty disjunction`); drop an error whose path has a reported path as a proper prefix; drop `conflicting values…` when another error has the same path.
   - `locate(path)` table = `lint.sh:27-48` verbatim semantics (file, query path, label per top-level field, `stageNameErrors` included). Position: yaml position from the error if its file is under root, else `yamlpos.Find`, else `1:1`.
-- `lint.All(root string, caps []string) ([]Diag, error)`: default every `capabilities/*`; sort by file, line, col; dedupe.
+- `lint.All(root string, caps []string) ([]Diag, error)`: default every `systems/*`; sort by file, line, col; dedupe.
 - `gcd lint [caps…]`: print diags, exit 1 if any.
 
 - [ ] **Step 1: Failing tests:**
   - `yamlpos_test.go`: leading `# yaml-language-server: $schema=…` + blank line → key on file line 3 reports 3 (no offset hack); quoted keys; list index.
-  - `compat_test.go`: for every row of `testdata/lint-cases.tsv` and the dir-rename cases, apply the edit (via `yq -i`, transitional), run `scripts/lint.sh` and `lint.Capability`; outputs equal (`t.Skip` if `lint.sh` already deleted).
+  - `compat_test.go`: for every row of `testdata/lint-cases.tsv` and the dir-rename cases, apply the edit (via `yq -i`, transitional), run `scripts/lint.sh` and `lint.System`; outputs equal (`t.Skip` if `lint.sh` already deleted).
   - `lint_test.go`: `TestLintClean` (fixture lints clean), `TestLintYamlExtension` (rename `stages/dev.yml` → `.yaml`, break it, diag file ends `.yaml`).
 - [ ] **Step 2:** `go test ./internal/lint/... ./internal/yamlpos/...` FAIL.
 - [ ] **Step 3:** Implement.
@@ -136,7 +136,7 @@
 - passes (one func each, `func(any) any`, `schemas.sh:14-51` semantics): `dropFalseAnyOf`, `inlineRefProps`, `propertyNamesMessages`, `foldNotPattern`, `patternMessages`, `patternErrorMessage`.
 
 - [ ] **Step 1: Failing tests:** one per pass on a tiny input/output pair from the jq; `TestGenerateMatchesCommitted`: generate to temp, each file `reflect.DeepEqual` (after JSON decode) to committed `platform/render/schemas/*.json`.
-- [ ] **Step 2:** FAIL. **Step 3:** implement. **Step 4:** PASS; `mise run schemas`, `jj diff` shows key-order-only changes (`jq -S` equal per file); open `capabilities/payments/apps/worker/app.yml` with an unknown key and a bad image → yamlls messages unchanged (manual).
+- [ ] **Step 2:** FAIL. **Step 3:** implement. **Step 4:** PASS; `mise run schemas`, `jj diff` shows key-order-only changes (`jq -S` equal per file); open `systems/payments/apps/worker/app.yml` with an unknown key and a bad image → yamlls messages unchanged (manual).
 - [ ] **Step 5:** `jj describe -m "feat(cli): gcd schemas"`, `jj new`, bookmark `go-schemas`.
 
 ## Unresolved questions

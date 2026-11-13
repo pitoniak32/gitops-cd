@@ -9,18 +9,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/yamledit"
 )
 
-// An error lint can't turn into a diagnostic (here: a missing capability) must not hide the
-// other capabilities' diagnostics.
+// An error lint can't turn into a diagnostic (here: a missing system) must not hide the
+// other systems' diagnostics.
 func TestLintPrintsDiagsBeforeError(t *testing.T) {
 	root := t.TempDir()
 	if err := os.CopyFS(root, os.DirFS("../../../render/testdata/root")); err != nil {
 		t.Fatal(err)
 	}
-	owners := filepath.Join(root, "capabilities/payments/owners.yml")
+	owners := filepath.Join(root, "systems/payments/owners.yml")
 	if err := yamledit.Set(owners, []string{"promoters", "dev"}, []any{"doug@evil.com"}); err != nil {
 		t.Fatal(err)
 	}
@@ -32,11 +32,11 @@ func TestLintPrintsDiagsBeforeError(t *testing.T) {
 	if err := c.Execute(); err == nil {
 		t.Fatal("want error")
 	}
-	if !strings.Contains(out.String(), "capabilities/payments/owners.yml:") {
+	if !strings.Contains(out.String(), "systems/payments/owners.yml:") {
 		t.Errorf("payments diagnostic missing from stdout: %q", out.String())
 	}
 	if !strings.Contains(errOut.String(), "nope") {
-		t.Errorf("error for capability nope missing from stderr: %q", errOut.String())
+		t.Errorf("error for system nope missing from stderr: %q", errOut.String())
 	}
 }
 
@@ -56,14 +56,14 @@ func TestLintChangedFlagRules(t *testing.T) {
 	}
 }
 
-// --all wins over --changed and named capabilities: no git needed, every capability linted.
+// --all wins over --changed and named systems: no git needed, every system linted.
 func TestLintAllOverrides(t *testing.T) {
 	root := t.TempDir()
 	if err := os.CopyFS(root, os.DirFS("../../../render/testdata/root")); err != nil {
 		t.Fatal(err)
 	}
 	// broken search: must be reported although only payments is named
-	if err := yamledit.Set(filepath.Join(root, "capabilities/search/owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
+	if err := yamledit.Set(filepath.Join(root, "systems/search/owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
 		t.Fatal(err)
 	}
 	c := NewRoot()
@@ -74,7 +74,7 @@ func TestLintAllOverrides(t *testing.T) {
 	if err := c.Execute(); err == nil {
 		t.Fatal("want lint failure")
 	}
-	if !strings.Contains(out.String(), "capabilities/search/owners.yml:") {
+	if !strings.Contains(out.String(), "systems/search/owners.yml:") {
 		t.Errorf("search not linted: %q", out.String())
 	}
 	if !strings.Contains(errOut.String(), "--all: everything") {
@@ -88,7 +88,7 @@ func TestLintJSON(t *testing.T) {
 	if err := os.CopyFS(root, os.DirFS("../../../render/testdata/root")); err != nil {
 		t.Fatal(err)
 	}
-	if err := yamledit.Set(filepath.Join(root, "capabilities/payments/owners.yml"), []string{"promoters", "dev"}, []any{"doug@evil.com"}); err != nil {
+	if err := yamledit.Set(filepath.Join(root, "systems/payments/owners.yml"), []string{"promoters", "dev"}, []any{"doug@evil.com"}); err != nil {
 		t.Fatal(err)
 	}
 	run := func(args ...string) (string, error) {
@@ -108,7 +108,7 @@ func TestLintJSON(t *testing.T) {
 	if err == nil {
 		t.Fatal("json: want lint failure")
 	}
-	var diags []capability.Diag
+	var diags []system.Diag
 	if err := json.Unmarshal([]byte(js), &diags); err != nil {
 		t.Fatalf("stdout is not JSON: %v\n%s", err, js)
 	}
@@ -161,19 +161,19 @@ func TestLintChangedDefaultBase(t *testing.T) {
 			if _, err := exec.LookPath(kind); err != nil {
 				t.Skip(kind + " not installed")
 			}
-			breakCap := func(name string) {
-				if err := yamledit.Set(filepath.Join(root, "capabilities", name, "owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
+			breakSystem := func(name string) {
+				if err := yamledit.Set(filepath.Join(root, "systems", name, "owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
 					t.Fatal(err)
 				}
 			}
-			breakCap("payments")
+			breakSystem("payments")
 			if kind == "git" {
 				g := []string{"-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"}
 				run("git", "init", "-q", "-b", "main")
 				run("git", "add", "-A")
 				run("git", append(g, "commit", "-qm", "trunk")...)
 				run("git", "checkout", "-qb", "feature")
-				breakCap("search")
+				breakSystem("search")
 				run("git", "add", "-A")
 				run("git", append(g, "commit", "-qm", "branch")...)
 			} else {
@@ -182,7 +182,7 @@ func TestLintChangedDefaultBase(t *testing.T) {
 				run("jj", append(id, "commit", "-m", "trunk")...)
 				run("jj", "bookmark", "create", "main", "-r", "@-")
 				run("jj", "config", "set", "--repo", `revset-aliases."trunk()"`, "main")
-				breakCap("search")
+				breakSystem("search")
 				run("jj", append(id, "commit", "-m", "branch")...)
 			}
 			c := NewRoot()
@@ -193,7 +193,7 @@ func TestLintChangedDefaultBase(t *testing.T) {
 			if err := c.Execute(); err == nil {
 				t.Fatalf("want lint failure\n%s", errOut.String())
 			}
-			if !strings.Contains(out.String(), "capabilities/search/owners.yml:") || strings.Contains(out.String(), "capabilities/payments/") {
+			if !strings.Contains(out.String(), "systems/search/owners.yml:") || strings.Contains(out.String(), "systems/payments/") {
 				t.Errorf("want search only:\n%s\n%s", out.String(), errOut.String())
 			}
 			if !strings.Contains(errOut.String(), "changes since") {

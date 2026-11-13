@@ -1,6 +1,6 @@
 # Kargo graph: one Stage per target, control flow only where needed
 
-A gitops stage (`stages/<stage>.yml`) can deploy an app to several targets. Per app (one Kargo project, ADR 0029), every target is a Kargo **target Stage** `<target>`. It copies `rendered/apps/<cap>/<app>/<stage>/<target>/` onto `env/<cap>/<app>/<target>` and deploys that branch: Argo CD Application `<cap>-<app>-<target>`, or a workflow (ADR 0020). That matches Argo CD's one app per target and gives per-target control in prod (e.g. promote one region first). A Stage runs on one shard (ADR 0015), so a stage spanning regions needs a Stage per region anyway.
+A gitops stage (`stages/<stage>.yml`) can deploy an app to several targets. Per app (one Kargo project, ADR 0029), every target is a Kargo **target Stage** `<target>`. It copies `rendered/apps/<sys>/<app>/<stage>/<target>/` onto `env/<sys>/<app>/<target>` and deploys that branch: Argo CD Application `<sys>-<app>-<target>`, or a workflow (ADR 0020). That matches Argo CD's one app per target and gives per-target control in prod (e.g. promote one region first). A Stage runs on one shard (ADR 0015), so a stage spanning regions needs a Stage per region anyway.
 
 Control-flow Stages (no promotion steps) appear only where they do a job (`graph.go`). A stage's targets are grouped by the stage's dependency set. U is the upstream targets of that set (the Warehouse for a first stage), and C is all targets of the stages that share that set.
 

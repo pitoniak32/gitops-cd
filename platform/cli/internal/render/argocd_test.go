@@ -55,7 +55,7 @@ func TestKindClusterArgoCD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(mustRead(t, abs(t, "testdata/root/capabilities/payments/apps/my-app/app.yml")), "APP_SECRET") {
+	if !strings.Contains(mustRead(t, abs(t, "testdata/root/systems/payments/apps/my-app/app.yml")), "APP_SECRET") {
 		t.Error("fixture lost its secret: env value")
 	}
 
@@ -107,7 +107,7 @@ func TestKindClusterArgoCD(t *testing.T) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	if got := strings.Join(keys, ","); got != "app,appName,authorizedStage,branch,capability,destination,namespace,stage,target" {
+	if got := strings.Join(keys, ","); got != "app,appName,authorizedStage,branch,destination,namespace,stage,system,target" {
 		t.Errorf("deploy params keys changed: %s", got)
 	}
 
@@ -127,7 +127,7 @@ func TestKindClusterArgoCD(t *testing.T) {
 	}
 	sort.Strings(files)
 	if strings.Join(files, " ") != "./deploys/dc1/payments/my-app-dc1-dev-k8s.json ./deploys/dc1/payments/my-app-dc1-prd-k8s.json ./deploys/us-east4/payments/my-app-us-east4-dev-k8s.json ./deploys/us-east4/payments/my-app-us-east4-npr-k8s-perf.json ./deploys/us-east4/payments/my-app-us-east4-npr-k8s.json ./deploys/us-east4/payments/my-app-us-east4-prd-k8s.json ./deploys/us-east4/payments/payments-us-east4-dev-k8s.json ./deploys/us-east4/payments/payments-us-east4-npr-k8s.json ./deploys/us-east4/payments/payments-us-east4-prd-k8s.json ./deploys/us-east4/payments/web-us-east4-dev-k8s.json ./deploys/us-east4/payments/worker-us-east4-npr-k8s.json ./deploys/us-east4/payments/worker-us-east4-prd-k8s.json ./deploys/us-east4/search/api-us-east4-dev-k8s.json ./projects/dc1/payments.yaml ./projects/us-east4/payments.yaml ./projects/us-east4/search.yaml" {
-		t.Error("argocd output must be per region: deploys/<r>/<cap>/ + projects/<r>/<cap>.yaml")
+		t.Error("argocd output must be per region: deploys/<r>/<sys>/ + projects/<r>/<sys>.yaml")
 	}
 	appRe := regexp.MustCompile(`(?m)kind: Application$`)
 	for _, f := range files {
@@ -193,12 +193,12 @@ func TestEnvFromPrecedence(t *testing.T) {
 	}
 }
 
-// test.sh: "prefix caps ok"
-// capability names that prefix each other (pay vs payments): re-rendering one must not wipe the other's deploys
-func TestPrefixCaps(t *testing.T) {
+// test.sh: "prefix systems ok"
+// system names that prefix each other (pay vs payments): re-rendering one must not wipe the other's deploys
+func TestPrefixSystems(t *testing.T) {
 	t.Parallel()
 	r := fixture(t)
-	copyTree(t, filepath.Join(r, "capabilities/payments"), filepath.Join(r, "capabilities/pay"))
+	copyTree(t, filepath.Join(r, "systems/payments"), filepath.Join(r, "systems/pay"))
 	o := t.TempDir()
 	renderTestRoot(t, r, o, "payments", "pay", "pay")
 	for _, c := range []string{"payments", "pay"} {

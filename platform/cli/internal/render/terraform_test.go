@@ -23,7 +23,7 @@ func TestTerraformRender(t *testing.T) {
 	if strings.Join(ns, " ") != "terraform.yaml" {
 		t.Errorf("terraform target renders only terraform.yaml: %s", strings.Join(ns, " "))
 	}
-	want := `{"capability":"payments","app":"infra","stage":"dev","target":"us-east4-dev-tf","environment":"dev","gcpProject":"team1-dev","region":"us-east4","wifEmail":"team1-dev@team1-dev.iam.gserviceaccount.com","backend":{"bucket":"tfstate-team1-dev","prefix":"payments/infra/us-east4-dev-tf"},"module":"ghcr.io/pitoniak32/tf-bucket","env":{"TF_VAR_bucket_name":"payments-dev","TF_VAR_region":"us-central1"}}`
+	want := `{"system":"payments","app":"infra","stage":"dev","target":"us-east4-dev-tf","environment":"dev","gcpProject":"team1-dev","region":"us-east4","wifEmail":"team1-dev@team1-dev.iam.gserviceaccount.com","backend":{"bucket":"tfstate-team1-dev","prefix":"payments/infra/us-east4-dev-tf"},"module":"ghcr.io/pitoniak32/tf-bucket","env":{"TF_VAR_bucket_name":"payments-dev","TF_VAR_region":"us-central1"}}`
 	if got := orderedJSON(t, filepath.Join(tf, "dev/us-east4-dev-tf/terraform.yaml"), ""); got != want {
 		t.Errorf("us-east4-dev-tf terraform.yaml\nwant: %s\ngot:  %s", want, got)
 	}

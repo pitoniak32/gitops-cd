@@ -8,7 +8,7 @@ import (
 	"testing/fstest"
 )
 
-const devOpen = "<!-- embed path=capabilities/payments/stages/dev.yml -->"
+const devOpen = "<!-- embed path=systems/payments/stages/dev.yml -->"
 
 func embed(t *testing.T, page string) (string, []string) {
 	t.Helper()
@@ -22,8 +22,8 @@ func embed(t *testing.T, page string) (string, []string) {
 
 func TestEmbedWholeFile(t *testing.T) {
 	got, d := embed(t, "x\n"+devOpen+"\nold\n<!-- /embed -->\ny\n")
-	want := "x\n" + devOpen + "\n```yaml\n" + fixtureFile(t, "capabilities/payments/stages/dev.yml") + "```\n\n" +
-		"Source: [`payments/stages/dev.yml`](../../platform/render/testdata/root/capabilities/payments/stages/dev.yml)\n" +
+	want := "x\n" + devOpen + "\n```yaml\n" + fixtureFile(t, "systems/payments/stages/dev.yml") + "```\n\n" +
+		"Source: [`payments/stages/dev.yml`](../../platform/render/testdata/root/systems/payments/stages/dev.yml)\n" +
 		"<!-- /embed -->\ny\n"
 	if got != want || d != nil {
 		t.Errorf("got %q (%v)\nwant %q", got, d, want)
@@ -31,16 +31,16 @@ func TestEmbedWholeFile(t *testing.T) {
 }
 
 func TestEmbedRange(t *testing.T) {
-	got, d := embed(t, "<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=2-3 -->\n<!-- /embed -->\n")
+	got, d := embed(t, "<!-- embed path=systems/payments/apps/my-app/app.yml lines=2-3 -->\n<!-- /embed -->\n")
 	want := "```yaml\nsourceRepo: acme/my-app\nimageConstraint: ^1\n```\n\n" +
-		"Source: [`payments/apps/my-app/app.yml:2-3`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L2-L3)\n"
+		"Source: [`payments/apps/my-app/app.yml:2-3`](../../platform/render/testdata/root/systems/payments/apps/my-app/app.yml#L2-L3)\n"
 	if !strings.Contains(got, want) || d != nil {
 		t.Errorf("got %q (%v)", got, d)
 	}
 }
 
 func TestEmbedDedent(t *testing.T) {
-	got, _ := embed(t, "<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=12-14 -->\n<!-- /embed -->\n")
+	got, _ := embed(t, "<!-- embed path=systems/payments/apps/my-app/app.yml lines=12-14 -->\n<!-- /embed -->\n")
 	if !strings.Contains(got, "```yaml\nenv:\n  STAGE_ENV: 'false'\nreplicas: 1\n```") {
 		t.Errorf("got %q", got)
 	}
@@ -72,13 +72,13 @@ func TestEmbedInsideFenceIgnored(t *testing.T) {
 
 func TestEmbedErrors(t *testing.T) {
 	for _, tc := range []struct{ open, msg string }{
-		{"<!-- embed path=capabilities/payments/stages/nope.yml -->", "capabilities/payments/stages/nope.yml: no such file in the fixture"},
+		{"<!-- embed path=systems/payments/stages/nope.yml -->", "systems/payments/stages/nope.yml: no such file in the fixture"},
 		{"<!-- embed path=../x.yml -->", "path must be a file under the fixture"},
-		{"<!-- embed path=capabilities/payments/stages/dev.yml lines=2-1 -->", "lines must be A-B with 1 <= A <= B <= 2"},
-		{"<!-- embed path=capabilities/payments/stages/dev.yml lines=0-1 -->", "lines must be A-B with 1 <= A <= B <= 2"},
-		{"<!-- embed path=capabilities/payments/stages/dev.yml lines=1-999 -->", "lines must be A-B with 1 <= A <= B <= 2"},
-		{"<!-- embed path=capabilities/payments/stages/dev.yml lines=abc -->", "lines must be A-B with 1 <= A <= B <= 2"},
-		{"<!-- embed path=capabilities/payments/stages/dev.yml foo=1 -->", `unknown embed attribute "foo"`},
+		{"<!-- embed path=systems/payments/stages/dev.yml lines=2-1 -->", "lines must be A-B with 1 <= A <= B <= 2"},
+		{"<!-- embed path=systems/payments/stages/dev.yml lines=0-1 -->", "lines must be A-B with 1 <= A <= B <= 2"},
+		{"<!-- embed path=systems/payments/stages/dev.yml lines=1-999 -->", "lines must be A-B with 1 <= A <= B <= 2"},
+		{"<!-- embed path=systems/payments/stages/dev.yml lines=abc -->", "lines must be A-B with 1 <= A <= B <= 2"},
+		{"<!-- embed path=systems/payments/stages/dev.yml foo=1 -->", `unknown embed attribute "foo"`},
 		{"<!-- embed lines=1-2 -->", "embed needs path="},
 	} {
 		page := "x\n" + tc.open + "\nkeep\n<!-- /embed -->\n"
@@ -131,7 +131,7 @@ func TestEmbedsWalk(t *testing.T) {
 }
 
 func TestEmbedHunks(t *testing.T) {
-	got, d := embed(t, `<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="1-2,(9-10;text='dev overrides'),(17-20;text='target wins')" -->`+"\n<!-- /embed -->\n")
+	got, d := embed(t, `<!-- embed path=systems/payments/apps/my-app/app.yml lines="1-2,(9-10;text='dev overrides'),(17-20;text='target wins')" -->`+"\n<!-- /embed -->\n")
 	want := "```yaml\n" +
 		"image: ghcr.io/pitoniak32/nginx\n" +
 		"sourceRepo: acme/my-app\n" +
@@ -146,25 +146,25 @@ func TestEmbedHunks(t *testing.T) {
 		"          APP_ENV: 'false'\n" +
 		"        replicas: 3\n" +
 		"```\n\n" +
-		"Source: [`payments/apps/my-app/app.yml:1-2,9-10,17-20`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L1-L20)\n"
+		"Source: [`payments/apps/my-app/app.yml:1-2,9-10,17-20`](../../platform/render/testdata/root/systems/payments/apps/my-app/app.yml#L1-L20)\n"
 	if !strings.Contains(got, want) || d != nil {
 		t.Errorf("got %q (%v)\nwant %q", got, d, want)
 	}
 }
 
 func TestEmbedHunksAdjacentAndSingle(t *testing.T) {
-	got, d := embed(t, `<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="1-2, 3" -->`+"\n<!-- /embed -->\n")
+	got, d := embed(t, `<!-- embed path=systems/payments/apps/my-app/app.yml lines="1-2, 3" -->`+"\n<!-- /embed -->\n")
 	if !strings.Contains(got, "```yaml\nimage: ghcr.io/pitoniak32/nginx\nsourceRepo: acme/my-app\nimageConstraint: ^1\n```\n\nSource: [`payments/apps/my-app/app.yml:1-3`](") || d != nil {
 		t.Errorf("adjacent: %q %v", got, d)
 	}
-	got, d = embed(t, "<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=3 -->\n<!-- /embed -->\n")
+	got, d = embed(t, "<!-- embed path=systems/payments/apps/my-app/app.yml lines=3 -->\n<!-- /embed -->\n")
 	if !strings.Contains(got, "```yaml\nimageConstraint: ^1\n```\n\nSource: [`payments/apps/my-app/app.yml:3`](") || d != nil {
 		t.Errorf("single: %q %v", got, d)
 	}
 }
 
 func TestEmbedHunkErrors(t *testing.T) {
-	const p = "<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="
+	const p = "<!-- embed path=systems/payments/apps/my-app/app.yml lines="
 	for _, tc := range []struct{ lines, msg string }{
 		{`"(9-10;'x')"`, "hunk options are key='value': (9-10;'x')"},
 		{`"(9-10;foo='x')"`, `unknown hunk option "foo"`},
@@ -184,11 +184,11 @@ func TestEmbedHunkErrors(t *testing.T) {
 }
 
 func TestEmbedIndented(t *testing.T) {
-	page := "- item\n\n  <!-- embed path=capabilities/payments/stages/dev.yml -->\n  old\n  <!-- /embed -->\n"
+	page := "- item\n\n  <!-- embed path=systems/payments/stages/dev.yml -->\n  old\n  <!-- /embed -->\n"
 	got, d := embed(t, page)
-	want := "- item\n\n  <!-- embed path=capabilities/payments/stages/dev.yml -->\n" +
+	want := "- item\n\n  <!-- embed path=systems/payments/stages/dev.yml -->\n" +
 		"  ```yaml\n  dependsOn: []\n  autoPromote: true\n  ```\n\n" +
-		"  Source: [`payments/stages/dev.yml`](../../platform/render/testdata/root/capabilities/payments/stages/dev.yml)\n" +
+		"  Source: [`payments/stages/dev.yml`](../../platform/render/testdata/root/systems/payments/stages/dev.yml)\n" +
 		"  <!-- /embed -->\n"
 	if got != want || d != nil {
 		t.Errorf("got %q (%v)\nwant %q", got, d, want)

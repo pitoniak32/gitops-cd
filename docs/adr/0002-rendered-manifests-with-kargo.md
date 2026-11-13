@@ -1,6 +1,6 @@
 # Rendered manifests on branch `rendered`, promoted by Kargo
 
-CI renders every app, stage and target to `rendered/` and pushes it to the orphan branch `rendered`. Kargo promotes by copying a target's folder from a Freight commit onto that target's branch `env/<cap>/<app>/<target>`, and Argo CD syncs that branch. Workloads never sync from `main`, so a merged change, including a platform change, reaches each target only through promotion. Reviewers see exact manifest diffs, not templates.
+CI renders every app, stage and target to `rendered/` and pushes it to the orphan branch `rendered`. Kargo promotes by copying a target's folder from a Freight commit onto that target's branch `env/<sys>/<app>/<target>`, and Argo CD syncs that branch. Workloads never sync from `main`, so a merged change, including a platform change, reaches each target only through promotion. Reviewers see exact manifest diffs, not templates.
 
 - **Branch `rendered`** holds only `rendered/` plus a README (from `platform/render/rendered-README.md`). CI pushes to it on every push to `main`, as the `gitops-cd-demo` GitHub App. The workflow's concurrency group serializes the pushes. CI commits only when the render changed: `render: <sha7>`, with the source commit's URL in the body. A ruleset lets only that App update the branch.
 - **`main`** has `rendered/` gitignored, and a PR that adds it fails CI. `gcd render` writes it locally. PR CI comments the render diff against `rendered`.

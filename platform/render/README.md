@@ -1,24 +1,24 @@
 # render
 
 Test fixtures and the golden tree for the renderer. The renderer itself is Go:
-`platform/cli/internal/capability` turns capability YAML (stages, targets, apps) into k8s manifests + a
+`platform/cli/internal/system` turns system YAML (stages, targets, apps) into k8s manifests + a
 promotion pipeline (ADR 0030). Teams never edit either.
 
 | where | role |
 |---|---|
-| `capability/config.go` | **platform-owned** config: cluster registry, per-environment-type replica policy, pre-deploy checks, the platform table (everything that differs per target platform) |
-| `capability/load.go` | the one table of input file routes; reads the YAML |
-| `capability/schema.go`, `validate.go` | what each file may contain + cross-file rules, every problem a located diagnostic |
-| `capability/model.go` | layered merge app → stage → target → deploy, owners |
-| `capability/graph.go` | neutral per-app promotion graph (`pipelines/<cap>.json`), Kargo Stage graph (ADR 0012) |
-| `capability/kargo.go`, `output.go` | Kargo Project/ProjectConfig/Warehouse/Stages/RBAC, Argo CD params + AppProjects, k8s / Cloud Run / terraform files, CODEOWNERS fragment |
-| `capability/platformfiles.go` | **platform-level** `ClusterPromotionTask`s (ADR 0027), region files, `mise run regions` config |
+| `system/config.go` | **platform-owned** config: cluster registry, per-environment-type replica policy, pre-deploy checks, the platform table (everything that differs per target platform) |
+| `system/load.go` | the one table of input file routes; reads the YAML |
+| `system/schema.go`, `validate.go` | what each file may contain + cross-file rules, every problem a located diagnostic |
+| `system/model.go` | layered merge app → stage → target → deploy, owners |
+| `system/graph.go` | neutral per-app promotion graph (`pipelines/<sys>.json`), Kargo Stage graph (ADR 0012) |
+| `system/kargo.go`, `output.go` | Kargo Project/ProjectConfig/Warehouse/Stages/RBAC, Argo CD params + AppProjects, k8s / Cloud Run / terraform files, CODEOWNERS fragment |
+| `system/platformfiles.go` | **platform-level** `ClusterPromotionTask`s (ADR 0027), region files, `mise run regions` config |
 | `emit` | ordered maps → YAML/JSON in the committed formatting |
 | `gcd render` / `gcd codeowners` (`internal/render`) | validate + write the files / CODEOWNERS (`mise run codeowners`) |
 | `gcd lint` (`internal/lint`) | full validation as `file:line:col: message`, or `::error` annotations in GitHub Actions |
-| `testdata/` | fixture capabilities (`root/`) + golden output |
+| `testdata/` | fixture systems (`root/`) + golden output |
 
-## Capability input (paths under the repo root)
+## System input (paths under the repo root)
 ```
 owners.yml                codeOwners: [team, ..], promoters: {<stage>: [email, ..]}, viewers: [email, ..],
                           breakGlass: [email, ..], apps: {<app>: {codeOwners?, promoters?, viewers?}}
@@ -46,19 +46,19 @@ apps/<app>/app.yml        sourceRepo (<owner>/<name>, required), image (repo onl
 
 ## Output (`rendered/` in the monorepo)
 ```
-apps/<cap>/<app>/<stage>/<target>/{deployment.yaml,manifests.yaml}
-kargo/<cap>.yaml      pipelines/<cap>.json
-argocd/deploys/<region>/<cap>/<app>-<target>.json   argocd/projects/<region>/<cap>.yaml
+apps/<sys>/<app>/<stage>/<target>/{deployment.yaml,manifests.yaml}
+kargo/<sys>.yaml      pipelines/<sys>.json
+argocd/deploys/<region>/<sys>/<app>-<target>.json   argocd/projects/<region>/<sys>.yaml
 infrastructure/regions/<region>.json                 (gcd render, cluster registry only)
 kargo/_promotion-tasks.yaml                          (gcd render, platform-level)
 ```
 
 ## Promotion
-Warehouse per app watches `rendered/apps/<cap>/<app>/` on main and the app's image repo (SemVer);
+Warehouse per app watches `rendered/apps/<sys>/<app>/` on main and the app's image repo (SemVer);
 Freight creation is Manual: promoters assemble Freight = (commit, image) in the Kargo UI.
-Promoting target T copies `rendered/apps/<cap>/<app>/<stage>/T/` from the Freight commit to branch
-`env/<cap>/<app>/T`, sets the Freight's image (`yaml-update` on `deployment.yaml`, `<repo>:<tag>@<digest>`),
-and syncs Argo CD app `<cap>-<app>-T` (path `.`, plain YAML). Gates and `availabilityStrategy: All`: ADR 0012.
+Promoting target T copies `rendered/apps/<sys>/<app>/<stage>/T/` from the Freight commit to branch
+`env/<sys>/<app>/T`, sets the Freight's image (`yaml-update` on `deployment.yaml`, `<repo>:<tag>@<digest>`),
+and syncs Argo CD app `<sys>-<app>-T` (path `.`, plain YAML). Gates and `availabilityStrategy: All`: ADR 0012.
 The steps live in ClusterPromotionTask `promote-<deployWith>`; each target Stage's template is one `task`
 step plus vars (ADR 0027).
 Platform pre-deploy checks (`config.go` `PreDeploy`, ADR 0028): per environment type, `{File, Ref, Timeout}`
@@ -67,15 +67,15 @@ workflow vars on the step) before `promote`: dispatch `file` to the app's `sourc
 commit and artifact, wait for success (`timeout`, max 2h); anything else fails the Promotion before the push.
 
 ## Feedback
-`gcd lint [cap…]` (`--root` for another tree; `.bin/gcd`, on PATH via mise, built by `mise run cli`): validates each
-capability's files (+ `teams/`) as `file:line:col: message`, pointing at the offending key or list item.
-Capabilities run in parallel; `teams/` is read and checked once. `--changed [--base <rev>]` (PR CI) lints
-only what the changes since the merge-base can affect (`--all` overrides it, and named capabilities; PR
+`gcd lint [sys…]` (`--root` for another tree; `.bin/gcd`, on PATH via mise, built by `mise run cli`): validates each
+system's files (+ `teams/`) as `file:line:col: message`, pointing at the offending key or list item.
+Systems run in parallel; `teams/` is read and checked once. `--changed [--base <rev>]` (PR CI) lints
+only what the changes since the merge-base can affect (`--all` overrides it, and named systems; PR
 label `lint-all` does that in CI). In GitHub Actions, with no scope flags, gcd picks the scope from the event
-(PR: `--changed` against the base branch; otherwise everything) and writes `::error` annotations (`--format`): changed capabilities; for a changed team file,
-`teams/` + the capabilities whose `owners.yml` names it; everything when `platform/cli/` changed. Kargo
-project and Application names that would collide across capabilities are checked over all of them every
-run (`capability.CheckNames`). `gcd render` builds capabilities in parallel too. Both show a progress
+(PR: `--changed` against the base branch; otherwise everything) and writes `::error` annotations (`--format`): changed systems; for a changed team file,
+`teams/` + the systems whose `owners.yml` names it; everything when `platform/cli/` changed. Kargo
+project and Application names that would collide across systems are checked over all of them every
+run (`system.CheckNames`). `gcd render` builds systems in parallel too. Both show a progress
 bar per phase (`internal/progress`) when stderr is a terminal, never in CI
 or pipes; `--no-progress` turns them off.
 There is no editor schema (ADR 0030). Two rounds: the files as written (structure, names, per-platform
@@ -83,4 +83,4 @@ fields, owners), then, once those are clean, what only shows in derived values (
 envFrom, prod autoPromote, stage cycles, generated name lengths).
 
 ## Dev loop
-`mise run test` (Go tests in `platform/cli/internal/{capability,render,lint}`: golden diff of testdata/root, render assertions, lint cases), `UPDATE=1 mise run test` to accept.
+`mise run test` (Go tests in `platform/cli/internal/{system,render,lint}`: golden diff of testdata/root, render assertions, lint cases), `UPDATE=1 mise run test` to accept.

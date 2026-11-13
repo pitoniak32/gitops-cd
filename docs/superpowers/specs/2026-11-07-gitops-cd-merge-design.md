@@ -5,10 +5,10 @@
 Make `kargo-demo` one repo that holds:
 - the local kind and Argo CD platform
 - the CUE renderer
-- the team YAML (capabilities and teams)
+- the team YAML (systems and teams)
 - the generated `rendered/` output
 
-A clean `mise run up` must end with Kargo running the generated capability projects, where doug (team1) can promote a `payments` app from dev to prod on kind. Later the repo gets renamed to `gitops-cd`, by the user, since it's a remote operation.
+A clean `mise run up` must end with Kargo running the generated system projects, where doug (team1) can promote a `payments` app from dev to prod on kind. Later the repo gets renamed to `gitops-cd`, by the user, since it's a remote operation.
 
 Source of the POC: `~/code/personal/gitops-cd-initial`. It's a jj repo, and its specs, plans and ADR 0001–0007 come along.
 
@@ -17,13 +17,13 @@ Source of the POC: `~/code/personal/gitops-cd-initial`. It's a jj repo, and its 
 ```
 cue.mod/module.cue      module: "github.com/pitoniak32/gitops-cd@v0" (single CUE module, repo root)
 render/                 CUE package `render` (POC platform/*.cue); schemas/, testdata/, scripts/
-capabilities/<cap>/     owners.yml, stages/, targets/, apps/<app>/{app,owners}.yml
+systems/<sys>/     owners.yml, stages/, targets/, apps/<app>/{app,owners}.yml
 teams/<team>.yml        githubTeam, idpGroup
 cluster/kind.yaml       unchanged
 infrastructure/<addon>/ was platform/<app>/ (app.yaml, values.yaml, manifests/)
 bootstrap/              root Applications: rendered-argocd, rendered-kargo
-rendered/               CI-generated: apps/<cap>/<app>/<stage>/<target>/, argocd/<cap>.yaml,
-                        kargo/<cap>.yaml, pipelines/<cap>.json, codeowners/<cap>
+rendered/               CI-generated: apps/<sys>/<app>/<stage>/<target>/, argocd/<sys>.yaml,
+                        kargo/<sys>.yaml, pipelines/<sys>.json, codeowners/<sys>
 mise-tasks/             up, down, infra, infra-render, render, lint, test, schemas, creds
 .github/                workflows/ci.yaml, CODEOWNERS.tmpl, CODEOWNERS (generated)
 docs/                   adr/ (POC 0001–0007 + 0008 this merge), agents/, specs/, plans/, gotchas.md
@@ -31,7 +31,7 @@ GLOSSARY.md CLAUDE.md README.md
 ```
 
 Removed:
-- `example-project/` (to be rebuilt later as a capability) and its ClusterAnalysisTemplates
+- `example-project/` (to be rebuilt later as a system) and its ClusterAnalysisTemplates
 - `.github/workflows/wait-and-echo.yaml`
 - every reference to the `kargo-demo-gitops` repo
 
@@ -56,12 +56,12 @@ Removed:
   - When it's false, the renderer omits ExternalSecrets and secret-backed env vars, with a manifest comment saying so.
   - `secret:` values still validate.
   - External Secrets Operator isn't installed.
-- **Argo CD AppProjects:** one per capability (`<cap>`), rendered into `rendered/argocd/<cap>.yaml`, with these settings:
+- **Argo CD AppProjects:** one per system (`<sys>`), rendered into `rendered/argocd/<sys>.yaml`, with these settings:
   - source repo = repoURL
-  - destinations = that capability's target namespaces on `in-cluster`
+  - destinations = that system's target namespaces on `in-cluster`
   - `clusterResourceWhitelist: []`
   - namespace resources allowed
-- **Example capabilities:** `payments` (team1) and `search` (team2) are kept. The namespaces become `<cap>-<target>` (one cluster, so namespaces must be unique per target), and the image becomes `ghcr.io/pitoniak32/nginx:<pinned tag>`. Pinned by tag or digest, per CLAUDE.md.
+- **Example systems:** `payments` (team1) and `search` (team2) are kept. The namespaces become `<sys>-<target>` (one cluster, so namespaces must be unique per target), and the image becomes `ghcr.io/pitoniak32/nginx:<pinned tag>`. Pinned by tag or digest, per CLAUDE.md.
 
 ## Platform wiring
 
@@ -78,7 +78,7 @@ Removed:
   - `additionalScopes: [groups]`
   - viewers stay email-based
   - promote rights only come from the generated `owner-<team>` roles, via `{"groups": [idpGroup]}`
-- **Argo CD:** unchanged (doug is an operator by email). Argo CD RBAC per capability is out of scope.
+- **Argo CD:** unchanged (doug is an operator by email). Argo CD RBAC per system is out of scope.
 - **Git credentials:**
   - `mise run creds` reads `GITHUB_PAT` from fnox and applies a Secret labeled `kargo.akuity.io/cred-type: git` into Kargo's shared/global credentials namespace.
   - The Kargo chart is configured to read from that namespace.
@@ -117,7 +117,7 @@ Removed:
 
 - Infrastructure apps from git (inlining stays)
 - External Secrets Operator
-- Argo CD RBAC per capability
+- Argo CD RBAC per system
 - multi-cluster
 - the managers role
 - rebuilding the example project

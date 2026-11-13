@@ -1,6 +1,6 @@
 # Teams write only YAML
 
-Teams describe delivery in plain YAML: capabilities, apps, stages, targets and owners. The platform validates it (`gcd lint`, `file:line:col` messages) and renders every Kubernetes, Kargo and Argo CD resource from it. Every option is a YAML field. Teams never write templates, config-language code, promotion steps or Kargo/Argo CD resources.
+Teams describe delivery in plain YAML: systems, apps, stages, targets and owners. The platform validates it (`gcd lint`, `file:line:col` messages) and renders every Kubernetes, Kargo and Argo CD resource from it. Every option is a YAML field. Teams never write templates, config-language code, promotion steps or Kargo/Argo CD resources.
 
 ## Considered Options
 

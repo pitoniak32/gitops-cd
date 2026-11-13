@@ -1,6 +1,6 @@
 # Working loop
 
-You want to change capability YAML and know, before you push, that it's valid and does what you meant.
+You want to change system YAML and know, before you push, that it's valid and does what you meant.
 
 Run everything from the repo root. `gcd` is on your `PATH` through mise (`mise run cli` builds it).
 `gcd lint` is the only validator: there are no editor schemas
@@ -8,8 +8,8 @@ Run everything from the repo root. `gcd` is on your `PATH` through mise (`mise r
 
 ## 1. Find where a value lives
 
-`gcd show <cap>[/<app>] [--stage s] [--target t] -s` prints the effective, merged config, with a comment
-saying where each value came from (paths are relative to `capabilities/<cap>/`):
+`gcd show <sys>[/<app>] [--stage s] [--target t] -s` prints the effective, merged config, with a comment
+saying where each value came from (paths are relative to `systems/<sys>/`):
 
 ```sh
 gcd show payments/web --stage dev -s
@@ -46,7 +46,7 @@ gcd schema stage
 ```
 
 ```text
-# stage: capabilities/{cap}/stages/*.yml — a stage of the capability's promotion pipeline
+# stage: systems/{sys}/stages/*.yml — a stage of the system's promotion pipeline
 dependsOn:           # stages that must be verified before this one
   - <str>
 autoPromote: <bool>  # promote automatically once upstream stages are verified
@@ -56,14 +56,14 @@ color: red|salmon|orange|…   # Kargo UI color for this stage's Kargo Stages; d
 ## 3. Lint until clean
 
 ```sh
-gcd lint payments          # one capability (+ teams/)
+gcd lint payments          # one system (+ teams/)
 gcd lint --changed         # only what your branch can affect
 ```
 
 No output means valid. Otherwise each problem is one line, `file:line:col: field.path: message`:
 
 ```text
-capabilities/payments/stages/dev.yml:3:1: bogus: field not allowed
+systems/payments/stages/dev.yml:3:1: bogus: field not allowed
 ```
 
 `--format json` gives machine-readable output. Common messages and fixes: [troubleshooting](troubleshooting.md).
@@ -71,7 +71,7 @@ capabilities/payments/stages/dev.yml:3:1: bogus: field not allowed
 ## 4. See the rendered effect
 
 ```sh
-gcd show --diff --stat                        # every capability your branch changes, file counts
+gcd show --diff --stat                        # every system your branch changes, file counts
 gcd show payments/web --stage dev --diff      # the manifest diff for one app/stage
 gcd show payments/web --stage dev --rendered  # the full rendered manifests
 ```
@@ -83,14 +83,14 @@ An empty diff means your change has no rendered effect, which usually means a na
 
 - If you changed `owners.yml` or `teams/`, run `mise run codeowners` and commit the regenerated
   `.github/CODEOWNERS`. Say in the PR description that it needs platform approval.
-- CI (`config.yaml`) lints the capabilities your PR can affect and annotates errors on the changed lines,
+- CI (`config.yaml`) lints the systems your PR can affect and annotates errors on the changed lines,
   checks CODEOWNERS is up to date, renders, and comments the rendered diff on the PR (`_no changes_` if
   there is none).
-- Your capability's `codeOwners` approve. On merge, CI writes the rendered manifests to the branch
+- Your system's `codeOwners` approve. On merge, CI writes the rendered manifests to the branch
   `rendered`; nothing deploys until someone promotes ([promote and access](promote-access.md)).
 
 ## Try things in the sandbox
 
-The reference capabilities `payments` and `search` live in `platform/render/testdata/root`. Add
+The reference systems `payments` and `search` live in `platform/render/testdata/root`. Add
 `--root platform/render/testdata/root` to `gcd show`, `gcd lint`, `gcd schema` or `gcd render` to
 experiment without touching real config. Every example in these guides is checked against that sandbox.

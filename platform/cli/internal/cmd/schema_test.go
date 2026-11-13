@@ -53,7 +53,7 @@ func TestSchemaGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(got, "# app: capabilities/{cap}/apps/*/app.yml") {
+	if !strings.HasPrefix(got, "# app: systems/{sys}/apps/*/app.yml") {
 		t.Errorf("gcd schema app starts: %.80q", got)
 	}
 	// every kind's skeleton is valid YAML, documents separated by ---

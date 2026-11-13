@@ -48,7 +48,7 @@ target whose stage has exactly that dependency set.
 - Labels: control-flow `example.com/kind: control-flow`; `example.com/stage`: D for fan-in, S (first, sorted)
   for fan-out. Color: that stage's color. Break-glass annotation on every Stage, as today.
 - Promote RBAC `promote-<app>`: target Stages + control-flow Stages of the app (resourceNames).
-- Unchanged: Warehouses, target Stage promotion steps/branches/shards, Argo CD apps, `pipelines/<cap>.json`,
+- Unchanged: Warehouses, target Stage promotion steps/branches/shards, Argo CD apps, `pipelines/<sys>.json`,
   `kargo-restore` (targets only).
 
 ## Examples (golden fixtures)

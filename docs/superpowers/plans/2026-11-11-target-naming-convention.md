@@ -4,7 +4,7 @@
 
 **Goal:** Targets carry `environmentType` (`dev|npr|prd`) and a region from a fixed list. Kind clusters become `us-east4` and `dc1`, and every target is named `<region>-<env>-<platform>[-<qualifier>]`, enforced by lint.
 
-**Architecture:** Changes are in the CUE renderer (`platform/render/`) and the region-derived config (`mise run regions`). There's no Go change: the CLI reads regions from `platform/cluster/regions`. Task 1 adds the fields, region lists and cluster rename. Task 2 adds the name rule and renames every target. Task 3 updates the docs. Each task migrates the real `capabilities/*` targets, because CI lints them.
+**Architecture:** Changes are in the CUE renderer (`platform/render/`) and the region-derived config (`mise run regions`). There's no Go change: the CLI reads regions from `platform/cluster/regions`. Task 1 adds the fields, region lists and cluster rename. Task 2 adds the name rule and renames every target. Task 3 updates the docs. Each task migrates the real `systems/*` targets, because CI lints them.
 
 **Tech Stack:** CUE, bash test harness, yq, jj.
 
@@ -44,7 +44,7 @@
 - Modify: `platform/render/k8s.cue:27` (add label `"example.com/environment-type": d.tgt.environmentType`)
 - Modify: `platform/render/terraform.cue` (add `region: d.tgt.region` after `gcpProject`)
 - Modify: `platform/render/pipeline.cue:40` (add `environmentType` next to `environment`)
-- Modify: every `target.yml` under `platform/render/testdata/root/` and `capabilities/` (`cluster:` renamed, `environmentType:` added; TERRAFORM targets get `region: us-east4`)
+- Modify: every `target.yml` under `platform/render/testdata/root/` and `systems/` (`cluster:` renamed, `environmentType:` added; TERRAFORM targets get `region: us-east4`)
 - Modify: `platform/render/scripts/test.sh` (region names `us`→`us-east4` and `onprem`→`dc1` in paths, shards and regions JSON assertions; target names unchanged in this task), `testdata/lint-cases.tsv`
 - Regenerate: `platform/render/schemas/`, `mise run regions` outputs (`platform/cluster/regions`, Keycloak realm, Kargo `api.argocd.urls`), golden
 
@@ -62,7 +62,7 @@ Error messages:
 | cluster doesn't accept type | `config.environmentType` | `cluster <c> accepts environment types: dev, npr, prd` |
 | replicas below policy | existing field | `<type> requires replicas >= <n>` |
 
-- [ ] **Step 1: Write the failing lint cases** in `lint-cases.tsv` (file = a payments fixture `target.yml`, ERE prefix `^capabilities/payments/targets/<t>/target\.yml:[0-9]+:[0-9]+: `): `del(.config.environmentType)`, `.config.environmentType = "staging"`, `.config.region = "us-east9"` (TERRAFORM fixture), `.config.region = "us-east4"` (K8S fixture). Update any existing case that relied on `environment: prod` semantics (replicas policy, autoPromote rule) so it triggers through `environmentType`.
+- [ ] **Step 1: Write the failing lint cases** in `lint-cases.tsv` (file = a payments fixture `target.yml`, ERE prefix `^systems/payments/targets/<t>/target\.yml:[0-9]+:[0-9]+: `): `del(.config.environmentType)`, `.config.environmentType = "staging"`, `.config.region = "us-east9"` (TERRAFORM fixture), `.config.region = "us-east4"` (K8S fixture). Update any existing case that relied on `environment: prod` semantics (replicas policy, autoPromote rule) so it triggers through `environmentType`.
 - [ ] **Step 2: Migrate the fixtures and real targets.** Rename `cluster:`, add `environmentType` per the mapping, and add `region: us-east4` to TERRAFORM targets. In `test.sh`, update the region-derived assertions (lines ~11-13, 16, 24, 86-97: `regions/us-east4.json` = `{"region":"us-east4"}`, `ls` = `dc1.json us-east4.json`, `projects/dc1/.keep`, `deploys/<r>/`, shard values `us-east4`/`dc1`). Run `mise run test`. Expected: FAIL.
 - [ ] **Step 3: Implement the CUE changes** listed under Files.
 - [ ] **Step 4: Run `mise run regions`, `mise run schemas`, `cue fmt ./platform/render/...`.** Then run `cd platform/render && bash scripts/test.sh` and read the golden diff. Expected changes only: region dir names and region JSONs, shard values, cluster names in params, the new `environment-type` label, `environmentType` in pipeline JSON, and `region` in `terraform.yaml`. Then run `UPDATE=1 mise run test` followed by `mise run test`. Expected: pass.
@@ -73,11 +73,11 @@ Error messages:
 
 **Files:**
 - Modify: `platform/render/team.cue` (name check)
-- Rename dirs (`jj` tracks the moves; use `mv`) under `platform/render/testdata/root/capabilities/*/targets/` and `capabilities/*/targets/`, using the tables below
+- Rename dirs (`jj` tracks the moves; use `mv`) under `platform/render/testdata/root/systems/*/targets/` and `systems/*/targets/`, using the tables below
 - Modify: every `app.yml` that references a target key (fixtures + real), plus `test.sh` (all target-derived names: Stage names, branches, params paths, appName, resourceNames, synth blocks), `lint-cases.tsv` (file paths)
 - Regenerate: golden
 
-Fixture renames (`platform/render/testdata/root/capabilities/`):
+Fixture renames (`platform/render/testdata/root/systems/`):
 
 | old | new |
 |---|---|
@@ -92,7 +92,7 @@ Fixture renames (`platform/render/testdata/root/capabilities/`):
 | payments/tf-prod | us-east4-prd-tf |
 | search/us-dev | us-east4-dev-k8s |
 
-Real renames: the ADR 0025 table (`capabilities/`).
+Real renames: the ADR 0025 table (`systems/`).
 
 **Interfaces:**
 - Consumes: Task 1's `clusters[c].region`, `config.region`, `config.environmentType`, `_platformSuffix`.
@@ -113,7 +113,7 @@ Rule: for target `tn` with `p = "\(region)-\(environmentType)-\(_platformSuffix[
 
 ### Task 3: Docs + rollout steps
 
-**Files:** `docs/adr/0025-target-naming-convention.md` (Status → accepted), `docs/adr/0015-multi-region-kargo-shards.md` (one line: "Amended by ADR 0025: regions renamed us→us-east4, onprem→dc1"), `README.md` (URL table `argocd-us-east4.localhost`, `argocd-dc1.localhost`; cluster names; target examples), `CLAUDE.md` (Layout target bullet: `environmentType`, name rule), `GLOSSARY.md` (Environment, Environment type, Region, Target name), `docs/gotchas.md`, `docs/operations.md` (a new "Rename targets / regions" runbook: `mise run down && mise run up`, then delete old `env/*` branches with `gh api -X DELETE repos/<owner>/<repo>/git/refs/heads/env/<cap>/<app>/<old-target>`, listed by `gh api repos/<owner>/<repo>/git/matching-refs/heads/env/`).
+**Files:** `docs/adr/0025-target-naming-convention.md` (Status → accepted), `docs/adr/0015-multi-region-kargo-shards.md` (one line: "Amended by ADR 0025: regions renamed us→us-east4, onprem→dc1"), `README.md` (URL table `argocd-us-east4.localhost`, `argocd-dc1.localhost`; cluster names; target examples), `CLAUDE.md` (Layout target bullet: `environmentType`, name rule), `GLOSSARY.md` (Environment, Environment type, Region, Target name), `docs/gotchas.md`, `docs/operations.md` (a new "Rename targets / regions" runbook: `mise run down && mise run up`, then delete old `env/*` branches with `gh api -X DELETE repos/<owner>/<repo>/git/refs/heads/env/<sys>/<app>/<old-target>`, listed by `gh api repos/<owner>/<repo>/git/matching-refs/heads/env/`).
 
 - [ ] **Step 1: Find stale references:** `grep -rnE 'argocd-(us|onprem)\b|\bonprem\b|cluster `us`|us-stg|us-dev\b|onprem-|environment: (staging|perf|prod)' README.md CLAUDE.md GLOSSARY.md docs --exclude-dir=superpowers`. Fix each hit outside ADR history (besides the "Amended by" line).
 - [ ] **Step 2: Rerun the grep.** Expected: hits only in `docs/adr/` history.

@@ -1,30 +1,30 @@
-# owners: capabilities/{cap}/owners.yml — who reviews, promotes and views a capability (one file per capability)
+# owners: systems/{sys}/owners.yml — who reviews, promotes and views a system (one file per system)
 codeOwners:      # required; teams in teams/ that approve code changes (CODEOWNERS)
   - <str>
-promoters:       # required; per stage name (a stage of this capability), emails that may promote into it
+promoters:       # required; per stage name (a stage of this system), emails that may promote into it
   <stage>:
     - <str>      # /^[a-z0-9._%+-]+@example\.com$/
 viewers:         # emails with read-only access in Kargo and Argo CD
   - <str>        # /^[a-z0-9._%+-]+@example\.com$/
 breakGlass:      # emails that may approve Freight that skipped upstream verification
   - <str>        # /^[a-z0-9._%+-]+@example\.com$/
-apps:            # per app name (an app of this capability) overrides; each field set replaces the capability's
+apps:            # per app name (an app of this system) overrides; each field set replaces the system's
   <app>:
     codeOwners:  # teams in teams/ that approve this app's code changes
       - <str>
-    promoters:   # per stage name, emails that may promote this app into it; replaces the capability's for that stage
+    promoters:   # per stage name, emails that may promote this app into it; replaces the system's for that stage
       <stage>:
         - <str>  # /^[a-z0-9._%+-]+@example\.com$/
     viewers:     # emails with read-only access to this app
       - <str>    # /^[a-z0-9._%+-]+@example\.com$/
 ---
-# stage: capabilities/{cap}/stages/*.yml — a stage of the capability's promotion pipeline
+# stage: systems/{sys}/stages/*.yml — a stage of the system's promotion pipeline
 dependsOn:           # stages that must be verified before this one
   - <str>
 autoPromote: <bool>  # promote automatically once upstream stages are verified; default false (a person promotes); apps may override
 color: red|salmon|orange|amber|yellow|lime|avocado|green|teal|cyan|sky|blue|indigo|periwinkle|violet|purple|fuchsia|pink|rose|dragonfruit|gray  # Kargo UI color for this stage's Kargo Stages; default picked per stage
 ---
-# app: capabilities/{cap}/apps/*/app.yml — an app: what it ships and its settings at app, stage and target level
+# app: systems/{sys}/apps/*/app.yml — an app: what it ships and its settings at app, stage and target level
 replicas: <int>                 # number of replicas, 0 to 100
 env:                            # environment variables, KEY: value; a value may be secret:<gcp-project>/<secret>[@<version>]; merged per key
   <KEY>: <str>
@@ -76,7 +76,7 @@ stages:                         # stages the app deploys through, by stage name,
           file: <str>           # /^[A-Za-z0-9_.-]+\.ya?ml$/ — workflow file name, .yml or .yaml
           ref: <str>            # /./ — git ref the workflow runs on
 ---
-# target: capabilities/{cap}/targets/*/target.yml — a target: where a stage deploys, reusable across apps
+# target: systems/{sys}/targets/*/target.yml — a target: where a stage deploys, reusable across apps
 config:                                  # required; where a stage deploys; reusable across apps
   platform: K8S|CLOUD_RUN|TERRAFORM      # K8S (default), TERRAFORM or CLOUD_RUN
   environment: <str>                     # required; /^[a-z][a-z0-9-]{0,39}$/ — environment name, free-form (namespaces, labels)
@@ -92,5 +92,5 @@ config:                                  # required; where a stage deploys; reus
     bucket: <str>                        # required; /^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/ — GCS bucket holding terraform state
     prefix: <str>                        # /^[A-Za-z0-9._/-]+$/ — GCS object prefix for the state
 ---
-# env-vars: capabilities/{cap}/targets/*/environment-variables/*.yml — environment variables shared by apps that opt in with envFrom
+# env-vars: systems/{sys}/targets/*/environment-variables/*.yml — environment variables shared by apps that opt in with envFrom
 <KEY>: <str>  # value of the variable named by the key

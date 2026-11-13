@@ -1,14 +1,14 @@
-# Onboard a capability
+# Onboard a system
 
-You want to put a new capability under `capabilities/` and deploy its first app to one dev target.
+You want to put a new system under `systems/` and deploy its first app to one dev target.
 
-A capability is five kinds of file. The examples below are the sandbox's smallest capability, `search`,
+A system is five kinds of file. The examples below are the sandbox's smallest system, `search`,
 one app on one dev target. Copy them and rename. Every field is listed in [reference/](../reference/).
 
 ## 1. Register your team
 
 One file per GitHub team, used only to generate CODEOWNERS. It grants no UI access
-([ADR 0007](../adr/0007-capabilities-and-ownership.md)). Skip this step if your team already has a
+([ADR 0007](../adr/0007-systems-and-ownership.md)). Skip this step if your team already has a
 file in `teams/`.
 
 ```yaml path=teams/team3.yml
@@ -19,16 +19,16 @@ The file name (`team3`) is how `owners.yml` refers to the team. That team or the
 
 ## 2. Say who owns it: `owners.yml`
 
-<!-- embed path=capabilities/search/owners.yml -->
+<!-- embed path=systems/search/owners.yml -->
 ```yaml
 codeOwners: [team2]
 promoters: {dev: [alice@example.com]}
 ```
 
-Source: [`search/owners.yml`](../../platform/render/testdata/root/capabilities/search/owners.yml)
+Source: [`search/owners.yml`](../../platform/render/testdata/root/systems/search/owners.yml)
 <!-- /embed -->
 
-- `codeOwners`: teams (file names from `teams/`) that approve PRs to this capability.
+- `codeOwners`: teams (file names from `teams/`) that approve PRs to this system.
 - `promoters`: per stage, the emails that may promote there. Keys are stage names.
 - Optional: `viewers`, `breakGlass`, and per-app overrides under `apps:`
   ([promote and access](promote-access.md)).
@@ -39,13 +39,13 @@ Source: [`search/owners.yml`](../../platform/render/testdata/root/capabilities/s
 
 One file per stage in `stages/`; the file name is the stage name.
 
-<!-- embed path=capabilities/search/stages/dev.yml -->
+<!-- embed path=systems/search/stages/dev.yml -->
 ```yaml
 dependsOn: []
 autoPromote: true
 ```
 
-Source: [`search/stages/dev.yml`](../../platform/render/testdata/root/capabilities/search/stages/dev.yml)
+Source: [`search/stages/dev.yml`](../../platform/render/testdata/root/systems/search/stages/dev.yml)
 <!-- /embed -->
 
 A first stage depends on nothing. `autoPromote: true` promotes new Freight automatically once it's
@@ -56,7 +56,7 @@ assembled; it's not allowed on stages that reach a `prd` target. More stages: [t
 One directory per target in `targets/`; the directory name must follow
 `<region>-<environmentType>-<k8s|tf|cr>[-<qualifier>]` ([ADR 0025](../adr/0025-target-naming-convention.md)).
 
-<!-- embed path=capabilities/search/targets/us-east4-dev-k8s/target.yml -->
+<!-- embed path=systems/search/targets/us-east4-dev-k8s/target.yml -->
 ```yaml
 config:
   cluster: us-east4
@@ -69,7 +69,7 @@ config:
   platform: K8S
 ```
 
-Source: [`search/targets/us-east4-dev-k8s/target.yml`](../../platform/render/testdata/root/capabilities/search/targets/us-east4-dev-k8s/target.yml)
+Source: [`search/targets/us-east4-dev-k8s/target.yml`](../../platform/render/testdata/root/systems/search/targets/us-east4-dev-k8s/target.yml)
 <!-- /embed -->
 
 `cluster` must be one the platform registers, accepting this `environmentType`. A target does nothing
@@ -79,7 +79,7 @@ until an app lists it.
 
 One directory per app in `apps/`; the directory name is the app name.
 
-<!-- embed path=capabilities/search/apps/api/app.yml -->
+<!-- embed path=systems/search/apps/api/app.yml -->
 ```yaml
 image: ghcr.io/pitoniak32/nginx
 sourceRepo: pitoniak32/gitops-cd
@@ -90,7 +90,7 @@ stages:
       us-east4-dev-k8s: {}
 ```
 
-Source: [`search/apps/api/app.yml`](../../platform/render/testdata/root/capabilities/search/apps/api/app.yml)
+Source: [`search/apps/api/app.yml`](../../platform/render/testdata/root/systems/search/apps/api/app.yml)
 <!-- /embed -->
 
 - `image`: repository only, no tag. Kargo discovers SemVer tags; you pick one when you promote.

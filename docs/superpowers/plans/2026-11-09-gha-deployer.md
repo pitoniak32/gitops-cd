@@ -47,16 +47,16 @@
 - [ ] **Step 1: Add failing lint cases** to `lint-cases.tsv` (TAB-separated):
 
 ```
-capabilities/payments/apps/worker/app.yml	.deployWith = "jenkins"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*deployWith: expected argocd or gha
-capabilities/payments/apps/worker/app.yml	.workflow.repo = "not-a-repo"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*workflow\.repo: expected <owner>/<name>
-capabilities/payments/apps/worker/app.yml	.stages.dev.workflow.file = "deploy.sh"	^capabilities/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*workflow\.file: expected a \.yml or \.yaml file name
+systems/payments/apps/worker/app.yml	.deployWith = "jenkins"	^systems/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*deployWith: expected argocd or gha
+systems/payments/apps/worker/app.yml	.workflow.repo = "not-a-repo"	^systems/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*workflow\.repo: expected <owner>/<name>
+systems/payments/apps/worker/app.yml	.stages.dev.workflow.file = "deploy.sh"	^systems/payments/apps/worker/app\.yml:[0-9]+:[0-9]+: .*workflow\.file: expected a \.yml or \.yaml file name
 ```
 
 - [ ] **Step 2: Add resolution assertions** to `test.sh` after "kind cluster ok" (they use a synthetic copy so golden fixtures stay for Task 2):
 
 ```bash
 # deployWith/workflow resolve per field, target > stage > app > default (Task 1)
-r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/capabilities/payments/apps/my-app/app.yml"
+r="$(mktemp -d)"; o="$(mktemp -d)"; cp -R testdata/root/. "$r/"; c="$r/systems/payments/apps/my-app/app.yml"
 yq -i '.workflow.ref = "release" | .stages.dev.deployWith = "gha" | .stages.dev.targets.onprem-dev = {"deployWith": "argocd", "workflow": {"file": "x.yml"}} | .stages.dev.targets.us-dev.workflow.repo = "acme/deploys"' "$c"
 scripts/lint.sh "$r" payments >/dev/null || { echo "app-level workflow with argocd targets must lint clean" >&2; exit 1; }
 scripts/render.sh "$r" payments "$o" >/dev/null
@@ -97,8 +97,8 @@ Expected: `jj diff --stat` shows schema JSON (`deployWith`, `workflow` with desc
 
 **Files:**
 - Modify: `platform/render/delivery.cue` (target Stage, `_deployRegion`, `_appProject`, `argocdDeploys`)
-- Modify: `platform/render/testdata/root/capabilities/payments/apps/worker/app.yml` (`stages.dev.deployWith: gha`)
-- Modify: `platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml` (`stages.staging.targets.onprem-stg.deployWith: gha`, `.workflow: {repo: acme/deploys, file: onprem.yml, ref: v1}`)
+- Modify: `platform/render/testdata/root/systems/payments/apps/worker/app.yml` (`stages.dev.deployWith: gha`)
+- Modify: `platform/render/testdata/root/systems/payments/apps/my-app/app.yml` (`stages.staging.targets.onprem-stg.deployWith: gha`, `.workflow: {repo: acme/deploys, file: onprem.yml, ref: v1}`)
 - Modify: `platform/render/scripts/test.sh` (update existing argocd file-list + onprem AppProject assertions; add GHA block)
 - Regenerate: `platform/render/testdata/golden/**`
 
@@ -153,7 +153,7 @@ Expected: FAIL at the golden diff (fixtures now say gha, renderer still emits ar
 - `body`:
 
 ```
-${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'capability': '<cap>', 'app': '<app>', 'stage': '<stage>', 'target': '<target>', 'commit': outputs.commit.commit, 'image': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest}}) }}
+${{ quote({'ref': vars.workflowRef, 'return_run_details': true, 'inputs': {'system': '<sys>', 'app': '<app>', 'stage': '<stage>', 'target': '<target>', 'commit': outputs.commit.commit, 'image': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest}}) }}
 ```
 
 - `wait`: `uses: http`, `as: wait`, `retry: timeout: "30m"`, `method: GET`, same headers minus `Content-Type`, expressions as asserted, `errorExpression: "'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url"`.
@@ -208,25 +208,25 @@ Expected: PASS (gofmt, vet, `ok .../internal/creds`).
 
 **Files:**
 - Create: `.github/workflows/deploy.yaml`
-- Modify: `capabilities/payments/apps/worker/app.yml` (`stages.dev.deployWith: gha`)
+- Modify: `systems/payments/apps/worker/app.yml` (`stages.dev.deployWith: gha`)
 - Create: `docs/adr/0020-github-actions-deploy.md`
 - Modify: `GLOSSARY.md` (new **Deploy with** entry after **Deploy**; `_Avoid_: deployer`)
 - Modify: `docs/sync-boundaries.md`, `docs/gotchas.md`, `CLAUDE.md` (`creds` line: + GHA token), `README.md` (if it lists fnox secrets / Stage steps)
 - Modify: `docs/superpowers/specs/2026-11-09-gha-deployer-design.md` (rename `deployer` → `deployWith`, label `example.com/deploy-with`; note why)
 
 - [ ] **Step 1: Workflow** `.github/workflows/deploy.yaml`
-- `name: deploy (example)`; `on: workflow_dispatch` with required string inputs `capability, app, stage, target, commit, image`.
-- `run-name: "deploy ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }} (${{ inputs.image }})"`.
+- `name: deploy (example)`; `on: workflow_dispatch` with required string inputs `system, app, stage, target, commit, image`.
+- `run-name: "deploy ${{ inputs.system }}/${{ inputs.app }} → ${{ inputs.target }} (${{ inputs.image }})"`.
 - `permissions: contents: read`; one job `deploy`, `runs-on: ubuntu-latest`, `timeout-minutes: 10`.
-- Steps: `actions/checkout@v4` with `ref: ${{ inputs.commit }}`; step that `cat`s `deployment.yaml` + `manifests.yaml` and asserts `deployment.yaml`'s image equals `inputs.image` (`yq` preinstalled on ubuntu-latest; fail with `::error::` otherwise); step writing `$GITHUB_STEP_SUMMARY` table (capability, app, stage, target, commit, image) + "demo: nothing deployed".
+- Steps: `actions/checkout@v4` with `ref: ${{ inputs.commit }}`; step that `cat`s `deployment.yaml` + `manifests.yaml` and asserts `deployment.yaml`'s image equals `inputs.image` (`yq` preinstalled on ubuntu-latest; fail with `::error::` otherwise); step writing `$GITHUB_STEP_SUMMARY` table (system, app, stage, target, commit, image) + "demo: nothing deployed".
 - Pass inputs via `env:`, never inline `${{ }}` in `run:` (script injection).
 
 - [ ] **Step 2: Validate**
 
 Run: `yq '.on.workflow_dispatch.inputs | keys | join(",")' .github/workflows/deploy.yaml`
-Expected: `capability,app,stage,target,commit,image`. If `actionlint` is available (`mise x actionlint -- actionlint`), it reports nothing.
+Expected: `system,app,stage,target,commit,image`. If `actionlint` is available (`mise x actionlint -- actionlint`), it reports nothing.
 
-- [ ] **Step 3: Live config + lint**: set `stages.dev.deployWith: gha` in `capabilities/payments/apps/worker/app.yml`.
+- [ ] **Step 3: Live config + lint**: set `stages.dev.deployWith: gha` in `systems/payments/apps/worker/app.yml`.
 Run: `mise run lint payments && mise run render "$(mktemp -d)"`
 Expected: no lint output; render succeeds (don't write to `rendered/`).
 

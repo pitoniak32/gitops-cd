@@ -4,9 +4,9 @@ Date: 2026-11-10. Extends ADR 0016 (Freight assembly) and ADR 0020 (gha deploy).
 
 ## Goal
 
-A team defines a terraform **app** and terraform **targets** in its capability; promotion goes through the same stages/graph/owners/break-glass as K8s apps, and each target promotion dispatches a GitHub Actions workflow with a Freight-pinned OCI module artifact and the target's rendered config. Plan + apply in one run; the Kargo promotion is the approval. No Argo CD.
+A team defines a terraform **app** and terraform **targets** in its system; promotion goes through the same stages/graph/owners/break-glass as K8s apps, and each target promotion dispatches a GitHub Actions workflow with a Freight-pinned OCI module artifact and the target's rendered config. Plan + apply in one run; the Kargo promotion is the approval. No Argo CD.
 
-Success: a terraform app renders, lints, gets a Kargo pipeline; promoting a target pushes `env/<cap>/<app>/<target>` and dispatches the workflow with `module=<repo>:<tag>@<digest>`.
+Success: a terraform app renders, lints, gets a Kargo pipeline; promoting a target pushes `env/<sys>/<app>/<target>` and dispatches the workflow with `module=<repo>:<tag>@<digest>`.
 
 ## Decisions
 
@@ -29,7 +29,7 @@ Success: a terraform app renders, lints, gets a Kargo pipeline; promoting a targ
 ### `#Target` (team.cue)
 - `config.platform: *"K8S" | "TERRAFORM"`.
 - K8S: `cluster`, `namespace` required (as today).
-- TERRAFORM: `terraform: {gcpProject: GCP project id regex, backend: {bucket: GCS bucket regex, prefix?: string}}`; `cluster`/`namespace` not allowed. No region: terraform Stages run on the hub's default controller (no Argo CD involved, ADR 0015 shards exist only for Argo CD). Prefix default `<cap>/<app>/<target>` (resolved per deploy).
+- TERRAFORM: `terraform: {gcpProject: GCP project id regex, backend: {bucket: GCS bucket regex, prefix?: string}}`; `cluster`/`namespace` not allowed. No region: terraform Stages run on the hub's default controller (no Argo CD involved, ADR 0015 shards exist only for Argo CD). Prefix default `<sys>/<app>/<target>` (resolved per deploy).
 - Both: `environment`, `auth.wifEmail`, `billing`. Environment check against cluster only for K8S.
 - App/target kind match: module app → every target TERRAFORM, image app → every target K8S; error names the target.
 - Prod rule (`autoPromote` blocked on stages reaching prod) uses `tgt.environment`: unchanged, covers both.
@@ -39,9 +39,9 @@ Success: a terraform app renders, lints, gets a Kargo pipeline; promoting a targ
 
 ## Render
 
-- Terraform deploy → `rendered/apps/<cap>/<app>/<stage>/<target>/terraform.yaml`, single YAML doc:
+- Terraform deploy → `rendered/apps/<sys>/<app>/<stage>/<target>/terraform.yaml`, single YAML doc:
   ```yaml
-  capability: payments
+  system: payments
   app: infra
   stage: dev
   target: us-dev-tf
@@ -58,7 +58,7 @@ Success: a terraform app renders, lints, gets a Kargo pipeline; promoting a targ
 
 - Warehouse: git subscription on app rendered path (unchanged) + `image` subscription on `module` (`SemVer`, `moduleConstraint` → `constraint`, `discoveryLimit: 10`, no `platform`). Manual Freight.
 - Target Stage: K8S keeps `shard` = cluster region; TERRAFORM gets no `spec.shard` (hub default controller, like Warehouses/control-flow Stages; it already has git creds and `kargo-shared-resources/github-actions`). Labels add `example.com/platform: k8s|terraform`; `example.com/deploy-with: gha`.
-- Steps: git-clone, git-clear, copy, `yaml-update` `./out/terraform.yaml` key `module` → `<repo>:<tag>@<digest>`, git-commit (message names module tag), git-push, `dispatch` (inputs `capability, app, stage, target, commit, module`), `wait` with `retry.timeout: 60m` (30m stays for K8s gha).
+- Steps: git-clone, git-clear, copy, `yaml-update` `./out/terraform.yaml` key `module` → `<repo>:<tag>@<digest>`, git-commit (message names module tag), git-push, `dispatch` (inputs `system, app, stage, target, commit, module`), `wait` with `retry.timeout: 60m` (30m stays for K8s gha).
 - RBAC, control-flow Stages, graph, break-glass: unchanged.
 
 ## Example workflow + module
@@ -77,8 +77,8 @@ Success: a terraform app renders, lints, gets a Kargo pipeline; promoting a targ
 
 ## Demo data
 
-- `capabilities/payments/apps/infra/app.yml`: `module: ghcr.io/pitoniak32/tf-bucket`, stages dev → `us-dev-tf`, staging → `us-stg-tf`, sample `env` incl. lowercase `TF_VAR_bucket_name` and one envFrom file.
-- `capabilities/payments/targets/{us-dev-tf,us-stg-tf}/target.yml` (TERRAFORM).
+- `systems/payments/apps/infra/app.yml`: `module: ghcr.io/pitoniak32/tf-bucket`, stages dev → `us-dev-tf`, staging → `us-stg-tf`, sample `env` incl. lowercase `TF_VAR_bucket_name` and one envFrom file.
+- `systems/payments/targets/{us-dev-tf,us-stg-tf}/target.yml` (TERRAFORM).
 
 ## Docs
 
@@ -88,7 +88,7 @@ Success: a terraform app renders, lints, gets a Kargo pipeline; promoting a targ
 
 ## Testing
 
-- Golden: new testdata capability with a terraform app (2 stages, envFrom, workflow override) + existing K8s cases unchanged except env-key change.
+- Golden: new testdata system with a terraform app (2 stages, envFrom, workflow override) + existing K8s cases unchanged except env-key change.
 - Lint cases (`file:line:col: message`):
   - image and module both / neither
   - module app → K8S target; image app → TERRAFORM target

@@ -29,12 +29,12 @@ func TestGitBase(t *testing.T) {
 		}
 	}
 	run("init", "-q", "-b", "main", ".")
-	write("capabilities/a b/x y.yml", "base-cap\n")
+	write("systems/a b/x y.yml", "base-sys\n")
 	write("other/o.txt", "other\n")
 	run("add", ".")
 	run("commit", "-q", "-m", "base")
-	write("capabilities/a b/x y.yml", "changed\n")
-	write("capabilities/new.yml", "new\n")
+	write("systems/a b/x y.yml", "changed\n")
+	write("systems/new.yml", "new\n")
 
 	id, err := ResolveBase(root, "")
 	if err != nil || len(id) != 40 {
@@ -44,13 +44,13 @@ func TestGitBase(t *testing.T) {
 		t.Error("bad rev: want error")
 	}
 	dst := t.TempDir()
-	if err := ExportBase(root, id, dst, "capabilities", "teams"); err != nil {
+	if err := ExportBase(root, id, dst, "systems", "teams"); err != nil {
 		t.Fatal(err)
 	}
-	if b, err := os.ReadFile(filepath.Join(dst, "capabilities/a b/x y.yml")); err != nil || string(b) != "base-cap\n" {
-		t.Errorf("cap = %q, %v", b, err)
+	if b, err := os.ReadFile(filepath.Join(dst, "systems/a b/x y.yml")); err != nil || string(b) != "base-sys\n" {
+		t.Errorf("sys = %q, %v", b, err)
 	}
-	for _, p := range []string{"other", "capabilities/new.yml"} {
+	for _, p := range []string{"other", "systems/new.yml"} {
 		if _, err := os.Stat(filepath.Join(dst, p)); err == nil {
 			t.Errorf("%s exported", p)
 		}

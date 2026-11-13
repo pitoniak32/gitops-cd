@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Restore Kargo's record of what runs where after a cluster rebuild, from the env/* branches (idempotent)"
 #MISE depends=["cli"]
-#USAGE arg "[caps]..." help="capabilities to restore (default: all under capabilities/)"
+#USAGE arg "[systems]..." help="systems to restore (default: all under systems/)"
 exec "$MISE_PROJECT_ROOT/.bin/gcd" kargo-restore "$@"

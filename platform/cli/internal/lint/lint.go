@@ -1,4 +1,4 @@
-// Package lint validates capability YAML and reports diagnostics as
+// Package lint validates system YAML and reports diagnostics as
 // <file>:<line>:<col>: [<label>: ]<message>, paths relative to the repo root.
 package lint
 
@@ -8,29 +8,29 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/progress"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"golang.org/x/sync/errgroup"
 )
 
 // Diag is one diagnostic.
-type Diag = capability.Diag
+type Diag = system.Diag
 
-// Scope is what to validate. The cross-capability name check (capability.CheckNames) always runs.
+// Scope is what to validate. The cross-system name check (system.CheckNames) always runs.
 type Scope struct {
-	Teams bool     // the teams/ files themselves
-	Caps  []string // capabilities, each on its own
+	Teams   bool     // the teams/ files themselves
+	Systems []string // systems, each on its own
 }
 
-// Run validates scope under root with cfg: capabilities in parallel, teams/ read once. Diagnostics
-// are sorted by file, line, col and deduped; the error joins I/O errors and missing capability dirs,
-// each prefixed "<cap>:". prog (nil: none) shows the phases: teams, names, capabilities.
-func Run(cfg capability.Config, root string, s Scope, prog *progress.Tracker) ([]Diag, error) {
+// Run validates scope under root with cfg: systems in parallel, teams/ read once. Diagnostics
+// are sorted by file, line, col and deduped; the error joins I/O errors and missing system dirs,
+// each prefixed "<sys>:". prog (nil: none) shows the phases: teams, names, systems.
+func Run(cfg system.Config, root string, s Scope, prog *progress.Tracker) ([]Diag, error) {
 	root, err := filepath.Abs(root)
 	if err != nil {
 		return nil, err
 	}
-	teams, err := capability.LoadTeams(root)
+	teams, err := system.LoadTeams(root)
 	if err != nil {
 		return nil, err
 	}
@@ -41,23 +41,23 @@ func Run(cfg capability.Config, root string, s Scope, prog *progress.Tracker) ([
 		p.Step("teams/")
 		p.Done()
 	}
-	p := prog.Start("names", len(capability.Names(root)))
-	all = append(all, capability.CheckNames(root, p.Step)...)
+	p := prog.Start("names", len(system.Names(root)))
+	all = append(all, system.CheckNames(root, p.Step)...)
 	p.Done()
-	diags := make([][]Diag, len(s.Caps))
-	errs := make([]error, len(s.Caps))
-	p = prog.Start("capabilities", len(s.Caps))
+	diags := make([][]Diag, len(s.Systems))
+	errs := make([]error, len(s.Systems))
+	p = prog.Start("systems", len(s.Systems))
 	var g errgroup.Group
 	g.SetLimit(runtime.GOMAXPROCS(0))
-	for i, c := range s.Caps {
+	for i, c := range s.Systems {
 		g.Go(func() error {
-			d, err := capability.Lint(cfg, root, c, teams)
+			d, err := system.Lint(cfg, root, c, teams)
 			diags[i] = d
 			if err != nil {
 				errs[i] = fmt.Errorf("%s: %w", c, err)
 			}
 			p.Step(c)
-			return nil // every capability runs; errors are joined below
+			return nil // every system runs; errors are joined below
 		})
 	}
 	_ = g.Wait()
@@ -65,13 +65,13 @@ func Run(cfg capability.Config, root string, s Scope, prog *progress.Tracker) ([
 	for _, d := range diags {
 		all = append(all, d...)
 	}
-	return capability.SortDedupe(all), errors.Join(errs...)
+	return system.SortDedupe(all), errors.Join(errs...)
 }
 
-// All lints caps (default: every capabilities/* dir) and the teams/ files, with the default config.
-func All(root string, caps []string) ([]Diag, error) {
-	if len(caps) == 0 {
-		caps = capability.Names(root)
+// All lints systems (default: every systems/* dir) and the teams/ files, with the default config.
+func All(root string, systems []string) ([]Diag, error) {
+	if len(systems) == 0 {
+		systems = system.Names(root)
 	}
-	return Run(capability.Default(), root, Scope{Teams: true, Caps: caps}, nil)
+	return Run(system.Default(), root, Scope{Teams: true, Systems: systems}, nil)
 }

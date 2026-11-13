@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"github.com/spf13/cobra"
 )
 
@@ -15,10 +15,10 @@ func init() {
 		var asJSON, sources bool
 		c := &cobra.Command{
 			Use:   "schema [kind]",
-			Short: "Describe the capability YAML files as annotated YAML skeletons",
+			Short: "Describe the system YAML files as annotated YAML skeletons",
 			Long: `Print every input file kind (owners, stage, app, target, env-vars) as a YAML skeleton from the
 schema lint enforces: placeholders for types and allowed values (a|b), comments for required, pattern
-and description. -s/--sources adds a fixture example per field (fixture: ` + capability.FixtureRoot + `).
+and description. -s/--sources adds a fixture example per field (fixture: ` + system.FixtureRoot + `).
 Give a kind to print only that one. --json prints the full schema as JSON.`,
 			Args: cobra.MaximumNArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
@@ -30,9 +30,9 @@ Give a kind to print only that one. --json prints the full schema as JSON.`,
 				if err != nil {
 					return err
 				}
-				docs := capability.Schemas(capability.Default())
+				docs := system.Schemas(system.Default())
 				if len(args) == 1 {
-					var one []capability.SchemaDoc
+					var one []system.SchemaDoc
 					for _, d := range docs {
 						if d.Kind == args[0] {
 							one = append(one, d)
@@ -47,11 +47,11 @@ Give a kind to print only that one. --json prints the full schema as JSON.`,
 					}
 					docs = one
 				}
-				ex, err := capability.Examples(filepath.Join(root, filepath.FromSlash(capability.FixtureRoot)))
+				ex, err := system.Examples(filepath.Join(root, filepath.FromSlash(system.FixtureRoot)))
 				if err != nil {
 					return err
 				}
-				docs = capability.WithExamples(docs, ex)
+				docs = system.WithExamples(docs, ex)
 				out := cmd.OutOrStdout()
 				if asJSON {
 					b, err := json.MarshalIndent(docs, "", "  ")
@@ -61,7 +61,7 @@ Give a kind to print only that one. --json prints the full schema as JSON.`,
 					_, err = fmt.Fprintf(out, "%s\n", b)
 					return err
 				}
-				_, err = fmt.Fprint(out, capability.SchemaYAML(docs, sources, pt))
+				_, err = fmt.Fprint(out, system.SchemaYAML(docs, sources, pt))
 				return err
 			},
 		}

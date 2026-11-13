@@ -4,11 +4,11 @@
 # inputs, so both are declared). Demo: fails when the repo variable PRECHECK_FAIL is "true"
 # (`gh variable set PRECHECK_FAIL --body true`).
 name: precheck (example)
-run-name: "precheck ${{ inputs.capability }}/${{ inputs.app }} → ${{ inputs.target }}"
+run-name: "precheck ${{ inputs.system }}/${{ inputs.app }} → ${{ inputs.target }}"
 on:
   workflow_dispatch:
     inputs:
-      capability: {description: capability, required: true, type: string}
+      system: {description: system, required: true, type: string}
       app: {description: app, required: true, type: string}
       stage: {description: stage, required: true, type: string}
       target: {description: target, required: true, type: string}
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:  # inputs via env, never inline in run: (script injection)
-      CAPABILITY: ${{ inputs.capability }}
+      SYSTEM: ${{ inputs.system }}
       APP: ${{ inputs.app }}
       STAGE: ${{ inputs.stage }}
       TARGET: ${{ inputs.target }}
@@ -33,13 +33,13 @@ jobs:
       - name: check
         run: |
           if [[ "$PRECHECK_FAIL" == "true" ]]; then
-            echo "::error::PRECHECK_FAIL is set: blocking $CAPABILITY/$APP → $TARGET"; exit 1
+            echo "::error::PRECHECK_FAIL is set: blocking $SYSTEM/$APP → $TARGET"; exit 1
           fi
       - name: summary
         if: always()
         run: |
           {
-            echo "### precheck $CAPABILITY/$APP → $TARGET"
+            echo "### precheck $SYSTEM/$APP → $TARGET"
             echo "| stage | target | commit | artifact |"
             echo "|---|---|---|---|"
             echo "| $STAGE | $TARGET | \`$COMMIT\` | \`$ARTIFACT\` |"

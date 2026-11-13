@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: dc1-dev-k8s
     example.com/environment: dev
@@ -23,7 +23,7 @@ spec:
       labels:
         app.kubernetes.io/managed-by: cue-platform
         app.kubernetes.io/name: my-app
-        example.com/capability: payments
+        example.com/system: payments
         example.com/stage: dev
         example.com/target: dc1-dev-k8s
         example.com/environment: dev
@@ -60,7 +60,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: dc1-dev-k8s
     example.com/environment: dev
@@ -75,7 +75,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: my-app
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: dc1-dev-k8s
     example.com/environment: dev
@@ -94,7 +94,7 @@ spec:
 # rendered/argocd/deploys/dc1/payments/my-app-dc1-dev-k8s.json
 {
   "appName": "payments-my-app-dc1-dev-k8s",
-  "capability": "payments",
+  "system": "payments",
   "app": "my-app",
   "stage": "dev",
   "target": "dc1-dev-k8s",
@@ -111,7 +111,7 @@ metadata:
   name: dc1-dev-k8s
   namespace: kargo-payments-my-app
   labels:
-    example.com/capability: payments
+    example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: dev
@@ -141,7 +141,7 @@ spec:
           value: env/payments/my-app/dc1-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
-        - name: capability
+        - name: system
           value: payments
         - name: app
           value: my-app

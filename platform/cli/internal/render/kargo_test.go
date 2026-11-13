@@ -118,7 +118,7 @@ func TestKindClusterKargo(t *testing.T) {
 	for _, p := range names(all, "Project", nil) {
 		ds := inProject(all, p)
 		ns := ds[0]
-		if str(ns["kind"])+"/"+str(get(ns, "metadata.name"))+"/"+label(ns, "kargo.akuity.io/project")+"/"+label(ns, "example.com/capability")+"/"+label(ns, "example.com/app") != "Namespace/"+p+"/true/payments/"+strings.TrimPrefix(p, "kargo-payments-") {
+		if str(ns["kind"])+"/"+str(get(ns, "metadata.name"))+"/"+label(ns, "kargo.akuity.io/project")+"/"+label(ns, "example.com/system")+"/"+label(ns, "example.com/app") != "Namespace/"+p+"/true/payments/"+strings.TrimPrefix(p, "kargo-payments-") {
 			t.Errorf("%s must start with its labeled Namespace", p)
 		}
 		if str(ds[1]["kind"]) != "Project" || find(ds, "ProjectConfig", p) == nil {
@@ -244,12 +244,12 @@ func TestKargoExpressionsNotCutShort(t *testing.T) {
 	}
 }
 
-// synth copies the fixture, applies setup, renders capName and returns its Kargo docs.
-func synth(t *testing.T, capName string, setup func(t *testing.T, caps string)) []map[string]any {
+// synth copies the fixture, applies setup, renders sysName and returns its Kargo docs.
+func synth(t *testing.T, sysName string, setup func(t *testing.T, systems string)) []map[string]any {
 	t.Helper()
 	r := fixture(t)
-	setup(t, filepath.Join(r, "capabilities"))
-	return docs(t, filepath.Join(renderCap(t, r, capName), "kargo", capName+".yaml"))
+	setup(t, filepath.Join(r, "systems"))
+	return docs(t, filepath.Join(renderSystem(t, r, sysName), "kargo", sysName+".yaml"))
 }
 
 func del(t *testing.T, file, path string) {
@@ -258,12 +258,12 @@ func del(t *testing.T, file, path string) {
 }
 
 // addQA copies the npr targets of both regions as -qa targets and wires them into stage qa of my-app.
-func addQA(t *testing.T, caps string) {
+func addQA(t *testing.T, systems string) {
 	for _, r := range []string{"us-east4", "dc1"} {
 		n := r + "-npr-k8s-qa"
-		copyTree(t, filepath.Join(caps, "payments/targets", r+"-npr-k8s"), filepath.Join(caps, "payments/targets", n))
-		must(t, yamledit.Set(filepath.Join(caps, "payments/targets", n, "target.yml"), []string{"config", "namespace"}, "payments-"+r+"-qa"))
-		must(t, yamledit.Set(filepath.Join(caps, "payments/apps/my-app/app.yml"), []string{"stages", "qa", "targets", n}, map[string]any{}))
+		copyTree(t, filepath.Join(systems, "payments/targets", r+"-npr-k8s"), filepath.Join(systems, "payments/targets", n))
+		must(t, yamledit.Set(filepath.Join(systems, "payments/targets", n, "target.yml"), []string{"config", "namespace"}, "payments-"+r+"-qa"))
+		must(t, yamledit.Set(filepath.Join(systems, "payments/apps/my-app/app.yml"), []string{"stages", "qa", "targets", n}, map[string]any{}))
 	}
 }
 

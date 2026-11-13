@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: web
-    example.com/capability: payments
+    example.com/system: payments
     example.com/stage: dev
     example.com/target: us-east4-dev-k8s
     example.com/environment: dev

@@ -69,9 +69,9 @@ func (f fakeBranches) Head(_, branch string) (string, string, bool, error) {
 }
 
 // projectNS is an app's Kargo project namespace as rendered (ADR 0029): kargo-restore finds it by label.
-func projectNS(cap, app string) *corev1.Namespace {
-	return &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kargo-" + cap + "-" + app, Labels: map[string]string{
-		"kargo.akuity.io/project": "true", "example.com/capability": cap, "example.com/app": app,
+func projectNS(sys, app string) *corev1.Namespace {
+	return &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kargo-" + sys + "-" + app, Labels: map[string]string{
+		"kargo.akuity.io/project": "true", "example.com/system": sys, "example.com/app": app,
 	}}}
 }
 
@@ -124,7 +124,7 @@ func TestRestore(t *testing.T) {
 		_ = unstructured.SetNestedField(o.Object, "Succeeded", "status", "phase")
 		return false, nil, nil
 	})
-	// an unlabeled namespace with the old per-capability name is not a project
+	// an unlabeled namespace with the old per-system name is not a project
 	core := k8sfake.NewSimpleClientset(projectNS("payments", "my-app"), projectNS("payments", "worker"), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kargo-other"}})
 	hub := &kube.Clients{Ctx: "hub", Core: core, Dyn: dyn}
 
@@ -133,13 +133,13 @@ func TestRestore(t *testing.T) {
 		"env/payments/my-app/dev": {goodMsg, goodImg},
 	}
 	var out bytes.Buffer
-	// "other" cap has no namespace
+	// "other" system has no namespace
 	if err := Restore(context.Background(), t.TempDir(), hub, []string{"payments", "other"}, br, &out); err != nil {
 		t.Fatalf("%v\n%s", err, out.String())
 	}
 	got := out.String()
 	for _, w := range []string{
-		"other: no Kargo project labeled example.com/capability=other (not rendered/synced yet?), skipped",
+		"other: no Kargo project labeled example.com/system=other (not rendered/synced yet?), skipped",
 		"payments/my-app/have: already has Freight, skipped",
 		"payments/my-app/never: env/payments/my-app/never doesn't exist (never promoted), skipped",
 		"payments/worker/dev: already has Freight, skipped",
@@ -201,11 +201,11 @@ func TestRestoreFailedPromotionFails(t *testing.T) {
 	}
 }
 
-func TestRestoreDefaultCaps(t *testing.T) {
+func TestRestoreDefaultSystems(t *testing.T) {
 	root := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(root, "capabilities", "a"), 0o755)
-	_ = os.MkdirAll(filepath.Join(root, "capabilities", "b"), 0o755)
-	got, err := allCaps(root)
+	_ = os.MkdirAll(filepath.Join(root, "systems", "a"), 0o755)
+	_ = os.MkdirAll(filepath.Join(root, "systems", "b"), 0o755)
+	got, err := allSystems(root)
 	if err != nil || strings.Join(got, ",") != "a,b" {
 		t.Fatalf("%v %v", got, err)
 	}
@@ -258,10 +258,10 @@ const (
 )
 
 func TestTerraformModule(t *testing.T) {
-	if got := terraformModule([]byte("capability: payments\nmodule: " + modPin + "\n")); got != modPin {
+	if got := terraformModule([]byte("system: payments\nmodule: " + modPin + "\n")); got != modPin {
 		t.Errorf("got %q want %q", got, modPin)
 	}
-	if got := terraformModule([]byte("capability: payments\n")); got != "" {
+	if got := terraformModule([]byte("system: payments\n")); got != "" {
 		t.Errorf("missing module: got %q", got)
 	}
 }

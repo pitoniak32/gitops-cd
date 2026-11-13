@@ -11,11 +11,11 @@ func TestChanged(t *testing.T) {
 	t.Parallel()
 	r := t.TempDir()
 	for rel, body := range map[string]string{
-		"capabilities/a/owners.yml":     "codeOwners: [t1]\n",
-		"capabilities/b/owners.yaml":    "codeOwners: [t2]\napps: {x: {codeOwners: [gone]}}\n",
-		"capabilities/c/owners.yml":     "codeOwners: [t2]\n",
-		"capabilities/d/owners.yml":     "codeOwners: [\n", // unreadable: linted when any team changes
-		"capabilities/e/stages/dev.yml": "dependsOn: []\n",
+		"systems/a/owners.yml":     "codeOwners: [t1]\n",
+		"systems/b/owners.yaml":    "codeOwners: [t2]\napps: {x: {codeOwners: [gone]}}\n",
+		"systems/c/owners.yml":     "codeOwners: [t2]\n",
+		"systems/d/owners.yml":     "codeOwners: [\n", // unreadable: linted when any team changes
+		"systems/e/stages/dev.yml": "dependsOn: []\n",
 	} {
 		p := filepath.Join(r, rel)
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
@@ -33,12 +33,12 @@ func TestChanged(t *testing.T) {
 		wantAll bool
 	}{
 		{"nothing relevant", []string{"README.md", "docs/adr/0002-x.md", "platform/appsets/kargo.yaml"}, Scope{}, false},
-		{"capability files", []string{"capabilities/e/stages/dev.yml", "capabilities/a/owners.yml"}, Scope{Caps: []string{"a", "e"}}, false},
-		{"deleted capability", []string{"capabilities/zz/owners.yml"}, Scope{}, false},
-		{"team: its capabilities, incl. app overrides and unreadable owners", []string{"teams/gone.yml"}, Scope{Teams: true, Caps: []string{"b", "d"}}, false},
-		{"team rename: both names", []string{"teams/t1.yml", "teams/t1x.yaml"}, Scope{Teams: true, Caps: []string{"a", "d"}}, false},
+		{"system files", []string{"systems/e/stages/dev.yml", "systems/a/owners.yml"}, Scope{Systems: []string{"a", "e"}}, false},
+		{"deleted system", []string{"systems/zz/owners.yml"}, Scope{}, false},
+		{"team: its systems, incl. app overrides and unreadable owners", []string{"teams/gone.yml"}, Scope{Teams: true, Systems: []string{"b", "d"}}, false},
+		{"team rename: both names", []string{"teams/t1.yml", "teams/t1x.yaml"}, Scope{Teams: true, Systems: []string{"a", "d"}}, false},
 		{"non-yaml under teams", []string{"teams/README.md"}, Scope{}, false},
-		{"renderer change: everything", []string{"capabilities/a/owners.yml", "platform/cli/internal/capability/model.go"}, Scope{Teams: true, Caps: all}, true},
+		{"renderer change: everything", []string{"systems/a/owners.yml", "platform/cli/internal/system/model.go"}, Scope{Teams: true, Systems: all}, true},
 	} {
 		got, gotAll := Changed(r, c.files)
 		if !reflect.DeepEqual(got, c.want) || gotAll != c.wantAll {

@@ -8,7 +8,7 @@ How it works: `docs/break-glass.md`.
 
 Normal promotions: promoters promote Freight that is verified upstream. When Freight skipped verification, Kargo shows **"Manual approval required"**. Only the app's `breakGlass` emails (and admins) can approve it.
 
-- **Who**: `owners.yml` → `breakGlass: [emails]` (capability level only; platform-approved). Break-glass users can also promote and view.
+- **Who**: `owners.yml` → `breakGlass: [emails]` (system level only; platform-approved). Break-glass users can also promote and view.
 - **How**: in the Kargo UI pick the Freight → promote → **Approve** in the popup → promote. Anyone else gets `403 … break-glass only (owners.yml breakGlass): <reason>`.
 - **Audit**: one JSON line per decision:
   ```sh
@@ -16,11 +16,11 @@ Normal promotions: promoters promote Freight that is verified upstream. When Fre
   ```
 - **Check a Stage's list**:
   ```sh
-  kubectl -n kargo-<cap>-<app> get stage <stage-or-target> -o jsonpath='{.metadata.annotations.example\.com/break-glass}'
+  kubectl -n kargo-<sys>-<app> get stage <stage-or-target> -o jsonpath='{.metadata.annotations.example\.com/break-glass}'
   ```
 - **Undo an approval** (cluster admin):
   ```sh
-  kubectl -n kargo-<cap>-<app> patch freight <id> --subresource=status --type=json \
+  kubectl -n kargo-<sys>-<app> patch freight <id> --subresource=status --type=json \
     -p '[{"op":"remove","path":"/status/approvedFor/<stage>"}]'
   ```
 - **Remove it**:
@@ -32,7 +32,7 @@ Normal promotions: promoters promote Freight that is verified upstream. When Fre
 Kargo keeps "which Freight is current in each Stage" only in the hub's etcd, so `mise run down`/`up` leaves every Stage empty while the workloads keep running from their `env/*` branches. To restore what teams see in Kargo:
 
 ```sh
-mise run kargo-restore            # all capabilities; or: mise run kargo-restore payments
+mise run kargo-restore            # all systems; or: mise run kargo-restore payments
 ```
 
 For each target Stage with no current Freight it reads the branch head (Kargo's commit message names the source commit; `deployment.yaml`, `service.yaml` for Cloud Run apps, or `terraform.yaml` `module` for terraform apps, pins `<repo>:<tag>@<digest>`), recreates that Freight (same artifacts give the same Freight ID; the alias is new), approves it for the Stage and promotes it. The promotion re-copies identical manifests: no new commit, no rollout. Re-running is a no-op. Terraform targets (ADR 0021) and Cloud Run targets (ADR 0024) are the exception: the promotion re-dispatches their workflow (`terraform.yaml` re-runs plan + apply; `cloud-run.yaml` re-runs the deploy), like any gha target.
@@ -46,29 +46,29 @@ For each target Stage with no current Freight it reads the branch head (Kargo's 
 
 ## Pre-deploy checks (ADR 0028)
 
-Configured in `platform/cli/internal/capability/config.go` (`PreDeploy`) (platform only); each prd target Stage runs `pre-<n>` steps (ClusterPromotionTask `gha-check`) that dispatch the check to the app's `sourceRepo` and wait. The demo check is `.github/workflows/precheck.yaml` in this repo.
+Configured in `platform/cli/internal/system/config.go` (`PreDeploy`) (platform only); each prd target Stage runs `pre-<n>` steps (ClusterPromotionTask `gha-check`) that dispatch the check to the app's `sourceRepo` and wait. The demo check is `.github/workflows/precheck.yaml` in this repo.
 
-- **Make the demo check fail**: `gh variable set PRECHECK_FAIL --body true` (back: `--body false`). The next prod Promotion fails at `pre-1::wait`, and the target branch head doesn't move (`git ls-remote origin env/<cap>/<app>/<target>`).
+- **Make the demo check fail**: `gh variable set PRECHECK_FAIL --body true` (back: `--body false`). The next prod Promotion fails at `pre-1::wait`, and the target branch head doesn't move (`git ls-remote origin env/<sys>/<app>/<target>`).
 - **Verify the per-check timeout** after a Kargo upgrade: set a check's `timeout: "1m"` and make the workflow sleep 2 minutes. The Promotion must fail at ~1m with "exceeded 1m". `cannot fetch <x> from <nil>` means an http step expression refers to something other than `response` outside `${{ }}`. An unknown-function error naming `now`, `date` or `duration` means Kargo dropped those functions: switch to one `gha-check-<t>` task per fixed timeout.
 
-## Resetting a capability's promotion state
+## Resetting a system's promotion state
 
-State lives in three places: Kargo (`kargo-<cap>-<app>` per app: Freight, Promotions, Stage status), GitHub (`env/<cap>/<app>/<target>` branches) and the deployed workloads (`<cap>-<target>` namespaces). Pick the lightest option that does the job.
+State lives in three places: Kargo (`kargo-<sys>-<app>` per app: Freight, Promotions, Stage status), GitHub (`env/<sys>/<app>/<target>` branches) and the deployed workloads (`<sys>-<target>` namespaces). Pick the lightest option that does the job.
 
 **A. Kargo only.** Workloads and branches stay.
 ```sh
-kubectl -n kargo-<cap>-<app> delete promotions.kargo.akuity.io,freight.kargo.akuity.io,stages.kargo.akuity.io,warehouses.kargo.akuity.io --all
+kubectl -n kargo-<sys>-<app> delete promotions.kargo.akuity.io,freight.kargo.akuity.io,stages.kargo.akuity.io,warehouses.kargo.akuity.io --all
 ```
 Argo CD self-heal recreates the Stages and Warehouses from `rendered/` with empty status. Warehouses are Manual (ADR 0016): assemble new Freight in the UI, then auto-promote stages (dev) promote it again. `kubectl` as cluster admin isn't blocked by `gitops-only.yaml`, which only applies to the kargo-api ServiceAccount.
 
 **B. Full reset: A, plus branches and workloads.**
 ```sh
-gh api -X DELETE repos/pitoniak32/gitops-cd/git/refs/heads/env/<cap>/<app>/<target>   # per target
-kubectl delete ns <cap>-<target>                                                       # per target
+gh api -X DELETE repos/pitoniak32/gitops-cd/git/refs/heads/env/<sys>/<app>/<target>   # per target
+kubectl delete ns <sys>-<target>                                                       # per target
 ```
 Afterwards the targets show sync `Unknown` until they're promoted again (`docs/gotchas.md`).
 
-**C. Remove the capability.** Delete `capabilities/<cap>/` and merge. CI drops it from `rendered/`, and Argo CD prunes the Kargo project, the AppProject and the Applications. The workloads aren't deleted with the Applications (no cascade finalizer), so do the namespace and branch steps from B as well.
+**C. Remove the system.** Delete `systems/<sys>/` and merge. CI drops it from `rendered/`, and Argo CD prunes the Kargo project, the AppProject and the Applications. The workloads aren't deleted with the Applications (no cascade finalizer), so do the namespace and branch steps from B as well.
 
 ## Rename targets / regions
 
@@ -77,8 +77,8 @@ Renaming a target or region (ADR 0025) makes all its Kargo Stages, Argo CD apps 
 2. Delete the old targets' `env/*` branches:
    ```sh
    gh api repos/<owner>/<repo>/git/matching-refs/heads/env/    # list
-   gh api -X DELETE repos/<owner>/<repo>/git/refs/heads/env/<cap>/<app>/<old-target>   # per old branch
+   gh api -X DELETE repos/<owner>/<repo>/git/refs/heads/env/<sys>/<app>/<old-target>   # per old branch
    ```
 3. Promote again from the Warehouse (assemble new Freight; dev auto-promotes).
 
-**Moving a target between platforms** (e.g. K8S to CLOUD_RUN, ADR 0024): the old Argo CD Application is deleted but its workload stays (`preserveResourcesOnDeletion`), so delete the workload by hand. The old `env/<cap>/<app>/<old-target>` branch is orphaned: delete it (as above). Downstream Stages need the new Stage promoted before existing Freight can move on.
+**Moving a target between platforms** (e.g. K8S to CLOUD_RUN, ADR 0024): the old Argo CD Application is deleted but its workload stays (`preserveResourcesOnDeletion`), so delete the workload by hand. The old `env/<sys>/<app>/<old-target>` branch is orphaned: delete it (as above). Downstream Stages need the new Stage promoted before existing Freight can move on.

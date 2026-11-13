@@ -1,6 +1,6 @@
 # Platform admins: a hardcoded email list
 
-Admin emails (`admin@example.com`) map to Kargo admin (`api.oidc.admins.claims.email`) and Argo CD `role:admin` (`policy.csv`). This is the only global grant. All other access is generated per capability (ADR 0011). It is email, not an IdP group, because an internal IdP's groups aren't under our control.
+Admin emails (`admin@example.com`) map to Kargo admin (`api.oidc.admins.claims.email`) and Argo CD `role:admin` (`policy.csv`). This is the only global grant. All other access is generated per system (ADR 0011). It is email, not an IdP group, because an internal IdP's groups aren't under our control.
 
 The list lives in three places, which must stay identical: `platform/infrastructure/kargo/values.yaml`, `platform/infrastructure/argocd/values.yaml` (also used by the regional Argo CDs) and the break-glass guard's `ADMIN_EMAILS` (ADR 0013).
 

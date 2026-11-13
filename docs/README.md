@@ -4,10 +4,10 @@ Pick the path for what you're doing.
 
 ## App teams: ship an app
 
-You own a capability under `capabilities/` and want to deploy, change config, or promote.
+You own a system under `systems/` and want to deploy, change config, or promote.
 
-1. [Concepts](guide/concepts.md): capability, app, stage, target, Freight, and how a YAML change reaches a cluster.
-2. [Onboard a capability](guide/onboard.md): team file, `owners.yml`, first stage, target and app.
+1. [Concepts](guide/concepts.md): system, app, stage, target, Freight, and how a YAML change reaches a cluster.
+2. [Onboard a system](guide/onboard.md): team file, `owners.yml`, first stage, target and app.
 3. [Configure apps](guide/apps.md): image or module, layered overrides, env, secrets, resources.
 4. [Targets and stages](guide/targets-stages.md): naming, platforms (K8S, TERRAFORM, CLOUD_RUN), `deployWith: gha`, pre-deploy checks.
 5. [Promote and access](guide/promote-access.md): promoters, viewers, break-glass, what you see in Kargo and Argo CD.

@@ -30,13 +30,13 @@ func ciFixture(t *testing.T) string {
 		}
 	}
 	git("init", "-q", "-b", "main")
-	if err := yamledit.Set(filepath.Join(root, "capabilities/payments/owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
+	if err := yamledit.Set(filepath.Join(root, "systems/payments/owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
 		t.Fatal(err)
 	}
 	git("add", "-A")
 	git("commit", "-qm", "base")
 	git("update-ref", "refs/remotes/origin/main", "HEAD")
-	if err := yamledit.Set(filepath.Join(root, "capabilities/search/owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
+	if err := yamledit.Set(filepath.Join(root, "systems/search/owners.yml"), []string{"codeOwners"}, []any{"nobody"}); err != nil {
 		t.Fatal(err)
 	}
 	return root
@@ -65,7 +65,7 @@ func TestLintGitHubActions(t *testing.T) {
 		}
 	}
 	pr := map[string]string{"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "pull_request", "GITHUB_BASE_REF": "main", "GITHUB_EVENT_PATH": event}
-	const pay, search = "::error file=capabilities/payments/owners.yml,", "::error file=capabilities/search/owners.yml,"
+	const pay, search = "::error file=systems/payments/owners.yml,", "::error file=systems/search/owners.yml,"
 
 	// PR: only what changed (search), as annotations
 	write(`{"name":"bug"}`)
@@ -92,7 +92,7 @@ func TestLintGitHubActions(t *testing.T) {
 	// explicit selection wins over the PR default; --format text wins over auto
 	write(``)
 	out, _ = runLintCI(t, pr, "--root", root, "--format", "text", "payments")
-	if !strings.HasPrefix(out, "capabilities/payments/owners.yml:") || strings.Contains(out, "search") {
+	if !strings.HasPrefix(out, "systems/payments/owners.yml:") || strings.Contains(out, "search") {
 		t.Errorf("explicit: want payments only, as text:\n%s", out)
 	}
 }

@@ -34,12 +34,12 @@ func jjRepo(t *testing.T) string {
 		}
 	}
 	run("git", "init", ".")
-	write("capabilities/a b/x y.yml", "base-cap\n")
+	write("systems/a b/x y.yml", "base-sys\n")
 	write("teams/t.yml", "base-team\n")
 	write("other/o.txt", "other\n")
 	run("commit", "-m", "base")
-	write("capabilities/a b/x y.yml", "changed\n")
-	write("capabilities/new.yml", "new\n")
+	write("systems/a b/x y.yml", "changed\n")
+	write("systems/new.yml", "new\n")
 	return root
 }
 
@@ -67,17 +67,17 @@ func TestExport(t *testing.T) {
 		t.Fatal(err)
 	}
 	dst := t.TempDir()
-	if err := Export(root, id, dst, "capabilities", "teams", "absent"); err != nil {
+	if err := Export(root, id, dst, "systems", "teams", "absent"); err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(filepath.Join(dst, "capabilities/a b/x y.yml"))
-	if err != nil || string(got) != "base-cap\n" {
-		t.Errorf("cap = %q, %v", got, err)
+	got, err := os.ReadFile(filepath.Join(dst, "systems/a b/x y.yml"))
+	if err != nil || string(got) != "base-sys\n" {
+		t.Errorf("sys = %q, %v", got, err)
 	}
 	if b, err := os.ReadFile(filepath.Join(dst, "teams/t.yml")); err != nil || string(b) != "base-team\n" {
 		t.Errorf("team = %q, %v", b, err)
 	}
-	for _, p := range []string{"other", "capabilities/new.yml"} {
+	for _, p := range []string{"other", "systems/new.yml"} {
 		if _, err := os.Stat(filepath.Join(dst, p)); err == nil {
 			t.Errorf("%s exported", p)
 		}

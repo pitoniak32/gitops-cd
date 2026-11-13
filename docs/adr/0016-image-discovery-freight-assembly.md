@@ -1,6 +1,6 @@
 # Image discovery and manual Freight assembly
 
-Freight carries two artifacts, chosen independently: a **config** commit of `rendered/apps/<cap>/<app>/` (on branch `rendered`, ADR 0002) and an **image** SemVer tag, pinned by digest. A new image needs no git change, and a promoter chooses which config goes with which image.
+Freight carries two artifacts, chosen independently: a **config** commit of `rendered/apps/<sys>/<app>/` (on branch `rendered`, ADR 0002) and an **image** SemVer tag, pinned by digest. A new image needs no git change, and a promoter chooses which config goes with which image.
 
 - **`app.yml`**: `image` is the repo only (lint rejects a tag or digest). Optional `imageConstraint` is a SemVer range (`^1`).
 - **Warehouse** `<app>`: a git subscription plus `image: {repoURL, imageSelectionStrategy: SemVer, constraint, discoveryLimit: 10}`, with `freightCreationPolicy: Manual`. It only discovers.

@@ -32,7 +32,7 @@
   - `deployWith` is always `"gha"`; a layer's `deployWith` is ignored.
   - `workflow.file` defaults to `cloud-run.yaml`.
 - The env secret `secret:<p>/<s>[@<v>]` becomes `valueFrom.secretKeyRef: {name: "projects/<p>/secrets/<s>", key: "<v>"}`, where `<v>` defaults to `latest`.
-- Rendered file: `rendered/apps/<cap>/<app>/<stage>/<target>/service.yaml`, a single document.
+- Rendered file: `rendered/apps/<sys>/<app>/<stage>/<target>/service.yaml`, a single document.
 - Promotion: `yaml-update` on `./out/service.yaml`, key `spec.template.spec.containers.0.image`. The wait timeout is 30m. There's no `spec.shard`, no Argo CD params and no AppProject destination.
 - Teams never write CUE. Messages come from `error("...")` placed on a YAML field. Watch for CUE shadowing.
 - Run `cue fmt ./platform/render/...` before each commit. Run `mise run schemas` after schema changes. Update golden only with `UPDATE=1`, after reviewing the diff.
@@ -54,7 +54,7 @@
 - Modify: `platform/render/team.cue` (`#Target.config`: drop `terraform?`, add top-level `gcpProject?`, `backend?`; required/forbidden per the table for K8S/TERRAFORM)
 - Modify: `platform/render/input.cue` (raw check for the leftover `terraform:` key)
 - Modify: `platform/render/app.cue` (`backend` from `tgt.backend`), `platform/render/terraform.cue` (`gcpProject: d.tgt.gcpProject`), `platform/render/pipeline.cue:39` (`_capTargets[tn].config.gcpProject`)
-- Modify: TERRAFORM `target.yml` files in `platform/render/testdata/root/` and `capabilities/` (move the fields up), `testdata/lint-cases.tsv` (existing terraform cases use the new paths)
+- Modify: TERRAFORM `target.yml` files in `platform/render/testdata/root/` and `systems/` (move the fields up), `testdata/lint-cases.tsv` (existing terraform cases use the new paths)
 - Regenerate: `platform/render/schemas/`
 
 - [ ] **Step 1: Write the failing lint cases** against a TERRAFORM fixture target:
@@ -73,7 +73,7 @@
 **Files:**
 - Modify: `platform/render/team.cue` (platform enum and message, `_platformSuffix`, CLOUD_RUN required/forbidden)
 - Modify: `platform/render/input.cue` (the region-required raw check covers CLOUD_RUN, message `region required on a CLOUD_RUN target; allowed: ...`; the name rule's region source is `config.region` for TERRAFORM and CLOUD_RUN)
-- Create fixture: `platform/render/testdata/root/capabilities/payments/targets/us-east4-npr-cr/target.yml`:
+- Create fixture: `platform/render/testdata/root/systems/payments/targets/us-east4-npr-cr/target.yml`:
   ```yaml
   config:
     platform: CLOUD_RUN
@@ -110,7 +110,7 @@
 - Create: `platform/render/cloudrun.cue` (`cloudRunFiles`, mirroring `terraform.cue`)
 - Modify: `platform/render/files.cue` (`for p, f in cloudRunFiles {(p): yaml.Marshal(f)}`)
 - Modify: `platform/render/delivery.cue:157-159` (`yaml-update` path/key per target platform; `example.com/platform` label: `k8s`, `terraform` or `cloudrun`, keeping existing values), `platform/render/pipeline.cue` (CLOUD_RUN targets list `gcpProject` + `region`)
-- Create fixture app: `platform/render/testdata/root/capabilities/payments/apps/web/app.yml`:
+- Create fixture app: `platform/render/testdata/root/systems/payments/apps/web/app.yml`:
   ```yaml
   image: ghcr.io/example/web
   deployWith: argocd   # app-level; must not affect the CLOUD_RUN target (Review Focus 3)
@@ -134,7 +134,7 @@ kind: Service
 metadata:
   name: <app>
   namespace: <gcpProject>
-  labels: {app.kubernetes.io/name, app.kubernetes.io/managed-by: cue-platform, example.com/capability, stage, target, environment, environment-type, billing}  # same keys as k8s.cue podLabels
+  labels: {app.kubernetes.io/name, app.kubernetes.io/managed-by: cue-platform, example.com/system, stage, target, environment, environment-type, billing}  # same keys as k8s.cue podLabels
   annotations: {run.googleapis.com/location: <region>}
 spec:
   template:
@@ -161,13 +161,13 @@ spec:
 - [ ] **Step 2: Run `mise run test`.** Expected: FAIL.
 - [ ] **Step 3: Implement the changes.** Reuse `_secretRe` from `k8s.cue`. Unlike K8S, secrets are always rendered on CLOUD_RUN (no secret-store gate).
 - [ ] **Step 4: Review the golden diff.** Expected: a new web app (deployment/manifests for dev, `service.yaml` for staging), web Kargo objects, a web params file, pipeline JSON for web, and `promote-web-*` roles. Nothing changes for existing apps except the `example.com/platform` label, if its source moved but its values stayed. Then run `UPDATE=1 mise run test` followed by `mise run test`. Also run `mise run lint`, `mise run codeowners` (new `apps/web/` line expected; commit `.github/CODEOWNERS` if the generated fragment changes), and `cue fmt --check`.
-- [ ] **Step 5: Real deploy.** Create `capabilities/payments/targets/us-east4-npr-cr/target.yml`: the same shape as the fixture, with `gcpProject`/`auth.wifEmail`/`billing` copied from the real payments TERRAFORM targets' conventions. In `capabilities/payments/apps/worker/app.yml`, switch the `staging` stage's target from `us-east4-npr-k8s` to `us-east4-npr-cr`, dropping any staging-target-level `deployWith`/`workflow` that only applied to K8S. Run `mise run lint`, `mise run render`, `mise run codeowners` (no drift expected) and `cue fmt --check`.
+- [ ] **Step 5: Real deploy.** Create `systems/payments/targets/us-east4-npr-cr/target.yml`: the same shape as the fixture, with `gcpProject`/`auth.wifEmail`/`billing` copied from the real payments TERRAFORM targets' conventions. In `systems/payments/apps/worker/app.yml`, switch the `staging` stage's target from `us-east4-npr-k8s` to `us-east4-npr-cr`, dropping any staging-target-level `deployWith`/`workflow` that only applied to K8S. Run `mise run lint`, `mise run render`, `mise run codeowners` (no drift expected) and `cue fmt --check`.
 - [ ] **Step 6: Commit** with the message `feat(render): render and promote image apps on CLOUD_RUN targets (ADR 0024)`.
 
 ### Task 4: Example workflow + docs
 
 **Files:**
-- Create: `.github/workflows/cloud-run.yaml`. Copy `deploy.yaml`'s shape: same inputs (`capability, app, stage, target, commit, image`), inputs via env, checkout `${{ inputs.commit }}`. It checks that `yq '.spec.template.spec.containers[0].image' service.yaml` equals `$IMAGE` (`::error` on mismatch), and appends a summary plus `service.yaml` in a ```yaml block to `$GITHUB_STEP_SUMMARY`. Add commented-out steps for `google-github-actions/auth` (WIF, `service_account` from the deploy identity) and `gcloud run services replace service.yaml --region <region>` with the note `# not applied yet (ADR 0024)`.
+- Create: `.github/workflows/cloud-run.yaml`. Copy `deploy.yaml`'s shape: same inputs (`system, app, stage, target, commit, image`), inputs via env, checkout `${{ inputs.commit }}`. It checks that `yq '.spec.template.spec.containers[0].image' service.yaml` equals `$IMAGE` (`::error` on mismatch), and appends a summary plus `service.yaml` in a ```yaml block to `$GITHUB_STEP_SUMMARY`. Add commented-out steps for `google-github-actions/auth` (WIF, `service_account` from the deploy identity) and `gcloud run services replace service.yaml --region <region>` with the note `# not applied yet (ADR 0024)`.
 - Modify: `docs/adr/0024-cloud-run-targets.md` (Status → accepted; under App add one line: "The minReplicas `policy` applies to K8S targets only."), `docs/adr/0021-terraform-apps.md` (one line: "Amended by ADR 0024: `terraform: {gcpProject, backend}` → `config.gcpProject`, `config.backend`"), `CLAUDE.md` (Layout target bullet: CLOUD_RUN platform, flat fields), `GLOSSARY.md` (Platform), `README.md` (platforms table/mention), `platform/render/README.md` (target fields, `service.yaml` output).
 
 - [ ] **Step 1: Write the workflow.** Check it with `yq '.' .github/workflows/cloud-run.yaml >/dev/null` and, if installed, `actionlint .github/workflows/cloud-run.yaml`.

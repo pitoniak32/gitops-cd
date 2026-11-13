@@ -1,6 +1,6 @@
 {
   "appName": "payments-payments-us-east4-prd-k8s",
-  "capability": "payments",
+  "system": "payments",
   "app": "payments",
   "stage": "prod",
   "target": "us-east4-prd-k8s",

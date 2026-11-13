@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/capability"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/render"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
 	"github.com/spf13/cobra"
 )
 
@@ -18,26 +18,26 @@ func init() {
 		var stage, target, base, against string
 		var asJSON, sources, rendered, diff, platform, stat bool
 		c := &cobra.Command{
-			Use:   "show [<cap>[/<app>]]",
-			Short: "Show a capability's effective config per deploy and the file:line each value comes from",
-			Long: `Print the merged config of every deploy (app, stage, target) of a capability: each value with the
+			Use:   "show [<sys>[/<app>]]",
+			Short: "Show a system's effective config per deploy and the file:line each value comes from",
+			Long: `Print the merged config of every deploy (app, stage, target) of a system: each value with the
 file:line that sets it (or the default it falls back to), plus the effective owners. Edit the file shown.
-Narrow with <cap>/<app>, --stage, --target. The capability must lint clean. --json prints the same as JSON.
+Narrow with <sys>/<app>, --stage, --target. The system must lint clean. --json prints the same as JSON.
 
---rendered prints the rendered manifests of the selected deploys instead (apps/<cap>/<app>/<stage>/<target>/*),
+--rendered prints the rendered manifests of the selected deploys instead (apps/<sys>/<app>/<stage>/<target>/*),
 each under a "# rendered/<path>" line. --include-platform adds their Argo CD params and Kargo Stage.
 
 --diff shows how the working tree changes the rendered output against --base, as a unified diff
 (--stat: per-file +added -removed counts); unchanged files print nothing. Both sides are rendered with
-the current gcd, so only input changes show. With a capability it covers the selected deploys; with none,
-every capability whose files under capabilities/ or teams/ differ from --base (a teams/ change selects
-all; deleted capabilities included) with all their rendered files. --base is a jj revset (exactly one
+the current gcd, so only input changes show. With a system it covers the selected deploys; with none,
+every system whose files under systems/ or teams/ differ from --base (a teams/ change selects
+all; deleted systems included) with all their rendered files. --base is a jj revset (exactly one
 commit) or git rev, used as given; the default is where this branch left trunk (jj:
 fork_point(trunk() | @); git: merge-base of HEAD and origin/main, else main), so the diff is the
 branch's. The root must be a jj or git repo.
 --diff --against <rev> instead compares a fresh in-memory render with the rendered/ tree committed at <rev>
 (same rev syntax as --base; e.g. the rendered branch; CI uses it). A rev without rendered/ counts as empty.
-With a capability: its selected deploys; with none: everything gcd render writes under rendered/ (files only
+With a system: its selected deploys; with none: everything gcd render writes under rendered/ (files only
 at <rev> show as removed). Excludes --base. Nothing is written to rendered/. --json, --sources, --rendered and --diff exclude each other.`,
 			Args: cobra.MaximumNArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
@@ -66,29 +66,29 @@ at <rev> show as removed). Excludes --base. Nothing is written to rendered/. --j
 				}
 				if len(args) == 0 {
 					if !diff {
-						return fmt.Errorf("a capability is required (only --diff may omit it)")
+						return fmt.Errorf("a system is required (only --diff may omit it)")
 					}
 					if stage != "" || target != "" {
-						return fmt.Errorf("--stage and --target need a capability")
+						return fmt.Errorf("--stage and --target need a system")
 					}
 					if against != "" {
 						return showAllAgainst(cmd, root, against, stat, pt)
 					}
 					return showAllDiff(cmd, root, base, stat, pt)
 				}
-				capName, app, _ := strings.Cut(args[0], "/")
-				if names := capability.Names(root); !contains(names, capName) {
-					return fmt.Errorf("unknown capability %s; allowed: %s", capName, strings.Join(names, ", "))
+				sysName, app, _ := strings.Cut(args[0], "/")
+				if names := system.Names(root); !contains(names, sysName) {
+					return fmt.Errorf("unknown system %s; allowed: %s", sysName, strings.Join(names, ", "))
 				}
-				res, err := capability.Show(capability.Default(), root, capName, nil, capability.ShowFilter{App: app, Stage: stage, Target: target})
+				res, err := system.Show(system.Default(), root, sysName, nil, system.ShowFilter{App: app, Stage: stage, Target: target})
 				if err != nil {
-					return reportErr(cmd, err, capName)
+					return reportErr(cmd, err, sysName)
 				}
 				out := cmd.OutOrStdout()
 				if rendered || diff {
-					text, err := showRendered(root, capName, res, platform, diff, base, against, stat, pt)
+					text, err := showRendered(root, sysName, res, platform, diff, base, against, stat, pt)
 					if err != nil {
-						return reportErr(cmd, err, capName)
+						return reportErr(cmd, err, sysName)
 					}
 					_, err = fmt.Fprint(out, text)
 					return err
@@ -110,11 +110,11 @@ at <rev> show as removed). Excludes --base. Nothing is written to rendered/. --j
 		c.Flags().BoolVar(&asJSON, "json", false, "JSON instead of YAML")
 		c.Flags().BoolVarP(&sources, "sources", "s", false, "comment each value with the file:line (or default) it comes from")
 		c.Flags().BoolVar(&rendered, "rendered", false, "print the rendered manifests of the selected deploys")
-		c.Flags().BoolVar(&diff, "diff", false, "like --rendered, but changed files as a diff against --base (capability optional: then all changed ones)")
+		c.Flags().BoolVar(&diff, "diff", false, "like --rendered, but changed files as a diff against --base (system optional: then all changed ones)")
 		c.Flags().StringVar(&base, "base", "", "with --diff: "+baseHelp)
 		c.Flags().StringVar(&against, "against", "", "with --diff: compare with the rendered/ tree at this rev (e.g. the rendered branch) instead of rendering a base; "+baseHelp)
 		c.Flags().BoolVar(&stat, "stat", false, "with --diff: per-file +added -removed line counts instead of the diff")
-		c.Flags().BoolVar(&platform, "include-platform", false, "with --rendered/--diff and a capability: also the Argo CD params and Kargo Stage of each deploy")
+		c.Flags().BoolVar(&platform, "include-platform", false, "with --rendered/--diff and a system: also the Argo CD params and Kargo Stage of each deploy")
 		return c
 	})
 }
@@ -128,7 +128,7 @@ func contains(l []string, s string) bool {
 	return false
 }
 
-// withBase resolves base (see repo.ResolveBase), exports capabilities/ and teams/ at it into a temp
+// withBase resolves base (see repo.ResolveBase), exports systems/ and teams/ at it into a temp
 // directory, calls f with that directory as a config root, and removes it.
 func withBase(root, base string, f func(baseRoot string) error) error {
 	id, err := repo.ResolveBase(root, base)
@@ -140,7 +140,7 @@ func withBase(root, base string, f func(baseRoot string) error) error {
 		return err
 	}
 	defer os.RemoveAll(tmp)
-	if err := repo.ExportBase(root, id, tmp, "capabilities", "teams"); err != nil {
+	if err := repo.ExportBase(root, id, tmp, "systems", "teams"); err != nil {
 		return err
 	}
 	return f(tmp)
@@ -195,14 +195,14 @@ func diffText(d []render.FileDiff, stat bool, pt color.P) string {
 	return render.ColorDiff(render.Unified(d), pt)
 }
 
-// showAllDiff prints the rendered diff of every capability changed since base.
+// showAllDiff prints the rendered diff of every system changed since base.
 func showAllDiff(cmd *cobra.Command, root, base string, stat bool, pt color.P) error {
 	return withBase(root, base, func(baseRoot string) error {
-		caps, err := render.ChangedCaps(baseRoot, root)
-		if err != nil || len(caps) == 0 {
+		systems, err := render.ChangedSystems(baseRoot, root)
+		if err != nil || len(systems) == 0 {
 			return err
 		}
-		d, err := render.Diff(capability.Default(), baseRoot, root, caps)
+		d, err := render.Diff(system.Default(), baseRoot, root, systems)
 		if err != nil {
 			return reportErr(cmd, err, "diff")
 		}
@@ -211,36 +211,36 @@ func showAllDiff(cmd *cobra.Command, root, base string, stat bool, pt color.P) e
 	})
 }
 
-// showRendered renders capName in memory and returns the selected deploys' files (or, with diff,
+// showRendered renders sysName in memory and returns the selected deploys' files (or, with diff,
 // their diff against base, or stat counts; unchanged files omitted). Text is colored for pt.
-func showRendered(root, capName string, res capability.ShowResult, platform, diff bool, base, against string, stat bool, pt color.P) (string, error) {
+func showRendered(root, sysName string, res system.ShowResult, platform, diff bool, base, against string, stat bool, pt color.P) (string, error) {
 	picks := make([]render.Pick, 0, len(res.Deploys))
 	for _, d := range res.Deploys {
 		picks = append(picks, render.Pick{App: d.App, Stage: d.Stage, Target: d.Target})
 	}
-	cfg := capability.Default()
-	now, err := render.RenderCap(cfg, root, capName)
+	cfg := system.Default()
+	now, err := render.RenderSystem(cfg, root, sysName)
 	if err != nil {
 		return "", err
 	}
-	cur := render.SelectFiles(now, capName, picks, platform)
+	cur := render.SelectFiles(now, sysName, picks, platform)
 	if !diff {
 		return render.ColorDiff(render.FormatFiles(cur), pt), nil
 	}
 	var text string
 	if against != "" {
 		err = withRendered(root, against, func(old map[string]string) error {
-			text = diffText(render.SelectedDiffs(render.SelectFiles(old, capName, picks, platform), cur), stat, pt)
+			text = diffText(render.SelectedDiffs(render.SelectFiles(old, sysName, picks, platform), cur), stat, pt)
 			return nil
 		})
 		return text, err
 	}
 	err = withBase(root, base, func(baseRoot string) error {
-		was, err := render.RenderCap(cfg, baseRoot, capName)
+		was, err := render.RenderSystem(cfg, baseRoot, sysName)
 		if err != nil {
 			return fmt.Errorf("base: %w", err)
 		}
-		text = diffText(render.SelectedDiffs(render.SelectFiles(was, capName, picks, platform), cur), stat, pt)
+		text = diffText(render.SelectedDiffs(render.SelectFiles(was, sysName, picks, platform), cur), stat, pt)
 		return nil
 	})
 	return text, err

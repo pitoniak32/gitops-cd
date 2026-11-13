@@ -13,7 +13,7 @@ help (enum values, variable lists). Examples can't rot: they are spliced from th
 ## Embed blocks
 
 ```markdown
-<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=1-12 -->
+<!-- embed path=systems/payments/apps/my-app/app.yml lines=1-12 -->
 ```yaml
 …replaced by gcd docs…
 ```
@@ -27,7 +27,7 @@ help (enum values, variable lists). Examples can't rot: they are spliced from th
   between hunks shows as `# …`. The source label lists the hunks; the link spans first to last line.
 - `gcd docs` replaces everything between the markers with: a fence (language from the file extension,
   `yaml` for `.yml`/`.yaml`) holding those lines, dedented by their common indent, then a source line
-  ``Source: [`payments/apps/my-app/app.yml:1-12`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L1-L12)``
+  ``Source: [`payments/apps/my-app/app.yml:1-12`](../../platform/render/testdata/root/systems/payments/apps/my-app/app.yml#L1-L12)``
   (link relative to the page).
 - Allowed in `docs/guide/*.md` and `docs/reference/*.md`.
 - Errors (as diags at the marker line, like lint): file missing, path outside the fixture, bad or
@@ -43,7 +43,7 @@ One command, no flags beyond `--format`:
 3. Check annotated yaml fences (current `docs.Check`) in both dirs.
 4. Print problems like lint; exit 1 if any.
 
-Removed: `capability.SchemaMarkdown` + tests, `--out`. `gcd schema <kind>` remains the full field list;
+Removed: `system.SchemaMarkdown` + tests, `--out`. `gcd schema <kind>` remains the full field list;
 each reference page links to it.
 
 ## Tests

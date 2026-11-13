@@ -1,6 +1,6 @@
 {
   "appName": "payments-worker-us-east4-npr-k8s",
-  "capability": "payments",
+  "system": "payments",
   "app": "worker",
   "stage": "staging",
   "target": "us-east4-npr-k8s",

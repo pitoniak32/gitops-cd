@@ -21,11 +21,11 @@ func TestPhases(t *testing.T) {
 	clock := time.Unix(0, 0)
 	tr.now = func() time.Time { return clock }
 
-	p := tr.Start("capabilities", 100)
+	p := tr.Start("systems", 100)
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		go func() { defer wg.Done(); p.Step("cap") }()
+		go func() { defer wg.Done(); p.Step("sys") }()
 	}
 	wg.Wait()
 	clock = clock.Add(1500 * time.Millisecond)
@@ -44,18 +44,18 @@ func TestPhases(t *testing.T) {
 		summaries = append(summaries, l[i+len(clear):])
 	}
 	want := []string{
-		"✓ capabilities   100/100  1.5s",
+		"✓ systems        100/100  1.5s",
 		"✓ teams          1/2  3ms",
 		"✓ names          0/1  0ms",
 	}
 	if strings.Join(summaries, "\n") != strings.Join(want, "\n") {
 		t.Errorf("got\n%s\nwant\n%s\nraw %q", strings.Join(summaries, "\n"), strings.Join(want, "\n"), out)
 	}
-	if !strings.Contains(out, "[########################] 100/100 cap") {
+	if !strings.Contains(out, "[########################] 100/100 sys") {
 		t.Errorf("no full bar frame: %q", out)
 	}
 	// same clock: only the forced first frame and the final one are drawn, not one per step
-	if n := strings.Count(out, "capabilities ["); n > 3 {
+	if n := strings.Count(out, "systems ["); n > 3 {
 		t.Errorf("%d frames for one instant, want frame limiting", n)
 	}
 }

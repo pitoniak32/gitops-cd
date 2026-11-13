@@ -72,7 +72,7 @@ func (t *Tracker) Start(name string, total int) *Phase {
 	return p
 }
 
-// Step counts one finished step; item (e.g. the capability) is shown next to the bar.
+// Step counts one finished step; item (e.g. the system) is shown next to the bar.
 func (p *Phase) Step(item string) {
 	if p == nil {
 		return

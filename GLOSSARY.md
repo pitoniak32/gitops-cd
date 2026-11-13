@@ -1,13 +1,13 @@
 # gitops
 
-Delivery configuration for all capabilities: owning teams describe what runs where in YAML; the platform validates it, renders Kubernetes manifests, and promotes them through each capability's pipeline.
+Delivery configuration for all systems: owning teams describe what runs where in YAML; the platform validates it, renders Kubernetes manifests, and promotes them through each system's pipeline.
 
 ## Language
 
-### Capability config
+### System config
 
-**Capability**:
-A business capability, one folder under `capabilities/`; its stages, targets and apps. The folder name is the identifier.
+**System**:
+A business system, one folder under `systems/`; its stages, targets and apps. The folder name is the identifier.
 _Avoid_: team folder, tenant, domain
 
 **Team**:
@@ -15,11 +15,11 @@ A GitHub team registered in `teams/<team>.yml`, used only for code review (CODEO
 _Avoid_: org, squad
 
 **Owner**:
-A team listed under `codeOwners` for an app (`apps.<app>.codeOwners`, else the capability's `codeOwners` in `owners.yml`). Owners approve the app's code changes.
+A team listed under `codeOwners` for an app (`apps.<app>.codeOwners`, else the system's `codeOwners` in `owners.yml`). Owners approve the app's code changes.
 _Avoid_: maintainer, admin
 
 **Promoter**:
-An email listed under `promoters.<stage>` in `owners.yml` (per-app stage override under `apps.<app>.promoters`). Promoters promote the app to that stage only, approve its Freight, and view the capability.
+An email listed under `promoters.<stage>` in `owners.yml` (per-app stage override under `apps.<app>.promoters`). Promoters promote the app to that stage only, approve its Freight, and view the system.
 _Avoid_: deployer, owner (owners review code; promoters ship)
 
 **Break-glass**:
@@ -27,10 +27,10 @@ An email listed under `breakGlass` in `owners.yml`. Only break-glass users (and 
 _Avoid_: approver (promoters approve normal promotions by promoting)
 
 **Viewer**:
-An email listed under `viewers` in `owners.yml`. Viewers see the capability's apps in Kargo and Argo CD, read-only; `apps.<app>.viewers` replaces them for that app (ADR 0029).
+An email listed under `viewers` in `owners.yml`. Viewers see the system's apps in Kargo and Argo CD, read-only; `apps.<app>.viewers` replaces them for that app (ADR 0029).
 
 **Stage**:
-A named step in a capability's promotion graph (`stages/<name>.yml`), with the stages it depends on. In Kargo it becomes one target stage per target, plus control-flow Stages where needed (ADR 0012).
+A named step in a system's promotion graph (`stages/<name>.yml`), with the stages it depends on. In Kargo it becomes one target stage per target, plus control-flow Stages where needed (ADR 0012).
 _Avoid_: environment, phase
 
 **Control-flow Stage**:
@@ -41,8 +41,8 @@ _Avoid_: gate (the old gate before every stage is gone), join
 The Kargo Stage `<target>`, in its app's Kargo project, that promotes one target: it copies that target's rendered folder to its target branch and syncs its Argo CD app.
 
 **Kargo project**:
-One per app, `kargo-<cap>-<app>` (ADR 0029): the app's Warehouse, Stages and access. Its Stage names carry no app prefix.
-_Avoid_: capability project (gone)
+One per app, `kargo-<sys>-<app>` (ADR 0029): the app's Warehouse, Stages and access. Its Stage names carry no app prefix.
+_Avoid_: system project (gone)
 
 **Promotion task**:
 A platform `ClusterPromotionTask` (`promote-argocd`, `promote-gha`) holding the steps every target stage runs; the target stage passes only vars (ADR 0027).
@@ -90,7 +90,7 @@ The kind cluster `kargo-demo` running the Kargo control plane, Keycloak, Traefik
 _Avoid_: management cluster, control cluster
 
 **Region**:
-A workload cluster `region-<r>` (listed in `platform/cluster/regions`; `<r>` from the fixed GCP/datacenter lists in the cluster registry, `platform/cli/internal/capability/config.go`, e.g. `us-east4`, `dc1`) with its own Argo CD and Kargo shard. A cluster's `region` decides which Argo CD and shard deploy its targets.
+A workload cluster `region-<r>` (listed in `platform/cluster/regions`; `<r>` from the fixed GCP/datacenter lists in the cluster registry, `platform/cli/internal/system/config.go`, e.g. `us-east4`, `dc1`) with its own Argo CD and Kargo shard. A cluster's `region` decides which Argo CD and shard deploy its targets.
 _Avoid_: zone, location (a target is a deploy destination; a region is the Argo CD + Kargo shard behind it)
 
 **Shard**:
@@ -99,7 +99,7 @@ _Avoid_: agent (Kargo's docs use it loosely)
 
 **Environment**:
 The free-form name of where a target runs (`dev`, `staging`, `perf`, `prod`, `qa1`); label `example.com/environment`.
-_Avoid_: stage (a stage is a capability's pipeline step)
+_Avoid_: stage (a stage is a system's pipeline step)
 
 **Environment type**:
 Required `environmentType` of a target: `dev | npr | prd`. Platform policy keys on it (minimum replicas, no autoPromote to `prd`); label `example.com/environment-type`.
@@ -113,7 +113,7 @@ How promotion applies a deploy: `argocd` (sync its Argo CD Application, default)
 _Avoid_: deployer (a person who ships is a promoter), runner
 
 **Pipeline**:
-An app's promotion graph: the capability's stages it uses, with skipped stages bypassed.
+An app's promotion graph: the system's stages it uses, with skipped stages bypassed.
 
 **Rendered manifests**:
 The generated output under `rendered/`, on the CI-written branch `rendered` (ADR 0002); never edited by hand.
@@ -126,18 +126,18 @@ A `rendered`-branch commit with the app's rendered manifests (the config) plus o
 _Avoid_: release, version
 
 **Warehouse**:
-The Kargo resource per app that watches `rendered/apps/<cap>/<app>/` and the app's image repo. Freight creation is Manual: it only discovers commits and image tags.
+The Kargo resource per app that watches `rendered/apps/<sys>/<app>/` and the app's image repo. Freight creation is Manual: it only discovers commits and image tags.
 
 **Promotion**:
 Copying one target's rendered manifests from a Freight commit onto that target's branch and pinning the Freight's image in its `deployment.yaml` (target stage), or passing Freight through a control-flow Stage.
 _Avoid_: deploy (as a verb for this step)
 
 **Target branch**:
-The branch `env/<cap>/<app>/<target>` that Argo CD syncs one target from (manifests at the root). It doesn't exist until the target's first promotion; until then its Argo CD app shows sync `Unknown`.
-_Avoid_: stage branch (the pre-ADR 0012 layout `env/<cap>/<app>/<stage>`)
+The branch `env/<sys>/<app>/<target>` that Argo CD syncs one target from (manifests at the root). It doesn't exist until the target's first promotion; until then its Argo CD app shows sync `Unknown`.
+_Avoid_: stage branch (the pre-ADR 0012 layout `env/<sys>/<app>/<stage>`)
 
 **Pre-deploy check**:
-A platform-owned GitHub Actions workflow Kargo dispatches to the app's source repo and waits for before a target Stage pushes anything; configured per environment type in `platform/cli/internal/capability/config.go` (`PreDeploy`) (initially `prd`), never by teams. Any result but success fails the Promotion (ADR 0028).
+A platform-owned GitHub Actions workflow Kargo dispatches to the app's source repo and waits for before a target Stage pushes anything; configured per environment type in `platform/cli/internal/system/config.go` (`PreDeploy`) (initially `prd`), never by teams. Any result but success fails the Promotion (ADR 0028).
 _Avoid_: verification (that runs after the deploy), gate
 
 **Source repo**:
@@ -147,4 +147,4 @@ _Avoid_: image repo (`image`), config repo (this repo)
 ### Validation
 
 **Lint**:
-The full validation (`gcd lint`, package `capability`) over a capability's files (+ `teams/`), run by CI and reported as `file:line:col` errors.
+The full validation (`gcd lint`, package `system`) over a system's files (+ `teams/`), run by CI and reported as `file:line:col` errors.

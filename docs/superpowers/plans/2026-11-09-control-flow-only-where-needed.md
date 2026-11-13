@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - VCS jj: commit with `jj describe -m "<msg>" && jj new`. No git mutations, no push.
-- Target Stage names `<app>-<target>`, promotion steps, branches `env/<cap>/<app>/<target>`, shards, Argo CD outputs, Warehouses, `pipelines/<cap>.json`: unchanged.
+- Target Stage names `<app>-<target>`, promotion steps, branches `env/<sys>/<app>/<target>`, shards, Argo CD outputs, Warehouses, `pipelines/<sys>.json`: unchanged.
 - Control-flow Stages: no `promotionTemplate`, no `spec.shard`, always in ProjectConfig `promotionPolicies` with `autoPromotionEnabled: true`; label `example.com/kind: control-flow`; targets keep `example.com/kind: target`.
 - Names: fan-in/entry into stage D → `<app>-<D>`; fan-out after single stage S → `<app>-<S>-done`; several upstream stages shared by several downstream stages → `<app>-<S1>-<S2>…-done` (upstream stage names sorted, joined with `-`).
 - A stage's `autoPromote` covers only its targets. Prod rule unchanged.
@@ -25,7 +25,7 @@
 
 - App skipping a stage (dependsOn resolved through the skipped stage): graph must use the app-resolved `p.stages[sn].dependsOn`, never raw `stages[sn].dependsOn`. Pinned by synthetic case in Task 1 (app without perf → prod deps resolve to staging only).
 - Upstream target feeding two groups (stage S in two different dependency sets): its downstream set spans groups, so a multi-target D fed by it alone must still get an entry. Pinned by synthetic case in Task 1.
-- Single-app capability with one stage and one target: no control flow, target `direct: true` from the Warehouse. Pinned by fixture `search/api`.
+- Single-app system with one stage and one target: no control flow, target `direct: true` from the Warehouse. Pinned by fixture `search/api`.
 - Name collisions: target named `<stage>-done`. Pinned by lint case in Task 2.
 - Freight in flight during migration: no test (live); documented in ADR (Task 3).
 
@@ -57,7 +57,7 @@
   - shards: `my-app-dev=- my-app-dev-done=- … my-app-us-prod=us` (control flow `-`, targets their region) — write the full sorted string
   - Synthetic (temp copy of testdata/root, render payments):
     a) skipped stage — `del(.stages.perf)` in my-app app.yml: `my-app-dev-done` absent; `src my-app-staging` == `false:All:my-app-onprem-dev,my-app-us-dev` (fan-in into staging, sole consumer stage); `src my-app-prod` == `false:All:my-app-onprem-stg,my-app-us-stg`.
-    b) 1→N — search api gets prod (add `capabilities/search/stages/prod.yml` `dependsOn: [dev]`, targets `us-prod`, `onprem-prod` copied from payments fixture, app.yml `.stages.prod.targets` for both): no control flow in search; `src api-us-prod` == `false::api-us-dev`, `src api-onprem-prod` == `false::api-us-dev`.
+    b) 1→N — search api gets prod (add `systems/search/stages/prod.yml` `dependsOn: [dev]`, targets `us-prod`, `onprem-prod` copied from payments fixture, app.yml `.stages.prod.targets` for both): no control flow in search; `src api-us-prod` == `false::api-us-dev`, `src api-onprem-prod` == `false::api-us-dev`.
     c) upstream target in two groups + M→1 — worker app.yml gets `.stages.perf.targets.us-perf = {}` and `.stages.staging.targets.onprem-stg = {}`: `src worker-staging` == `false::worker-us-dev` (entry: worker-us-dev also feeds us-perf); `src worker-us-stg` == `false::worker-staging`; `src worker-us-perf` == `false::worker-us-dev`; `src worker-us-prod` == `false:All:worker-onprem-stg,worker-us-perf,worker-us-stg`.
     d) multi-upstream shared naming — add stage `qa` (`dependsOn: [staging, perf]`) and my-app `.stages.qa.targets` `us-qa`, `onprem-qa` (target dirs copied from us-stg/onprem-stg): `src my-app-perf-staging-done` == `false:All:my-app-onprem-stg,my-app-us-perf,my-app-us-stg`; `src my-app-prod` == `false::my-app-perf-staging-done`; `src my-app-qa` == `false::my-app-perf-staging-done`.
     e) one-click invariant on the base fixture: for every `example.com/stage` with >1 target Stage, some Stage name has exactly that target set as its children (children = Stages listing it in `sources.stages`).
@@ -77,7 +77,7 @@
 
 **Files:** Modify `platform/render/input.cue:65-69`; Modify `platform/render/scripts/test.sh` (new case beside "target/stage name collision").
 
-- [ ] **Step 1: Test:** temp copy, `cp -R targets/onprem-dev targets/dev-done` in payments; `lint.sh` output must match `^capabilities/payments/targets/dev-done/target\.yml:[0-9]+:[0-9]+: .*target name dev-done is <stage>-done; Kargo control-flow stage names <app>-dev-done would collide`.
+- [ ] **Step 1: Test:** temp copy, `cp -R targets/onprem-dev targets/dev-done` in payments; `lint.sh` output must match `^systems/payments/targets/dev-done/target\.yml:[0-9]+:[0-9]+: .*target name dev-done is <stage>-done; Kargo control-flow stage names <app>-dev-done would collide`.
 - [ ] **Step 2: Run** `mise run test` → FAIL.
 - [ ] **Step 3: Implement** in `input.cue`, same raw-file-name loop as the stage-name rule: `if tn` ends with `-done` and `stages[strings.TrimSuffix(tn, "-done")] != _|_` → `targets: (tn): error("target name \(tn) is <stage>-done; Kargo control-flow stage names <app>-\(tn) would collide")`. Update the comment above (control-flow names).
 - [ ] **Step 4: Run** `mise run test` → all ok; `cue fmt` clean; `mise run schemas && jj diff --stat platform/render/schemas` → no change.

@@ -21,7 +21,7 @@ No. Typical: **one Kargo control plane per org/platform**, on a management (hub)
 
 ### What does this repo run?
 
-Sharded (ADR 0015), on kind: a hub cluster runs the Kargo control plane (API, UI, default controller; `platform/infrastructure/kargo/`, chart 1.12.5) plus an Argo CD for infrastructure only. Each region (`us-east4`, `dc1`) is its own kind cluster with its own Argo CD and a Kargo controller shard named after the region (placement option A below). The hub runs no workloads and holds no region credentials. Regions come from the cluster registry (`platform/cli/internal/capability/config.go`); a new region = a new `Clusters` entry, `mise run regions`, clean `mise run up`.
+Sharded (ADR 0015), on kind: a hub cluster runs the Kargo control plane (API, UI, default controller; `platform/infrastructure/kargo/`, chart 1.12.5) plus an Argo CD for infrastructure only. Each region (`us-east4`, `dc1`) is its own kind cluster with its own Argo CD and a Kargo controller shard named after the region (placement option A below). The hub runs no workloads and holds no region credentials. Regions come from the cluster registry (`platform/cli/internal/system/config.go`); a new region = a new `Clusters` entry, `mise run regions`, clean `mise run up`.
 
 ## Integrating with existing Argo CD in each management cluster
 
@@ -51,7 +51,7 @@ Central install: `api.argocd.urls` maps shard name → that Argo CD's URL (UI de
 
 ### How this repo does it
 
-- Cluster registry (`platform/cli/internal/capability/config.go`): each cluster's `Region` is its Kargo shard and its Argo CD.
+- Cluster registry (`platform/cli/internal/system/config.go`): each cluster's `Region` is its Kargo shard and its Argo CD.
 - Renderer (`kargo.go`): target Stages get `spec.shard` = their cluster's region; control-flow Stages and Warehouses stay unsharded (hub default controller). Applications carry `kargo.akuity.io/authorized-stage: <project>:<stage>`.
 - Argo CD params and AppProjects are rendered per region (`rendered/argocd/{deploys,projects}/<region>/`); Kargo resources stay central (`rendered/kargo/`).
 - Every Argo CD runs the same root app (`platform/bootstrap/root.yaml`); cluster-generator labels pick what each deploys (ADR 0017).

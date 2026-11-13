@@ -17,11 +17,11 @@ api:
     admins:
       claims:
         email: [admin@example.com]
-    # no global viewers/users; all access is generated per capability from owners.yml emails
-    # (rendered/kargo/<cap>.yaml):
-    #   promote-<stage> in kargo-<cap>-<app> (one project per app, ADR 0029): that stage's promoters
-    #   viewers in kargo-<cap>-<app>: the app's promoters + viewers get Kargo's kargo-viewer Role (read project)
-    #   users-<cap> in kargo-shared-resources: kargo-user (list project names), via the SAs below
+    # no global viewers/users; all access is generated per system from owners.yml emails
+    # (rendered/kargo/<sys>.yaml):
+    #   promote-<stage> in kargo-<sys>-<app> (one project per app, ADR 0029): that stage's promoters
+    #   viewers in kargo-<sys>-<app>: the app's promoters + viewers get Kargo's kargo-viewer Role (read project)
+    #   users-<sys> in kargo-shared-resources: kargo-user (list project names), via the SAs below
     globalServiceAccounts:
       namespaces:
         - kargo-shared-resources

@@ -13,29 +13,29 @@ pipeline per app ([ADR 0012](../adr/0012-kargo-stage-per-target.md)).
 
 The sandbox `payments` pipeline is `dev → staging, perf → prod`:
 
-<!-- embed path=capabilities/payments/stages/staging.yml -->
+<!-- embed path=systems/payments/stages/staging.yml -->
 ```yaml
 dependsOn: [dev]
 ```
 
-Source: [`payments/stages/staging.yml`](../../platform/render/testdata/root/capabilities/payments/stages/staging.yml)
+Source: [`payments/stages/staging.yml`](../../platform/render/testdata/root/systems/payments/stages/staging.yml)
 <!-- /embed -->
 
-<!-- embed path=capabilities/payments/stages/perf.yml -->
+<!-- embed path=systems/payments/stages/perf.yml -->
 ```yaml
 dependsOn: [dev]
 color: teal  # Kargo UI color; default is picked per stage
 ```
 
-Source: [`payments/stages/perf.yml`](../../platform/render/testdata/root/capabilities/payments/stages/perf.yml)
+Source: [`payments/stages/perf.yml`](../../platform/render/testdata/root/systems/payments/stages/perf.yml)
 <!-- /embed -->
 
-<!-- embed path=capabilities/payments/stages/prod.yml -->
+<!-- embed path=systems/payments/stages/prod.yml -->
 ```yaml
 dependsOn: [staging, perf]
 ```
 
-Source: [`payments/stages/prod.yml`](../../platform/render/testdata/root/capabilities/payments/stages/prod.yml)
+Source: [`payments/stages/prod.yml`](../../platform/render/testdata/root/systems/payments/stages/prod.yml)
 <!-- /embed -->
 
 - `autoPromote: true` promotes automatically once upstream stages verify; without it a promoter promotes
@@ -43,7 +43,7 @@ Source: [`payments/stages/prod.yml`](../../platform/render/testdata/root/capabil
   Prod is always promoted by a person, so a stage that deploys to any `prd` target can't auto-promote
   (in either file):
 
-  ```yaml path=capabilities/payments/stages/prod.yml expect="autoPromote not allowed"
+  ```yaml path=systems/payments/stages/prod.yml expect="autoPromote not allowed"
   dependsOn: [staging, perf]
   autoPromote: true
   ```
@@ -58,7 +58,7 @@ promote target by target. Where several targets fan in or out, the platform adds
 
 ## Targets: where things run
 
-One directory per target, `targets/<target>/target.yml`, shared by every app in the capability. A target
+One directory per target, `targets/<target>/target.yml`, shared by every app in the system. A target
 does nothing until an app lists it under `stages.<stage>.targets`.
 
 ### Naming
@@ -67,7 +67,7 @@ does nothing until an app lists it under `stages.<stage>.targets`.
 ([ADR 0025](../adr/0025-target-naming-convention.md)). Use the qualifier to tell apart two targets that
 would otherwise share a name (`us-east4-npr-k8s-perf`).
 
-```yaml path=capabilities/payments/targets/us-east4-dev-k8s/target.yml expect="name must be <region>-<env>-<platform>"
+```yaml path=systems/payments/targets/us-east4-dev-k8s/target.yml expect="name must be <region>-<env>-<platform>"
 config:
   cluster: us-east4
   namespace: payments-us-dev
@@ -95,7 +95,7 @@ Here `environmentType: npr` means lint wants the directory to be named `us-east4
 **K8S** (default): a cluster from the platform registry plus a namespace. Image apps. Deploys with Argo CD
 unless `deployWith: gha`.
 
-<!-- embed path=capabilities/payments/targets/us-east4-prd-k8s/target.yml -->
+<!-- embed path=systems/payments/targets/us-east4-prd-k8s/target.yml -->
 ```yaml
 config:
   cluster: us-east4
@@ -108,14 +108,14 @@ config:
   platform: K8S
 ```
 
-Source: [`payments/targets/us-east4-prd-k8s/target.yml`](../../platform/render/testdata/root/capabilities/payments/targets/us-east4-prd-k8s/target.yml)
+Source: [`payments/targets/us-east4-prd-k8s/target.yml`](../../platform/render/testdata/root/systems/payments/targets/us-east4-prd-k8s/target.yml)
 <!-- /embed -->
 
 **CLOUD_RUN**: a GCP project and region. Image apps render a Knative service, always deployed by the
 platform's `cloud-run.yaml` workflow ([ADR 0024](../adr/0024-cloud-run-targets.md)). Defaults suited to
 Cloud Run: scale to zero, port 8080, 1 CPU / 512Mi.
 
-<!-- embed path=capabilities/payments/targets/us-east4-npr-cr/target.yml -->
+<!-- embed path=systems/payments/targets/us-east4-npr-cr/target.yml -->
 ```yaml
 # CLOUD_RUN target: image apps render a Knative service; deploys with gha only
 config:
@@ -128,13 +128,13 @@ config:
   region: us-east4
 ```
 
-Source: [`payments/targets/us-east4-npr-cr/target.yml`](../../platform/render/testdata/root/capabilities/payments/targets/us-east4-npr-cr/target.yml)
+Source: [`payments/targets/us-east4-npr-cr/target.yml`](../../platform/render/testdata/root/systems/payments/targets/us-east4-npr-cr/target.yml)
 <!-- /embed -->
 
 **TERRAFORM**: a GCP project, region and GCS state `backend`. Only terraform apps (`module:`), always
 deployed by the `terraform.yaml` workflow, plan then apply ([ADR 0021](../adr/0021-terraform-apps.md)).
 
-<!-- embed path=capabilities/payments/targets/us-east4-dev-tf/target.yml -->
+<!-- embed path=systems/payments/targets/us-east4-dev-tf/target.yml -->
 ```yaml
 # TERRAFORM target: gcpProject/region/backend instead of a cluster; deploys with gha only
 config:
@@ -150,7 +150,7 @@ config:
     bucket: tfstate-team1-dev
 ```
 
-Source: [`payments/targets/us-east4-dev-tf/target.yml`](../../platform/render/testdata/root/capabilities/payments/targets/us-east4-dev-tf/target.yml)
+Source: [`payments/targets/us-east4-dev-tf/target.yml`](../../platform/render/testdata/root/systems/payments/targets/us-east4-dev-tf/target.yml)
 <!-- /embed -->
 
 Lint rejects fields that don't belong to the target's platform, and apps whose artifact doesn't match it

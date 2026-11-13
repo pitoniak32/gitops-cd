@@ -21,7 +21,7 @@ args and output.
 - `cue fmt --check ./platform/render/...` moves into `mise run test` (as a Go test using the library's
   formatter), and the separate CI step goes.
 - Contract per step: golden output and `.github/CODEOWNERS` byte-identical; `mise run lint` output
-  identical on every lint case and on `capabilities/` (a transitional test runs old `lint.sh` vs
+  identical on every lint case and on `systems/` (a transitional test runs old `lint.sh` vs
   `gcd lint` over all lint cases and diffs, deleted with `lint.sh`); `schemas/` equal in content
   (`jq -S`), key order may change, editor behavior (yamlls messages) unchanged.
 - New ADR 0026: renderer tooling is Go + CUE library; CUE stays the rule language (ADR 0006 unchanged:
@@ -30,29 +30,29 @@ args and output.
 ## Packages (`platform/cli/internal/`)
 
 - `cueload`: the one place that builds a CUE value.
-  - `Capability(root, cap string, opts) (cue.Value, error)`: loads package `render` from
-    `platform/render`, adds every capability input (same globs as `inputs.sh`: `teams/*.y*ml`,
+  - `System(root, cap string, opts) (cue.Value, error)`: loads package `render` from
+    `platform/render`, adds every system input (same globs as `inputs.sh`: `teams/*.y*ml`,
     `owners.y*ml`, `stages/*`, `targets/*.y*ml`, `targets/*/target.y*ml`,
     `targets/*/environment-variables/*`, `apps/*/app.y*ml`, `apps/*/owners.y*ml`) at
-    `in."<path relative to root>"` with source positions kept, tags `capability`, `repo`
+    `in."<path relative to root>"` with source positions kept, tags `system`, `repo`
     (`GITOPS_REPO`).
   - `Platform(files ...string) (cue.Value, error)`: `clusters.cue regions.cue` (regions, `gcd regions`
     drops its `cue export` subprocess).
   - `Generic() (cue.Value, error)`: `generic=true` for schemas.
-- `render`: `Capability(root, cap, out)` = vet (concrete, all errors) + write `files` (wipe the same
-  per-capability paths as `render.sh`); `Regions(out)`; `UniqueApps(out)` (duplicate workload
+- `render`: `System(root, cap, out)` = vet (concrete, all errors) + write `files` (wipe the same
+  per-system paths as `render.sh`); `Regions(out)`; `UniqueApps(out)` (duplicate workload
   Application name per region, same message); `CodeOwners(root, out)` (template + `#GENERATED` + teams
   lines, same rules as `codeowners.sh`); `All(root, out)` = the `render` task.
 - `yamlpos`: `Find(file, path []string) (line, col int, ok bool)` over `yaml.v3` nodes (map key position
   for keys, item position for list indexes); real line numbers, so the leading-comment offset hack goes.
 - `yamledit` (test helper, shared by lint + render tests): `Set`, `Del`, `Rename` on a YAML file by key
   path, preserving comments.
-- `lint`: `Capability(root, cap) ([]Diag, error)`; `Diag{File string; Line, Col int; Msg string}`,
+- `lint`: `System(root, cap) ([]Diag, error)`; `Diag{File string; Line, Col int; Msg string}`,
   `String()` = `file:line:col: [label: ]msg`. From `errors.Errors(err)`: CUE path + message + first
   YAML position; same rules as `lint.sh`: drop errors nested under a reported path, drop "conflicting
   values" when a custom error exists at that path, `locate` table per top-level field (`apps`, `stages`,
   `targets`, `legacyTargets`, `targetEnvs`, `capOwners`, `legacyAppOwners`, `teams`,
-  `stageNameErrors`, `stageDepth`, `deploys`), sorted + deduped across capabilities.
+  `stageNameErrors`, `stageDepth`, `deploys`), sorted + deduped across systems.
 - `schemas`: `Generate(outDir)`: `#App #Stage #Target #EnvironmentVariables #Owners #Team` →
   JSON Schema, then the `schemas.sh` jq passes as Go functions over decoded JSON (`any`; key order not
   kept)

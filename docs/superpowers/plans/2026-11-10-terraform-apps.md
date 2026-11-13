@@ -18,7 +18,7 @@
 - Watch CUE field shadowing; use `_cap`/`_capStages`/`_capTargets`/`_repoURL`.
 - Env key regex everywhere: `^[A-Za-z_][A-Za-z0-9_]*$`.
 - Terraform wait `retry.timeout: 60m`; K8s gha stays `30m`. Terraform `workflow.file` default `terraform.yaml`.
-- Backend prefix default `<cap>/<app>/<target>`.
+- Backend prefix default `<sys>/<app>/<target>`.
 - Module subscription: `imageSelectionStrategy: SemVer`, `discoveryLimit: 10`, **no `platform`**.
 - Terraform target Stages: no `spec.shard`.
 - Pin versions (`.mise.toml`, action SHAs/tags in workflows).
@@ -26,7 +26,7 @@
 
 ## Review Focus
 
-1. Mixed capability: K8s + terraform apps in one capability; K8s golden output must not change except where intended (only `env` key relax + new app). Pinned by: Task 5 asserts existing `my-app`/`worker` assertions in `test.sh` stay green unmodified.
+1. Mixed system: K8s + terraform apps in one system; K8s golden output must not change except where intended (only `env` key relax + new app). Pinned by: Task 5 asserts existing `my-app`/`worker` assertions in `test.sh` stay green unmodified.
 2. Terraform app sharing a stage with K8s apps whose stage has `autoPromote` + prod: prod rule still fires for TERRAFORM prod target. Pinned by: Task 2 lint case.
 3. `envFrom` file on a TERRAFORM target with lowercase keys merges like K8s. Pinned by: Task 4 golden fixture (`tf-dev` envFrom file with `TF_VAR_bucket_name`).
 4. Kargo expression `}}` cut-off in new dispatch body with `module` input. Pinned by: existing `test.sh` `}}` grep covers new golden.
@@ -41,7 +41,7 @@
 - Modify: `platform/render/testdata/lint-cases.tsv:15` (the `.bad_key` case)
 - Regenerate: `platform/render/schemas/*.json`
 
-- [ ] **Step 1:** Lint case line 15 → expr `."1BAD" = "x"`, want `^capabilities/payments/targets/us-dev/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: .*1BAD`. In `test.sh` after `lint ok`: copy root, `yq -i '.env.TF_VAR_lower_ok = "x"'` on `apps/my-app/app.yml`, assert `scripts/lint.sh "$r" payments` exits 0 (`echo "lowercase env ok"`).
+- [ ] **Step 1:** Lint case line 15 → expr `."1BAD" = "x"`, want `^systems/payments/targets/us-dev/environment-variables/launchdarkly\.yml:[0-9]+:[0-9]+: .*1BAD`. In `test.sh` after `lint ok`: copy root, `yq -i '.env.TF_VAR_lower_ok = "x"'` on `apps/my-app/app.yml`, assert `scripts/lint.sh "$r" payments` exits 0 (`echo "lowercase env ok"`).
 - [ ] **Step 2:** `mise run test` → FAIL at the lowercase assertion.
 - [ ] **Step 3:** Key regex → `^[A-Za-z_][A-Za-z0-9_]*$`.
 - [ ] **Step 4:** `mise run schemas && mise run test` → PASS, golden unchanged.
@@ -52,14 +52,14 @@
 **Files:**
 - Modify: `platform/render/team.cue` (`#Target`)
 - Modify: `platform/render/pipeline.cue:34` (cluster only for K8S)
-- Create: `platform/render/testdata/root/capabilities/payments/targets/{tf-dev,tf-prod}/target.yml`
-- Create: `platform/render/testdata/root/capabilities/payments/targets/tf-dev/environment-variables/bucket.yml` (`TF_VAR_bucket_name: payments-dev`)
+- Create: `platform/render/testdata/root/systems/payments/targets/{tf-dev,tf-prod}/target.yml`
+- Create: `platform/render/testdata/root/systems/payments/targets/tf-dev/environment-variables/bucket.yml` (`TF_VAR_bucket_name: payments-dev`)
 - Modify: `platform/render/testdata/lint-cases.tsv`
 
 **Interfaces:**
 - Produces: `targets[t].config.platform: "K8S" | "TERRAFORM"` (default `"K8S"`); TERRAFORM: `config.terraform: {gcpProject: string, backend: {bucket: string, prefix?: string}}`; no `cluster`/`namespace` (closed). Both: `environment`, `auth.wifEmail`, `billing`.
 
-- [ ] **Step 1: Fixtures + lint cases.** `tf-dev` (dev, gcpProject `team1-dev`, bucket `tfstate-team1-dev`), `tf-prod` (prod, `team1-prod`, `tfstate-team1-prod`, `prefix: payments/custom`). No app uses them yet (unused targets lint clean today — verify). Lint cases (want regex abbreviated, all `^capabilities/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: `):
+- [ ] **Step 1: Fixtures + lint cases.** `tf-dev` (dev, gcpProject `team1-dev`, bucket `tfstate-team1-dev`), `tf-prod` (prod, `team1-prod`, `tfstate-team1-prod`, `prefix: payments/custom`). No app uses them yet (unused targets lint clean today — verify). Lint cases (want regex abbreviated, all `^systems/payments/targets/tf-dev/target\.yml:[0-9]+:[0-9]+: `):
   - `.config.cluster = "us"` → `.*cluster.*not allowed`
   - `del(.config.terraform.backend.bucket)` → `.*bucket`
   - `.config.terraform.gcpProject = "Bad"` → `.*gcpProject`
@@ -75,7 +75,7 @@
 - Modify: `platform/render/app.cue` (`#App`, `#Layer` use, `_defaults`, `deploys`, `_placements`)
 - Modify: `platform/render/k8s.cue` (`manifests` only for `kind == "k8s"`)
 - Modify: `platform/render/delivery.cue` (`_argoDeploys` filter on `kind == "k8s"` too, `_deployRegion` uses it — already)
-- Create: `platform/render/testdata/root/capabilities/payments/apps/infra/app.yml`
+- Create: `platform/render/testdata/root/systems/payments/apps/infra/app.yml`
 - Modify: `platform/render/testdata/lint-cases.tsv`
 
 **Interfaces:**
@@ -83,7 +83,7 @@
 - `apps[a].module?: string`, `apps[a].moduleConstraint?: string`.
 
 - [ ] **Step 1: Fixture.** `apps/infra/app.yml`: `module: ghcr.io/pitoniak32/tf-bucket`, `moduleConstraint: ^1`, `envFrom: [bucket]` at `stages.dev.targets.tf-dev`, `env: {TF_VAR_region: us-central1}`, stages `dev: {targets: {tf-dev: {}}}`, `prod: {targets: {tf-prod: {env: {TF_VAR_region: us-east1}}}}`, `workflow: {ref: v1}`. Owners inherited.
-- [ ] **Step 2: Lint cases** on `capabilities/payments/apps/infra/app.yml`:
+- [ ] **Step 2: Lint cases** on `systems/payments/apps/infra/app.yml`:
   - `.image = "ghcr.io/x/y"` → `.*set exactly one of image \(K8s app\) or module \(terraform app\)`
   - `del(.module)` → same message
   - `.replicas = 2`, `.stages.dev.port = 80`, `.stages.dev.targets.tf-dev.deployWith = "argocd"`, `.resources.cpu = "1"` → `.*not allowed on a terraform app`
@@ -104,11 +104,11 @@
 
 **Interfaces:**
 - Consumes: Task 3 `deploys` terraform fields.
-- Produces: `rendered/apps/<cap>/<app>/<stage>/<target>/terraform.yaml`, single doc, keys in this order: `capability, app, stage, target, environment, gcpProject, wifEmail, backend{bucket,prefix}, module, env`.
+- Produces: `rendered/apps/<sys>/<app>/<stage>/<target>/terraform.yaml`, single doc, keys in this order: `system, app, stage, target, environment, gcpProject, wifEmail, backend{bucket,prefix}, module, env`.
 
 - [ ] **Step 1: Assertions** in `test.sh` (new block `echo "terraform render ok"`):
   - `ls $tmp/apps/payments/infra/dev/tf-dev` == `terraform.yaml` only.
-  - `yq -o=json -I=0 '.' .../infra/dev/tf-dev/terraform.yaml` == `{"capability":"payments","app":"infra","stage":"dev","target":"tf-dev","environment":"dev","gcpProject":"team1-dev","wifEmail":"<fixture>","backend":{"bucket":"tfstate-team1-dev","prefix":"payments/infra/tf-dev"},"module":"ghcr.io/pitoniak32/tf-bucket","env":{"TF_VAR_bucket_name":"payments-dev","TF_VAR_region":"us-central1"}}`
+  - `yq -o=json -I=0 '.' .../infra/dev/tf-dev/terraform.yaml` == `{"system":"payments","app":"infra","stage":"dev","target":"tf-dev","environment":"dev","gcpProject":"team1-dev","wifEmail":"<fixture>","backend":{"bucket":"tfstate-team1-dev","prefix":"payments/infra/tf-dev"},"module":"ghcr.io/pitoniak32/tf-bucket","env":{"TF_VAR_bucket_name":"payments-dev","TF_VAR_region":"us-central1"}}`
   - tf-prod: `backend.prefix == "payments/custom"`, `env.TF_VAR_region == "us-east1"`.
   - No `argocd/deploys/*/payments/infra-*` files (extend existing argocd file-list assertion: unchanged list).
 - [ ] **Step 2:** `mise run test` → FAIL.
@@ -124,7 +124,7 @@
 
 **Interfaces:**
 - Consumes: Task 3 `deploys[..].kind`, `.module`, `apps[a].moduleConstraint`.
-- Produces: Stage vars `repo, src, branch, image, workflowRepo, workflowFile, workflowRef` (var `image` holds the module repo — `gcd kargo-restore` reads vars by name); labels `example.com/platform: k8s|terraform` on target Stages; terraform commit message `promote <cap>/<app> to <stage>/<target> from <sha>, module <tag>`.
+- Produces: Stage vars `repo, src, branch, image, workflowRepo, workflowFile, workflowRef` (var `image` holds the module repo — `gcd kargo-restore` reads vars by name); labels `example.com/platform: k8s|terraform` on target Stages; terraform commit message `promote <sys>/<app> to <stage>/<target> from <sha>, module <tag>`.
 
 - [ ] **Step 1: Assertions** (`echo "terraform kargo ok"`), with `st()` from the gha block:
   - Warehouse `infra` subscriptions: `.spec.subscriptions[1].image | .repoURL + " " + .imageSelectionStrategy + " " + .constraint + " " + (.discoveryLimit|tostring) + " " + (has("platform")|tostring)` == `ghcr.io/pitoniak32/tf-bucket SemVer ^1 10 false`.
@@ -163,9 +163,9 @@
 - Create: `examples/terraform/bucket/{main.tf,variables.tf}`
 - Create: `platform/mise-tasks/tf-module-push`
 - Modify: `.mise.toml` (pin `oras`, `terraform`)
-- Create: `capabilities/payments/apps/infra/app.yml`, `capabilities/payments/targets/{us-dev-tf,us-stg-tf}/target.yml`
+- Create: `systems/payments/apps/infra/app.yml`, `systems/payments/targets/{us-dev-tf,us-stg-tf}/target.yml`
 
-- [ ] **Step 1: Workflow** `deploy terraform (example)`: `workflow_dispatch` inputs `capability, app, stage, target, commit, module` (all required strings), `permissions: {contents: read, packages: read}`, inputs via `env:`. Steps: checkout `commit`; fail if `yq .module terraform.yaml != $MODULE`; `oras-project/setup-oras` (pinned) + `oras login ghcr.io -u $GITHUB_ACTOR --password-stdin <<<"$GITHUB_TOKEN"` + `oras pull "$MODULE" -o module`; `hashicorp/setup-terraform` (pinned, same version as `.mise.toml`); export `.env` via `yq -o=shell '.env' terraform.yaml >> "$GITHUB_ENV"`-equivalent (one `KEY=value` per line; values with newlines rejected); `terraform -chdir=module init -backend=false && terraform -chdir=module validate`; summary table + `_demo: nothing applied_`. Commented real block: `google-github-actions/auth` (`service_account: wifEmail`, WIF provider placeholder), `init -backend-config=bucket=… -backend-config=prefix=…`, `plan -out tfplan`, `apply tfplan`.
+- [ ] **Step 1: Workflow** `deploy terraform (example)`: `workflow_dispatch` inputs `system, app, stage, target, commit, module` (all required strings), `permissions: {contents: read, packages: read}`, inputs via `env:`. Steps: checkout `commit`; fail if `yq .module terraform.yaml != $MODULE`; `oras-project/setup-oras` (pinned) + `oras login ghcr.io -u $GITHUB_ACTOR --password-stdin <<<"$GITHUB_TOKEN"` + `oras pull "$MODULE" -o module`; `hashicorp/setup-terraform` (pinned, same version as `.mise.toml`); export `.env` via `yq -o=shell '.env' terraform.yaml >> "$GITHUB_ENV"`-equivalent (one `KEY=value` per line; values with newlines rejected); `terraform -chdir=module init -backend=false && terraform -chdir=module validate`; summary table + `_demo: nothing applied_`. Commented real block: `google-github-actions/auth` (`service_account: wifEmail`, WIF provider placeholder), `init -backend-config=bucket=… -backend-config=prefix=…`, `plan -out tfplan`, `apply tfplan`.
 - [ ] **Step 2: Module** `examples/terraform/bucket`: `variable "bucket_name"`, `variable "region"`, `resource "terraform_data" "bucket"` with `input = {name, region}`; no providers. Verify: `terraform -chdir=examples/terraform/bucket init -backend=false && terraform -chdir=examples/terraform/bucket validate` → `Success!`.
 - [ ] **Step 3: `tf-module-push [version]`** (default `1.0.0`): repo `ghcr.io/pitoniak32/tf-bucket`; if `oras manifest fetch "$ref" >/dev/null 2>&1` → echo `exists`, exit 0; else `tar -czf` module dir and `oras push "$ref" --artifact-type application/vnd.example.tf.module.v1 bucket.tgz:application/vnd.example.tf.module.v1.tar+gzip` (default empty config, single manifest). Login via `GITHUB_PAT` from fnox. `#MISE description=` header like other tasks. Run twice → second prints `exists` (only if user opts to push; else `bash -n` check).
 - [ ] **Step 4: Demo data** mirroring fixtures: `us-dev-tf` (dev), `us-stg-tf` (staging), `infra` app dev → us-dev-tf, staging → us-stg-tf, sample `env` with `TF_VAR_bucket_name`. `mise run lint payments` → clean; `mise run render /tmp/x` (scratchpad) → `apps/payments/infra/dev/us-dev-tf/terraform.yaml` exists.

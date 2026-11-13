@@ -19,7 +19,7 @@ func init() {
 	register(func() *cobra.Command {
 		return &cobra.Command{
 			Use:   "up",
-			Short: "Fresh demo cluster: tear down existing, create, install infrastructure + rendered capabilities",
+			Short: "Fresh demo cluster: tear down existing, create, install infrastructure + rendered systems",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				ctx := cmd.Context()
