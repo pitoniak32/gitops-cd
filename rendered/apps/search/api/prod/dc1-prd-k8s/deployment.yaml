@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: api
-    example.com/capability: search
+    example.com/system: search
     example.com/stage: prod
     example.com/target: dc1-prd-k8s
     example.com/environment: prod
@@ -22,7 +22,7 @@ spec:
       labels:
         app.kubernetes.io/managed-by: cue-platform
         app.kubernetes.io/name: api
-        example.com/capability: search
+        example.com/system: search
         example.com/stage: prod
         example.com/target: dc1-prd-k8s
         example.com/environment: prod

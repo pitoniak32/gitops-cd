@@ -1,6 +1,6 @@
 {
   "appName": "payments-my-app-us-east4-npr-k8s",
-  "capability": "payments",
+  "system": "payments",
   "app": "my-app",
   "stage": "staging",
   "target": "us-east4-npr-k8s",

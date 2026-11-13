@@ -1,4 +1,4 @@
-capability: payments
+system: payments
 app: infra
 stage: staging
 target: us-east4-npr-tf

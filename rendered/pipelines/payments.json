@@ -1,11 +1,11 @@
 {
   "infra": {
-    "capability": "payments",
+    "system": "payments",
     "app": "infra",
     "stages": {
       "dev": {
         "dependsOn": [],
-        "autoPromote": true,
+        "autoPromote": false,
         "level": 0,
         "targets": {
           "us-east4-dev-tf": {
@@ -46,7 +46,7 @@
     ]
   },
   "my-app": {
-    "capability": "payments",
+    "system": "payments",
     "app": "my-app",
     "stages": {
       "dev": {
@@ -162,12 +162,12 @@
     ]
   },
   "worker": {
-    "capability": "payments",
+    "system": "payments",
     "app": "worker",
     "stages": {
       "dev": {
         "dependsOn": [],
-        "autoPromote": true,
+        "autoPromote": false,
         "level": 0,
         "targets": {
           "us-east4-dev-k8s": {

@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: api
-    example.com/capability: search
+    example.com/system: search
     example.com/stage: dev
     example.com/target: us-east4-dev-k8s
     example.com/environment: dev
@@ -21,7 +21,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: cue-platform
     app.kubernetes.io/name: api
-    example.com/capability: search
+    example.com/system: search
     example.com/stage: dev
     example.com/target: us-east4-dev-k8s
     example.com/environment: dev

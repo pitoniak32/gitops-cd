@@ -1,6 +1,6 @@
 {
   "appName": "search-api-us-east4-prd-k8s",
-  "capability": "search",
+  "system": "search",
   "app": "api",
   "stage": "prod",
   "target": "us-east4-prd-k8s",

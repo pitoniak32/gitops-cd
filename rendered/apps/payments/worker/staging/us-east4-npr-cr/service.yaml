@@ -7,7 +7,7 @@ metadata:
     app: worker
     cloud.googleapis.com/location: us-east4
     managed-by: cue-platform
-    capability: payments
+    system: payments
     stage: staging
     target: us-east4-npr-cr
     environment: staging
@@ -19,7 +19,7 @@ spec:
       labels:
         app: worker
         managed-by: cue-platform
-        capability: payments
+        system: payments
         stage: staging
         target: us-east4-npr-cr
         environment: staging

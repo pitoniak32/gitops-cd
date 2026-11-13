@@ -1,6 +1,6 @@
 {
   "appName": "search-api-dc1-prd-k8s",
-  "capability": "search",
+  "system": "search",
   "app": "api",
   "stage": "prod",
   "target": "dc1-prd-k8s",
