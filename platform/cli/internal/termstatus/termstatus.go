@@ -31,7 +31,7 @@ type Reporter struct {
 func New(w io.Writer, app string) *Reporter { return &Reporter{w: w, app: app} }
 
 // Open reports to the controlling terminal (/dev/tty), so reports reach it even when stdout/stderr
-// are piped (mise task output, tee). nil, a no-op, when GCD_NO_STATUS is set, when errOut isn't a
+// are piped (tee, wrappers). nil, a no-op, when GCD_NO_STATUS is set, when errOut isn't a
 // process stream (tests capture output in a buffer), or with no terminal (CI).
 func Open(errOut io.Writer, app string) *Reporter {
 	if _, ok := errOut.(*os.File); !ok || os.Getenv("GCD_NO_STATUS") != "" {

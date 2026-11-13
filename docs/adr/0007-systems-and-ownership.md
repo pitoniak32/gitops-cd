@@ -8,7 +8,7 @@ promoters:                          # stage → emails (ADR 0011)
   dev: [doug@example.com, amy@example.com]
   prod: [lead@example.com]
 viewers: [bob@example.com]
-breakGlass: [oncall@example.com]    # system-wide only (ADR 0013)
+breakGlass: [grace@example.com]    # system-wide only (ADR 0013)
 apps:
   checkout:                         # must be an app in apps/
     codeOwners: [team2]             # replaces the list
@@ -32,4 +32,4 @@ apps:
 
 - `owners.yml` and `teams/` are platform-approved, because whoever can edit `owners.yml` controls promotion.
 - Adding a stage to a system needs a matching `promoters` entry, or lint fails.
-- Ownership changes need `mise run codeowners` in the PR, and they take effect from the next PR.
+- Ownership changes need `gcd codeowners` in the PR, and they take effect from the next PR.

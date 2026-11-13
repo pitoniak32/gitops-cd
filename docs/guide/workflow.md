@@ -2,7 +2,9 @@
 
 You want to change system YAML and know, before you push, that it's valid and does what you meant.
 
-Run everything from the repo root. `gcd` is on your `PATH` through mise (`mise run cli` builds it).
+Run everything as `gcd` inside the repo: `mise install && mise run build` puts it on your `PATH`. You need Go (`mise install`, version
+pinned in `.mise.toml`) and git or jj; nothing else for editing YAML
+([prerequisites](../../README.md#prerequisites)).
 `gcd lint` is the only validator: there are no editor schemas
 ([ADR 0030](../adr/0030-renderer-in-go.md)).
 
@@ -81,7 +83,7 @@ An empty diff means your change has no rendered effect, which usually means a na
 
 ## 5. Open the PR
 
-- If you changed `owners.yml` or `teams/`, run `mise run codeowners` and commit the regenerated
+- If you changed `owners.yml` or `teams/`, run `gcd codeowners` and commit the regenerated
   `.github/CODEOWNERS`. Say in the PR description that it needs platform approval.
 - CI (`config.yaml`) lints the systems your PR can affect and annotates errors on the changed lines,
   checks CODEOWNERS is up to date, renders, and comments the rendered diff on the PR (`_no changes_` if

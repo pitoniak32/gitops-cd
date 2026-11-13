@@ -829,7 +829,7 @@
       {
         "path": "breakGlass",
         "value": [
-          "oncall@example.com"
+          "grace@example.com"
         ],
         "file": "systems/payments/owners.yml",
         "line": 8

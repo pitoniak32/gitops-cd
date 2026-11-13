@@ -7,7 +7,7 @@ my-app:
       perf: [doug@example.com]
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [oncall@example.com]
+    breakGlass: [grace@example.com]
   dev:
     dc1-dev-k8s:
       image: ghcr.io/pitoniak32/nginx

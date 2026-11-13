@@ -1,4 +1,4 @@
-# Example terraform app module (ADR 0021), pushed as an OCI artifact by `mise run tf-module-push`.
+# Example terraform app module (ADR 0021), pushed as an OCI artifact by `gcd tf-module-push`.
 # No provider: a real module would declare google_storage_bucket; terraform_data keeps the demo offline.
 terraform {
   required_version = ">= 1.6"

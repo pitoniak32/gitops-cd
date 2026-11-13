@@ -71,7 +71,7 @@ _Avoid_: overlay, values
 ### Platform
 
 **Infrastructure**:
-The cluster add-ons (Argo CD, Traefik, cert-manager, Argo Rollouts, Keycloak, Kargo, shards): one ApplicationSet each in `platform/appsets/addons/`, config in `platform/infrastructure/<addon>/` read from `main`; `mise run infra` waits for them in order.
+The cluster add-ons (Argo CD, Traefik, cert-manager, Argo Rollouts, Keycloak, Kargo, shards): one ApplicationSet each in `platform/appsets/addons/`, config in `platform/infrastructure/<addon>/` read from `main`; `gcd infra` waits for them in order.
 _Avoid_: platform (overloaded with the platform team)
 
 **Bootstrap**:

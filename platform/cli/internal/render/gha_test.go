@@ -35,7 +35,7 @@ func st(t *testing.T, ds []map[string]any, name, path string) string {
 	return str(get(s, path))
 }
 
-// stepsOf are a Stage's promotionTemplate steps: pre-<n> gha-check steps (ADR 0028), then promote.
+// stepsOf are a Stage's promotionTemplate steps: <check name> gha-check steps (ADR 0028), then promote.
 func stepsOf(ds []map[string]any, name string) []any {
 	return list(stage(ds, name), "spec.promotionTemplate.spec.steps")
 }
@@ -325,7 +325,7 @@ func TestGhaCheckTask(t *testing.T) {
 	}
 }
 
-// Platform pre-deploy checks (ADR 0028): prd target Stages run gha-check (pre-<n>) before promote, dispatched
+// Platform pre-deploy checks (ADR 0028): prd target Stages run gha-check (step `as` = check name) before promote, dispatched
 // to the app's sourceRepo; all other target Stages only promote.
 func TestPreDeployChecks(t *testing.T) {
 	t.Parallel()
@@ -352,20 +352,20 @@ func TestPreDeployChecks(t *testing.T) {
 				continue
 			}
 			n++
-			if strings.Join(as, ",") != "pre-1,promote" {
-				t.Errorf("%s: steps %v, want pre-1,promote", name, as)
+			if strings.Join(as, ",") != "image-signature-check,promote" {
+				t.Errorf("%s: steps %v, want image-signature-check,promote", name, as)
 				continue
 			}
-			pre := templateStep(one, name, "pre-1")
+			pre := templateStep(one, name, "image-signature-check")
 			repo := "pitoniak32/gitops-cd"
 			if label(s, "example.com/app") == "my-app" {
 				repo = "acme/my-app"
 			}
 			if got := str(get(pre, "task.kind")) + "/" + str(get(pre, "task.name")); got != "ClusterPromotionTask/gha-check" {
-				t.Errorf("%s pre-1 task %s", name, got)
+				t.Errorf("%s image-signature-check task %s", name, got)
 			}
 			if got := stepVar(pre, "workflowRepo") + " " + stepVar(pre, "workflowFile") + " " + stepVar(pre, "workflowRef") + " " + stepVar(pre, "checkTimeout"); got != repo+" precheck.yaml main 30m" {
-				t.Errorf("%s pre-1 vars: %s", name, got)
+				t.Errorf("%s image-signature-check vars: %s", name, got)
 			}
 			if ann != repo+"/precheck.yaml@main" {
 				t.Errorf("%s pre-deploy annotation %q", name, ann)
@@ -375,14 +375,14 @@ func TestPreDeployChecks(t *testing.T) {
 	if n != 5 {
 		t.Errorf("prd target Stages: %d, want 5", n)
 	}
-	// gha deploy on prd (terraform): pre-1's step vars don't replace the deploy workflow; module, not image
+	// gha deploy on prd (terraform): image-signature-check's step vars don't replace the deploy workflow; module, not image
 	k := kargoApp(t, "infra")
 	const i = "us-east4-prd-tf"
 	if varValue(k, i, "workflowFile") == "precheck.yaml" || varValue(k, i, "workflowFile") == "" {
 		t.Errorf("%s: deploy workflowFile %q", i, varValue(k, i, "workflowFile"))
 	}
-	if stepVar(templateStep(k, i, "pre-1"), "workflowFile") != "precheck.yaml" {
-		t.Errorf("%s: pre-1 workflowFile", i)
+	if stepVar(templateStep(k, i, "image-signature-check"), "workflowFile") != "precheck.yaml" {
+		t.Errorf("%s: image-signature-check workflowFile", i)
 	}
 	if templateStep(k, i, "promote")["vars"] != nil {
 		t.Errorf("%s: promote step must take Promotion vars only", i)

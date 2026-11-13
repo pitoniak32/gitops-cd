@@ -1,7 +1,6 @@
 package system
 
 import (
-	"strconv"
 	"strings"
 
 	. "github.com/pitoniak32/gitops-cd/platform/cli/internal/emit"
@@ -149,11 +148,11 @@ func (m *model) kargoCore(a *appDef) []Map {
 		if d.deployWith == "gha" {
 			vars = append(vars, v("workflowRepo", d.wfRepo), v("workflowFile", d.wfFile), v("workflowRef", d.wfRef))
 		}
-		// pre-<n>: gha-check per platform check, dispatched to the app's sourceRepo; workflow vars on the
+		// <check name>: gha-check per platform check, dispatched to the app's sourceRepo; workflow vars on the
 		// step itself so a gha deploy's Promotion-level workflow vars stay for `promote`
 		steps := List{}
-		for i, c := range checks {
-			steps = append(steps, M("as", "pre-"+strconv.Itoa(i+1), "task", M("kind", "ClusterPromotionTask", "name", "gha-check"),
+		for _, c := range checks {
+			steps = append(steps, M("as", c.Name, "task", M("kind", "ClusterPromotionTask", "name", "gha-check"),
 				"vars", List{v("workflowRepo", a.sourceRepo), v("workflowFile", c.File), v("workflowRef", c.Ref), v("checkTimeout", c.Timeout)}))
 		}
 		steps = append(steps, M("as", "promote", "task", M("kind", "ClusterPromotionTask", "name", "promote-"+d.deployWith)))

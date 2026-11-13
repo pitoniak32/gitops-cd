@@ -1,3 +1,13 @@
-# mise pins only Go (builds gcd). Everything else is ./gcd: `./gcd --help` lists the commands.
+# mise pins Go and builds gcd: `mise run build` -> .bin/gcd, on PATH while mise is active in this repo.
+# Everything else is gcd itself: `gcd --help`.
 [tools]
 go = '1.27.2'
+
+[env]
+_.path = ["{{config_root}}/.bin"]
+
+[tasks.build]
+description = "Build gcd to .bin/gcd (skipped when platform/cli is unchanged)"
+run = "go build -C platform/cli -o ../../.bin/gcd ."
+sources = ["platform/cli/**/*.go", "platform/cli/go.mod", "platform/cli/go.sum"]
+outputs = [".bin/gcd"]

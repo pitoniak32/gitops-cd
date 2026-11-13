@@ -56,7 +56,7 @@ func up(cmd *cobra.Command, st *termstatus.Reporter) error {
 	return nil
 }
 
-// waitServing polls url every 2s until it answers 200 (TLS unverified: mkcert CA may be untrusted here).
+// waitServing polls url every 2s until it answers 200 (TLS unverified: the local CA may be untrusted here).
 func waitServing(ctx context.Context, url string, timeout time.Duration) error {
 	client := &http.Client{
 		Timeout:   5 * time.Second,

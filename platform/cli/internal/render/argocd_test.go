@@ -68,12 +68,12 @@ func TestKindClusterArgoCD(t *testing.T) {
 		}
 		return `"policies":[` + strings.Join(ps, ",") + `]`
 	}
-	const std = `"groups":["bob@example.com","doug@example.com","oncall@example.com"]`
+	const std = `"groups":["bob@example.com","doug@example.com","grace@example.com"]`
 	want := strings.Join([]string{
 		`{"name":"viewer-my-app",` + pol("my-app", "us-east4-dev-k8s", "us-east4-npr-k8s", "us-east4-npr-k8s-perf", "us-east4-prd-k8s") + `,` + std + `}`,
 		`{"name":"viewer-payments",` + pol("payments", "us-east4-dev-k8s", "us-east4-npr-k8s", "us-east4-prd-k8s") + `,` + std + `}`,
 		`{"name":"viewer-web",` + pol("web", "us-east4-dev-k8s") + `,` + std + `}`,
-		`{"name":"viewer-worker",` + pol("worker", "us-east4-npr-k8s", "us-east4-prd-k8s") + `,"groups":["alice@example.com","bob@example.com","carol@example.com","doug@example.com","oncall@example.com"]}`,
+		`{"name":"viewer-worker",` + pol("worker", "us-east4-npr-k8s", "us-east4-prd-k8s") + `,"groups":["alice@example.com","bob@example.com","carol@example.com","doug@example.com","grace@example.com"]}`,
 	}, "\n")
 	type role struct {
 		Name     string   `json:"name"`

@@ -12,9 +12,9 @@ promotion pipeline (ADR 0030). Teams never edit either.
 | `system/model.go` | layered merge app → stage → target → deploy, owners |
 | `system/graph.go` | neutral per-app promotion graph (`pipelines/<sys>.json`), Kargo Stage graph (ADR 0012) |
 | `system/kargo.go`, `output.go` | Kargo Project/ProjectConfig/Warehouse/Stages/RBAC, Argo CD params + AppProjects, k8s / Cloud Run / terraform files, CODEOWNERS fragment |
-| `system/platformfiles.go` | **platform-level** `ClusterPromotionTask`s (ADR 0027), region files, `mise run regions` config |
+| `system/platformfiles.go` | **platform-level** `ClusterPromotionTask`s (ADR 0027), region files, `gcd regions` config |
 | `emit` | ordered maps → YAML/JSON in the committed formatting |
-| `gcd render` / `gcd codeowners` (`internal/render`) | validate + write the files / CODEOWNERS (`mise run codeowners`) |
+| `gcd render` / `gcd codeowners` (`internal/render`) | validate + write the files / CODEOWNERS (`gcd codeowners`) |
 | `gcd lint` (`internal/lint`) | full validation as `file:line:col: message`, or `::error` annotations in GitHub Actions |
 | `testdata/` | fixture systems (`root/`) + golden output |
 
@@ -61,13 +61,13 @@ Promoting target T copies `rendered/apps/<sys>/<app>/<stage>/T/` from the Freigh
 and syncs Argo CD app `<sys>-<app>-T` (path `.`, plain YAML). Gates and `availabilityStrategy: All`: ADR 0012.
 The steps live in ClusterPromotionTask `promote-<deployWith>`; each target Stage's template is one `task`
 step plus vars (ADR 0027).
-Platform pre-deploy checks (`config.go` `PreDeploy`, ADR 0028): per environment type, `{File, Ref, Timeout}`
-(teams can't set it). Target Stages of that type run `pre-<n>` steps (ClusterPromotionTask `gha-check`,
+Platform pre-deploy checks (`config.go` `PreDeploy`, ADR 0028): per environment type, `{Name, File, Ref, Timeout}`
+(teams can't set it). Target Stages of that type run one step per check, aliased by the check's `Name` (ClusterPromotionTask `gha-check`,
 workflow vars on the step) before `promote`: dispatch `file` to the app's `sourceRepo` with the Freight's
 commit and artifact, wait for success (`timeout`, max 2h); anything else fails the Promotion before the push.
 
 ## Feedback
-`gcd lint [sys…]` (`--root` for another tree; `.bin/gcd`, on PATH via mise, built by `mise run cli`): validates each
+`gcd lint [sys…]` (`--root` for another tree; `mise run build` builds it): validates each
 system's files (+ `teams/`) as `file:line:col: message`, pointing at the offending key or list item.
 Systems run in parallel; `teams/` is read and checked once. `--changed [--base <rev>]` (PR CI) lints
 only what the changes since the merge-base can affect (`--all` overrides it, and named systems; PR
@@ -83,4 +83,4 @@ fields, owners), then, once those are clean, what only shows in derived values (
 envFrom, prod autoPromote, stage cycles, generated name lengths).
 
 ## Dev loop
-`mise run test` (Go tests in `platform/cli/internal/{system,render,lint}`: golden diff of testdata/root, render assertions, lint cases), `UPDATE=1 mise run test` to accept.
+`gcd test` (Go tests in `platform/cli/internal/{system,render,lint}`: golden diff of testdata/root, render assertions, lint cases), `UPDATE=1 gcd test` to accept.

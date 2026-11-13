@@ -13,7 +13,6 @@ on:
       - examples/terraform/**       # internal/tfmodule pushes it (in-memory registry)
       - .github/CODEOWNERS.tmpl     # CODEOWNERS golden
       - .mise.toml                  # Go version
-      - gcd                         # wrapper
       - .github/actions/setup-go/**
       - .github/workflows/cli.yaml
       - docs/reference/**           # gcd docs embeds + yaml examples (internal/docs)
@@ -34,7 +33,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-go
+      - name: build gcd
+        run: mise run build
       - name: gofmt, vet, test
-        run: ./gcd test
+        run: .bin/gcd test
       - name: region-derived config up to date (cluster registry)
-        run: ./gcd regions && git diff --exit-code platform/cluster/regions platform/infrastructure/keycloak platform/infrastructure/kargo/values.yaml
+        run: .bin/gcd regions && git diff --exit-code platform/cluster/regions platform/infrastructure/keycloak platform/infrastructure/kargo/values.yaml

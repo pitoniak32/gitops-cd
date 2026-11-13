@@ -6,7 +6,7 @@ ports:
     nodePort: 30080
   websecure:
     nodePort: 30443
-# browser-trusted cert for *.localhost UIs: secret local-tls created by `mise run certs` (mkcert, not in git)
+# browser-trusted cert for *.localhost UIs: secret local-tls created by `gcd certs` (local CA, not in git)
 tlsStore:
   default:
     defaultCertificate:

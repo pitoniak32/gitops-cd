@@ -153,16 +153,16 @@
       ]
     },
     {
-      "username": "oncall",
-      "email": "oncall@example.com",
-      "firstName": "On",
-      "lastName": "Call",
+      "username": "grace",
+      "email": "grace@example.com",
+      "firstName": "Grace",
+      "lastName": "Lin",
       "emailVerified": true,
       "enabled": true,
       "credentials": [
         {
           "type": "password",
-          "value": "oncall",
+          "value": "grace",
           "temporary": false
         }
       ],

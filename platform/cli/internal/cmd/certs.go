@@ -11,7 +11,7 @@ func init() {
 	register(func() *cobra.Command {
 		return &cobra.Command{
 			Use:   "certs",
-			Short: "Browser-trusted TLS for *.localhost UIs: mkcert CA in macOS keychain + traefik default cert",
+			Short: "Browser-trusted TLS for *.localhost UIs: local CA trusted in the macOS keychain + traefik default cert",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				root, err := resolveRoot(cmd)

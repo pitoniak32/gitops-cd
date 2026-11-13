@@ -32,7 +32,7 @@ spec:
       groups:
         - bob@example.com
         - doug@example.com
-        - oncall@example.com
+        - grace@example.com
     - name: viewer-payments
       description: read-only view of payments/payments for its promoters and viewers
       policies:
@@ -42,7 +42,7 @@ spec:
       groups:
         - bob@example.com
         - doug@example.com
-        - oncall@example.com
+        - grace@example.com
     - name: viewer-web
       description: read-only view of payments/web for its promoters and viewers
       policies:
@@ -50,7 +50,7 @@ spec:
       groups:
         - bob@example.com
         - doug@example.com
-        - oncall@example.com
+        - grace@example.com
     - name: viewer-worker
       description: read-only view of payments/worker for its promoters and viewers
       policies:
@@ -61,4 +61,4 @@ spec:
         - bob@example.com
         - carol@example.com
         - doug@example.com
-        - oncall@example.com
+        - grace@example.com

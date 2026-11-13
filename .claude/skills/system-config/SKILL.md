@@ -5,7 +5,7 @@ description: Change system config. Use when editing any YAML under systems/ or t
 
 # System config
 
-Run `gcd` from repo root (`mise run cli` builds `.bin/gcd`). Teams write YAML only; `gcd lint` is the only validator.
+Run `gcd` in the repo (`mise run build` builds `.bin/gcd`, on PATH via mise). Teams write YAML only; `gcd lint` is the only validator.
 
 ## Workflow
 
@@ -14,7 +14,7 @@ Run `gcd` from repo root (`mise run cli` builds `.bin/gcd`). Teams write YAML on
 3. **Edit** the YAML at the narrowest layer that matches the request (below).
 4. **Lint until clean**: `gcd lint <sys>` (`--format json` for machine-readable diags). If `gcd show` errors, run `gcd lint <sys>` first. Output is `file:line:col: message`; fix each, re-run.
 5. **Review rendered effect**: `gcd show --diff --stat` (every changed system), then `gcd show <sys>[/<app>] [--stage s] [--target t] --diff` for detail (changed files only; empty = no change; `--rendered` for the full manifest; `--include-platform` only if asked about Argo CD/Kargo). Default base is the branch fork point (jj `fork_point(trunk() | @)`, git merge-base with `origin/main`/`main`), so committed and uncommitted branch work both show; `--base <jj revset|git rev>` overrides. Both sides use the current gcd, so it shows input changes only.
-6. **Owners or `teams/` changed**: `mise run codeowners`, commit the regenerated `.github/CODEOWNERS`.
+6. **Owners or `teams/` changed**: `gcd codeowners`, commit the regenerated `.github/CODEOWNERS`.
 
 ## Narrowest layer
 

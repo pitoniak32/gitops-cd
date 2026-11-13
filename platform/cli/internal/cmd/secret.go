@@ -55,7 +55,7 @@ func init() {
 					fmt.Fprintf(cmd.OutOrStdout(), "%-28s %s\n", n, state)
 				}
 				if missing > 0 {
-					return fmt.Errorf("%d missing: ./gcd secret set NAME", missing)
+					return fmt.Errorf("%d missing: gcd secret set NAME", missing)
 				}
 				return nil
 			},

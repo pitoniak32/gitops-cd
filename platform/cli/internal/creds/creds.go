@@ -35,7 +35,7 @@ func Run(ctx context.Context, hub *kube.Clients, get Getter, log io.Writer) erro
 			return err
 		}
 		if v == "" {
-			return fmt.Errorf("%s is empty in the keychain (./gcd secret set %s)", n, n)
+			return fmt.Errorf("%s is empty in the keychain (gcd secret set %s)", n, n)
 		}
 		vals[n] = v
 	}

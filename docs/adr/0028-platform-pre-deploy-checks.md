@@ -4,7 +4,7 @@ The platform team gates deploys on checks it owns (change management, freeze win
 
 - **Platform config, not team config**: `PreDeploy` in `system/config.go`, `<environmentType>: [{file, ref: main, timeout: 30m}]`, today `prd: [{file: precheck.yaml}]`. It is keyed on the target's `environmentType`, so a stage that mixes npr and prd targets gates only its prd target Stages. `timeout` is whole minutes, 1m..120m.
 - **App source repo**: `app.yml` has a required `sourceRepo: <owner>/<name>` (app level, not layered). Every check is dispatched there.
-- **Stage steps**: `pre-1..N` (ClusterPromotionTask `gha-check`, ADR 0027, with `workflowRepo/File/Ref` and `checkTimeout` set on the step itself) and then `promote`. Inputs come from the Freight (`commit` is the rendered config commit, because nothing is pushed yet). Gated Stages carry `example.com/pre-deploy: <sourceRepo>/<file>@<ref>[,…]`.
+- **Stage steps**: one step per check, alias = the check's `Name` (default: file name without extension; e.g. `image-signature-check`, shown in the Kargo UI as `image-signature-check::dispatch`) (ClusterPromotionTask `gha-check`, ADR 0027, with `workflowRepo/File/Ref` and `checkTimeout` set on the step itself) and then `promote`. Inputs come from the Freight (`commit` is the rendered config commit, because nothing is pushed yet). Gated Stages carry `example.com/pre-deploy: <sourceRepo>/<file>@<ref>[,…]`.
 - **Timeout**: Kargo takes `retry` from the task's own steps, so `gha-check`'s wait has a fixed `2h` cap. Its `failureExpression` also fails once the run's age exceeds `checkTimeout`. Kargo's http step only has `response` in scope, so the timeout is templated in with `${{ }}`.
 
 ## Considered Options

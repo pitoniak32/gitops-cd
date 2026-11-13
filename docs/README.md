@@ -26,7 +26,7 @@ Each file kind explained, with examples from the sandbox: [reference/](reference
 ## Platform engineers: run and change the platform
 
 - [Operations](operations.md): runbooks (break-glass, resetting Kargo state).
-- [Sync boundaries](sync-boundaries.md): what Argo CD pulls from git vs what needs `mise run infra` / `up`.
+- [Sync boundaries](sync-boundaries.md): what Argo CD pulls from git vs what needs `gcd infra` / `up`.
 - [Gotchas](gotchas.md): networking, OIDC, Argo CD health, Kargo RBAC.
 - [Break-glass](break-glass.md): the approval guard.
 - [FAQ](faq.md): Kargo topology, sharding, scaling.

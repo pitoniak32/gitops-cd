@@ -7,7 +7,7 @@ my-app:
       perf: [doug@example.com]                                         # owners.yml:5
       prod: [doug@example.com]                                         # owners.yml:6
     viewers: [bob@example.com]                                         # owners.yml:7
-    breakGlass: [oncall@example.com]                                   # owners.yml:8
+    breakGlass: [grace@example.com]                                   # owners.yml:8
   dev:
     dc1-dev-k8s:
       image: ghcr.io/pitoniak32/nginx                                  # apps/my-app/app.yml:1

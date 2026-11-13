@@ -4,20 +4,38 @@ Rendered-manifest continuous delivery, end to end on a laptop: teams describe ap
 **system**, a Go renderer (`gcd`) validates and renders Kubernetes manifests plus Kargo/Argo CD
 config, and a local kind cluster runs Argo CD + [Kargo](https://kargo.io) to promote them.
 
+## Prerequisites
+
+Everything else (kind, Helm, oras, the local CA, keychain secrets) is built into gcd; `gcd --help`
+lists every command. App teams that only edit YAML need just Go and git or jj.
+
+| Tool | Needed for | Install |
+|---|---|---|
+| [mise](https://mise.jdx.dev) + Go (pinned in `.mise.toml`) | building gcd (`mise run build`), `gcd test`; puts `.bin` on `PATH` | `brew install mise`, then `mise install` |
+| git or [jj](https://jj-vcs.github.io/jj/) | `lint --changed`, `show --diff` | `brew install jj` |
+| macOS | keychain secrets (`secret`, `creds`), trusting the local CA (`certs`), `open` | Linux works for lint, render, show and test only |
+| Docker (Docker Desktop or similar) | the kind clusters: `up`, `down`, `infra` | [docker.com](https://www.docker.com/products/docker-desktop/) |
+| [gh](https://cli.github.com), logged in | `kargo-restore`; `tf-module-push` (needs `write:packages`: `gh auth refresh -h github.com -s write:packages`) | `brew install gh` then `gh auth login` |
+| GitHub App + PAT, in the keychain | `up` / `creds`: Kargo pushes `env/*` branches and dispatches workflows | see Quickstart |
+| kubectl, k9s (optional) | looking at the clusters yourself; `eval "$(gcd env)"` points them at `.kubeconfig` | `brew install kubectl k9s` |
+| [Rex](https://www.superlogical.com/rex) (optional) | tab status and progress while long commands run | any terminal works without it |
+
 ## Quickstart
 
 ```sh
-mise install   # pinned tools (kind, helm, kubectl, go, fnox, mkcert, oras, terraform, jq, yq; gcd itself needs only go)
+mise install && mise run build   # Go, then gcd to .bin/gcd (on PATH while mise is active; rerun after changing platform/cli)
 # first time:
 #   - push this repo to github.com/pitoniak32/gitops-cd and wait for CI's first render: it creates branch
 #     rendered (rendered/ syncs from there); `up` times out without it
 #   - a GitHub App installed on that repo with Contents read/write (Kargo pushes
-#     env/<sys>/<app>/<target> branches); store it for fnox:
-#     fnox set GITHUB_APP_ID / GITHUB_APP_INSTALLATION_ID / GITHUB_APP_PRIVATE_KEY
-mise run up    # tear down + fresh hub + region clusters + infrastructure + bootstrap (~9 min)
-               # long gcd commands (up, lint, render, …) report their phase to the terminal tab (OSC 7501, e.g. Rex); GCD_NO_STATUS=1 turns it off
-mise run open  # open every UI below in the browser (--print: just list the URLs)
-mise run down  # delete everything
+#     env/<sys>/<app>/<target> branches) and a PAT (ADR 0020); store them in the macOS keychain:
+#     gcd secret set GITHUB_APP_ID   (also GITHUB_APP_INSTALLATION_ID, GITHUB_PAT;
+#     gcd secret set GITHUB_APP_PRIVATE_KEY < key.pem)   gcd secret list checks them
+gcd up    # tear down + fresh hub + region clusters + infrastructure + bootstrap (~9 min)
+            # long gcd commands (up, lint, render, …) report their phase to the terminal tab (OSC 7501, e.g. Rex); GCD_NO_STATUS=1 turns it off
+eval "$(gcd env)"   # KUBECONFIG=.kubeconfig for kubectl/k9s (gcd itself always uses it)
+gcd open  # open every UI below in the browser (--print: just list the URLs)
+gcd down  # delete everything
 ```
 
 | UI | URL | Shows | Login |
@@ -28,10 +46,10 @@ mise run down  # delete everything
 | Argo CD (dc1) | https://argocd-dc1.localhost/applications | workload apps of targets on cluster `dc1` | "Log in via Keycloak" |
 | Keycloak | http://keycloak.localhost/admin/master/console/ | users, OIDC clients | `admin` / `admin` |
 
-One regional Argo CD per line in `platform/cluster/regions` (`https://argocd-<region>.localhost`); `mise run open` picks new ones up.
+One regional Argo CD per line in `platform/cluster/regions` (`https://argocd-<region>.localhost`); `gcd open` picks new ones up.
 Kargo's Stage view links each target to its region's Argo CD.
 
-HTTPS uses a local mkcert CA (`mise run certs`, run by `infra`); the first run asks for your macOS password to trust it.
+HTTPS uses a local CA (`gcd certs`, run by `infra`; an existing mkcert CA is reused); the first run asks for your macOS password to trust it.
 
 Users (password = username):
 
@@ -40,7 +58,7 @@ Users (password = username):
 | `doug` | payments `promoters` | view `kargo-payments-<app>`; assemble Freight, promote verified Freight | view `payments` apps |
 | `alice` | search `promoters` | view `kargo-search-<app>`; assemble Freight, promote verified Freight | view `search` apps |
 | `bob` | payments `viewers` | view `kargo-payments-<app>` | view `payments` apps |
-| `oncall` | payments `breakGlass` | view `kargo-payments-<app>`; promote, and approve unverified Freight (break-glass, ADR 0013) | view `payments` apps |
+| `grace` | payments `breakGlass` | view `kargo-payments-<app>`; promote, and approve unverified Freight (break-glass, ADR 0013) | view `payments` apps |
 | `admin` | infra values (ADR 0009) | admin: view/promote/approve all projects (edits still gitops-only) | admin: everything, incl. infrastructure apps |
 
 Nobody can create, edit or delete resources through the Kargo or Argo CD UIs; changes go through git.
@@ -77,8 +95,7 @@ platform/                     platform team only; app teams never edit
   appsets/                    ApplicationSets (cluster generator): addons/<addon>.yaml, rendered-kargo, projects, workloads
   infrastructure/<addon>/     add-on config read from git by its ApplicationSet (values.yaml, manifests/)
   cluster/kind.yaml           hub kind cluster (region.yaml + regions: regional clusters, no host ports)
-  cli/                        Go CLI `gcd` (ADR 0018): up, down, infra, regions, certs, creds, kargo-shards, kargo-restore, open, render, lint, codeowners; the renderer is `internal/system` (ADR 0030)
-  mise-tasks/                 one-line wrappers for gcd + render, lint, test
+  cli/                        Go CLI `gcd` (ADR 0018): setup (up, down, infra, certs, creds, secret, …), render, lint, test; the renderer is `internal/system` (ADR 0030)
 ```
 
 ## Editing
@@ -100,7 +117,7 @@ Plain YAML, no editor schema: `gcd lint` (also in CI, as PR annotations) reports
 
 All in the system's `owners.yml`; `apps.<app>` overrides: `codeOwners`/`viewers` replace the list, `promoters` merge per stage (ADR 0007).
 Stages that deploy to a `prod` target can't `autoPromote`. `.github/CODEOWNERS` is generated
-from `.github/CODEOWNERS.tmpl` + `owners.yml` by `mise run codeowners`; commit it with the owners change (CI checks).
+from `.github/CODEOWNERS.tmpl` + `owners.yml` by `gcd codeowners`; commit it with the owners change (CI checks).
 
 ## Flow
 
@@ -125,11 +142,11 @@ from `.github/CODEOWNERS.tmpl` + `owners.yml` by `mise run codeowners`; commit i
 ## How the cluster works
 
 - **Cluster**: kind (`platform/cluster/kind.yaml`), host `127.0.0.1`/`::1` ports 80/443 → Traefik. Kubeconfig is project-local (`.kubeconfig`).
-- **Infrastructure**: `mise run infra` helm-installs Argo CD once per cluster (hub + regions), applies the root app, and waits for each add-on Application (generated by `platform/appsets/addons/`, config read from `platform/infrastructure/<addon>/` on `main`) to be Synced + Healthy. Regions bootstrap in parallel with the hub; host steps wait only for the apps they need (`traefik` before `certs`, `kargo` before `creds`). Argo CD then manages everything, including itself. It also applies git creds (`mise run creds`), TLS (`certs`) and the Kargo shard token handoff (`kargo-shards`). Infra changes need a push to `main`.
+- **Infrastructure**: `gcd infra` helm-installs Argo CD once per cluster (hub + regions), applies the root app, and waits for each add-on Application (generated by `platform/appsets/addons/`, config read from `platform/infrastructure/<addon>/` on `main`) to be Synced + Healthy. Regions bootstrap in parallel with the hub; host steps wait only for the apps they need (`traefik` before `certs`, `kargo` before `creds`). Argo CD then manages everything, including itself. It also applies git creds (`gcd creds`), TLS (`certs`) and the Kargo shard token handoff (`kargo-shards`). Infra changes need a push to `main`.
 - **Auth**: Keycloak realm in `platform/infrastructure/keycloak/manifests/kargo-realm.json` (users with emails, `kargo` + `argocd` + generated `argocd-<region>` public PKCE clients; no groups), re-imported on every Keycloak start.
 - **GitOps-only**: promote rights come from the generated `promote-<stage>` roles in each app's project (`email` claim vs `owners.yml` promoters); only the admin emails in the Kargo/Argo CD values get admin (ADR 0009). An admission policy (`platform/infrastructure/kargo-config/manifests/gitops-only.yaml`) blocks the Kargo API from creating/editing/deleting anything except Promotions.
 - **Secrets on kind**: the kind clusters (`us-east4`, `dc1`) have no secret store, so `secret:` env values are validated but not rendered.
 
-What Argo CD reconciles from git vs what needs `mise run infra` / `up`: `docs/sync-boundaries.md`. Runbooks (break-glass, resetting Kargo state): `docs/operations.md`.
+What Argo CD reconciles from git vs what needs `gcd infra` / `up`: `docs/sync-boundaries.md`. Runbooks (break-glass, resetting Kargo state): `docs/operations.md`.
 Docs index (app-team guide, field reference): `docs/README.md`.
 Rendering details and merge rules: `platform/render/README.md`. Decisions: `docs/adr/`. Gotchas: `docs/gotchas.md`.

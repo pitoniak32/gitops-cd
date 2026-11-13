@@ -1,6 +1,6 @@
 # Platform code under `platform/`
 
-Everything only the platform team edits lives in `platform/`: `cli/` (`gcd`, which includes the renderer), `render/` (fixtures and golden files), `bootstrap/`, `appsets/`, `infrastructure/`, `cluster/`, `mise-tasks/` and `tests/`. App teams see `systems/` at the root, plus a `platform/` they can ignore. One CODEOWNERS line (`/platform/`) covers all of it. Mise finds tasks through `[task_config] includes` in `.mise.toml`, and they run from the repo root.
+Everything only the platform team edits lives in `platform/`: `cli/` (`gcd`, which includes the renderer), `render/` (fixtures and golden files), `bootstrap/`, `appsets/`, `infrastructure/`, and `cluster/`. App teams see `systems/` at the root, plus a `platform/` they can ignore. One CODEOWNERS line (`/platform/`) covers all of it.
 
 ## Considered Options
 

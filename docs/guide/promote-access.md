@@ -17,7 +17,7 @@ promoters:
   perf: [doug@example.com]
   prod: [doug@example.com]
 viewers: [bob@example.com]
-breakGlass: [oncall@example.com]
+breakGlass: [grace@example.com]
 # per-app overrides of the lists above
 apps:
   worker:
@@ -51,7 +51,7 @@ example, `worker`'s `prod` promoters are only `alice@example.com`, and its `stag
 gcd show payments/worker
 ```
 
-`owners.yml` changes always need platform approval. Run `mise run codeowners` and commit the regenerated
+`owners.yml` changes always need platform approval. Run `gcd codeowners` and commit the regenerated
 `.github/CODEOWNERS`.
 
 ## What you see

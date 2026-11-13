@@ -5,4 +5,4 @@ promoters:
   perf: [doug@example.com]
   prod: [doug@example.com]
 viewers: [bob@example.com]
-breakGlass: [oncall@example.com]
+breakGlass: [grace@example.com]

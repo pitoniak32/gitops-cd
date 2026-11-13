@@ -18,7 +18,7 @@ Approving only marks the Freight as allowed into that Stage; someone still has t
 | Piece | Where | Does |
 |---|---|---|
 | `breakGlass: [emails]` | `owners.yml` (system-wide only) | the list |
-| Stage annotation `example.com/break-glass: '["oncall@example.com"]'` | rendered by `platform/cli/internal/system/kargo.go` on every control-flow and target Stage of the app | carries the list to the cluster (synced by Argo CD) |
+| Stage annotation `example.com/break-glass: '["grace@example.com"]'` | rendered by `platform/cli/internal/system/kargo.go` on every control-flow and target Stage of the app | carries the list to the cluster (synced by Argo CD) |
 | `promote-<stage>` SA claims (app project) | same render | break-glass emails can promote too (needed after approving) |
 | IngressRoute `kargo-approve` (priority 1000) | `platform/infrastructure/break-glass/manifests/guard.yaml` | catches only the approve endpoint; beats the normal Kargo route |
 | Middleware `forwardAuth` | same | asks the guard before forwarding |
@@ -61,7 +61,7 @@ Everything else (UI, promote, list, watch) goes through the normal Kargo route; 
 ## Changing who can break glass
 
 - Edit `breakGlass` in `owners.yml` → PR (platform approves) → CI renders → Argo CD updates the Stage annotations. No restart; the guard reads the Stage on every request.
-- Admins: `ADMIN_EMAILS` in `guard.yaml` (and Kargo + Argo CD values) → `mise run infra`.
+- Admins: `ADMIN_EMAILS` in `guard.yaml` (and Kargo + Argo CD values) → `gcd infra`.
 
 ## Limits
 

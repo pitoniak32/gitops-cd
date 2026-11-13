@@ -25,6 +25,9 @@ type Cluster struct {
 // Check is a platform pre-deploy check (ADR 0028): a GitHub Actions workflow in the app's sourceRepo
 // that Kargo dispatches and waits for before a target Stage pushes anything.
 type Check struct {
+	// Kargo step alias shown in the UI (`<name>::dispatch`, `<name>::wait`): say what the check does.
+	// Default: the file name without extension. Lowercase letters, digits, '-'; not "promote".
+	Name    string
 	File    string // workflow file name under <sourceRepo>/.github/workflows/
 	Ref     string // default main
 	Timeout string // whole minutes 1m..120m, default 30m
@@ -32,6 +35,7 @@ type Check struct {
 
 var (
 	checkFileRe    = regexp.MustCompile(`^[A-Za-z0-9_.-]+\.ya?ml$`)
+	checkNameRe    = regexp.MustCompile(`^[a-z][a-z0-9-]{0,39}$`)
 	checkTimeoutRe = regexp.MustCompile(`^([1-9]|[1-9][0-9]|1[01][0-9]|120)m$`)
 )
 
@@ -45,6 +49,12 @@ func (c Check) Normalize() (Check, error) {
 	}
 	if !checkFileRe.MatchString(c.File) {
 		return c, fmt.Errorf("pre-deploy check file %q: expected a .yml or .yaml file name", c.File)
+	}
+	if c.Name == "" {
+		c.Name = strings.TrimSuffix(strings.TrimSuffix(c.File, ".yaml"), ".yml")
+	}
+	if !checkNameRe.MatchString(c.Name) || c.Name == "promote" {
+		return c, fmt.Errorf("pre-deploy check %s: name %q: lowercase letters, digits, '-', starting with a letter, max 40, not \"promote\"", c.File, c.Name)
 	}
 	if !checkTimeoutRe.MatchString(c.Timeout) {
 		return c, fmt.Errorf("pre-deploy check %s: timeout: whole minutes, 1m..120m", c.File)
@@ -75,7 +85,7 @@ const (
 )
 
 // Default is the platform's configuration. Team targets may only point at clusters listed here, and
-// only with an environment type the cluster accepts. New region: add a cluster, `mise run regions`.
+// only with an environment type the cluster accepts. New region: add a cluster, `gcd regions`.
 func Default() Config {
 	return Config{
 		RepoURL: "https://github.com/pitoniak32/gitops-cd",
@@ -86,7 +96,7 @@ func Default() Config {
 		},
 		GcpRegions:  []string{"us-central1", "us-east1", "us-east4"},
 		MinReplicas: map[string]int{"dev": 0, "npr": 1, "prd": 1},
-		PreDeploy:   map[string][]Check{"prd": {{File: "precheck.yaml"}}},
+		PreDeploy:   map[string][]Check{"prd": {{Name: "image-signature-check", File: "precheck.yaml"}}},
 	}
 }
 

@@ -104,7 +104,7 @@ More settings (replicas, env, secrets, resources): [configure apps](apps.md).
 ```sh
 gcd lint search              # no output = valid
 gcd show search/api -s       # effective config, with where each value comes from
-mise run codeowners          # owners.yml or teams/ changed: regenerate .github/CODEOWNERS
+gcd codeowners          # owners.yml or teams/ changed: regenerate .github/CODEOWNERS
 ```
 
 Commit `.github/CODEOWNERS` with your change, and say in the PR description that it needs platform

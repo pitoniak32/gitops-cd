@@ -11,7 +11,7 @@ func init() {
 	register(func() *cobra.Command {
 		return &cobra.Command{
 			Use:   "env",
-			Short: "Print shell exports for this repo's clusters: eval \"$(./gcd env)\" (kubectl, k9s use .kubeconfig)",
+			Short: "Print shell exports for this repo's clusters: eval \"$(gcd env)\" (kubectl, k9s use .kubeconfig)",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				root, err := resolveRoot(cmd)

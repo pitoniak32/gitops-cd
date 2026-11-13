@@ -81,7 +81,7 @@ promoters:
   perf: [doug@example.com]
   prod: [doug@example.com]
 viewers: [bob@example.com]
-breakGlass: [oncall@example.com]
+breakGlass: [grace@example.com]
 ```
 
 Source: [`payments/owners.yml:1-8`](../../platform/render/testdata/root/systems/payments/owners.yml#L1-L8)

@@ -23,7 +23,7 @@ func NewRoot() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "gcd",
 		Short:         "gitops-cd cluster setup CLI",
-		Long:          "gcd: gitops-cd cluster setup, rendering and checks. Run it with ./gcd (builds it first).",
+		Long:          "gcd: gitops-cd cluster setup, rendering and checks. Build it with `mise run build` (.bin/gcd, on PATH via mise).",
 		SilenceUsage:  true,
 		SilenceErrors: false,
 		// every command uses the project-local kubeconfig (never ~/.kube/config or a $KUBECONFIG of

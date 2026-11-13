@@ -4,7 +4,7 @@ my-app:
     promoters:
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [oncall@example.com]
+    breakGlass: [grace@example.com]
   prod:
     dc1-prd-k8s:
       image: ghcr.io/pitoniak32/nginx

@@ -5,7 +5,7 @@ CI renders every app, stage and target to `rendered/` and pushes it to the orpha
 - **Branch `rendered`** holds only `rendered/` plus a README (from `platform/render/rendered-README.md`). CI pushes to it on every push to `main`, as the `gitops-cd-demo` GitHub App. The workflow's concurrency group serializes the pushes. CI commits only when the render changed: `render: <sha7>`, with the source commit's URL in the body. A ruleset lets only that App update the branch.
 - **`main`** has `rendered/` gitignored, and a PR that adds it fails CI. `gcd render` writes it locally. PR CI comments the render diff against `rendered`.
 - **Readers**: the Kargo Warehouse git subscription and the AppSets `kargo.yaml`, `projects.yaml`, `workloads.yaml`, `addons/kargo-shard-hub.yaml` and `addons/argocd-region-hub.yaml` read revision `rendered`. The `internal/appsets` test enforces this.
-- **CODEOWNERS** stays on `main`, because GitHub reads it only from the default branch. Authors run `mise run codeowners`, and CI fails if it's stale.
+- **CODEOWNERS** stays on `main`, because GitHub reads it only from the default branch. Authors run `gcd codeowners`, and CI fails if it's stale.
 
 ## Considered Options
 
@@ -16,7 +16,7 @@ CI renders every app, stage and target to `rendered/` and pushes it to the orpha
 ## Consequences
 
 - A Freight's config commit is a commit on the `rendered` branch. Its body links back to the `main` commit.
-- On a fresh repo or fork, push and wait for the first render before running `mise run up`. Until then, the AppSets report a missing revision.
+- On a fresh repo or fork, push and wait for the first render before running `gcd up`. Until then, the AppSets report a missing revision.
 - A re-run of an older push run doesn't commit, because it would roll `rendered` back. A stale CODEOWNERS only warns on `main`, so it never blocks the render.
 - `GITHUB_TOKEN` can't bypass the ruleset, so CI uses a short-lived installation token (repo variable `RENDER_APP_CLIENT_ID`, secret `RENDER_APP_PRIVATE_KEY`). Kargo holds the same App's credentials, so it could push to `rendered` too. A dedicated App would close that.
 - The PR diff is against the latest render of `main`, not against the PR's merge base.

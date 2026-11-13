@@ -1,6 +1,6 @@
 # Operations
 
-Runbook for the things you do by hand. For which changes need `mise run infra` / `up` and which Argo CD picks up by itself, see `docs/sync-boundaries.md`.
+Runbook for the things you do by hand. For which changes need `gcd infra` / `up` and which Argo CD picks up by itself, see `docs/sync-boundaries.md`.
 
 ## Break-glass approval (ADR 0013)
 
@@ -29,10 +29,10 @@ Normal promotions: promoters promote Freight that is verified upstream. When Fre
 
 ## Restoring Kargo state after a cluster rebuild
 
-Kargo keeps "which Freight is current in each Stage" only in the hub's etcd, so `mise run down`/`up` leaves every Stage empty while the workloads keep running from their `env/*` branches. To restore what teams see in Kargo:
+Kargo keeps "which Freight is current in each Stage" only in the hub's etcd, so `gcd down`/`up` leaves every Stage empty while the workloads keep running from their `env/*` branches. To restore what teams see in Kargo:
 
 ```sh
-mise run kargo-restore            # all systems; or: mise run kargo-restore payments
+gcd kargo-restore            # all systems; or: gcd kargo-restore payments
 ```
 
 For each target Stage with no current Freight it reads the branch head (Kargo's commit message names the source commit; `deployment.yaml`, `service.yaml` for Cloud Run apps, or `terraform.yaml` `module` for terraform apps, pins `<repo>:<tag>@<digest>`), recreates that Freight (same artifacts give the same Freight ID; the alias is new), approves it for the Stage and promotes it. The promotion re-copies identical manifests: no new commit, no rollout. Re-running is a no-op. Terraform targets (ADR 0021) and Cloud Run targets (ADR 0024) are the exception: the promotion re-dispatches their workflow (`terraform.yaml` re-runs plan + apply; `cloud-run.yaml` re-runs the deploy), like any gha target.
@@ -46,9 +46,9 @@ For each target Stage with no current Freight it reads the branch head (Kargo's 
 
 ## Pre-deploy checks (ADR 0028)
 
-Configured in `platform/cli/internal/system/config.go` (`PreDeploy`) (platform only); each prd target Stage runs `pre-<n>` steps (ClusterPromotionTask `gha-check`) that dispatch the check to the app's `sourceRepo` and wait. The demo check is `.github/workflows/precheck.yaml` in this repo.
+Configured in `platform/cli/internal/system/config.go` (`PreDeploy`) (platform only); each prd target Stage runs one step per check, aliased by its `Name` (ClusterPromotionTask `gha-check`) that dispatch the check to the app's `sourceRepo` and wait. The demo check is `.github/workflows/precheck.yaml` in this repo.
 
-- **Make the demo check fail**: `gh variable set PRECHECK_FAIL --body true` (back: `--body false`). The next prod Promotion fails at `pre-1::wait`, and the target branch head doesn't move (`git ls-remote origin env/<sys>/<app>/<target>`).
+- **Make the demo check fail**: `gh variable set PRECHECK_FAIL --body true` (back: `--body false`). The next prod Promotion fails at `image-signature-check::wait`, and the target branch head doesn't move (`git ls-remote origin env/<sys>/<app>/<target>`).
 - **Verify the per-check timeout** after a Kargo upgrade: set a check's `timeout: "1m"` and make the workflow sleep 2 minutes. The Promotion must fail at ~1m with "exceeded 1m". `cannot fetch <x> from <nil>` means an http step expression refers to something other than `response` outside `${{ }}`. An unknown-function error naming `now`, `date` or `duration` means Kargo dropped those functions: switch to one `gha-check-<t>` task per fixed timeout.
 
 ## Resetting a system's promotion state
@@ -73,7 +73,7 @@ Afterwards the targets show sync `Unknown` until they're promoted again (`docs/g
 ## Rename targets / regions
 
 Renaming a target or region (ADR 0025) makes all its Kargo Stages, Argo CD apps and `env/*` branches new; `kargo-restore` can't map old Freight to new names.
-1. `mise run down && mise run up`, after the rename is merged and CI has rendered. `down` also deletes stale `region-*` kind clusters (any name) so the docker network is freed.
+1. `gcd down && gcd up`, after the rename is merged and CI has rendered. `down` also deletes stale `region-*` kind clusters (any name) so the docker network is freed.
 2. Delete the old targets' `env/*` branches:
    ```sh
    gh api repos/<owner>/<repo>/git/matching-refs/heads/env/    # list

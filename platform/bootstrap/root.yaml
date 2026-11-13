@@ -1,4 +1,4 @@
-# Root Application, identical in every Argo CD (hub + each region), applied by `mise run infra`
+# Root Application, identical in every Argo CD (hub + each region), applied by `gcd infra`
 # (ADR 0017, https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/).
 # Syncs platform/appsets/ from GitHub main: ApplicationSets whose cluster generators pick what this
 # Argo CD runs from the labels on its own in-cluster Secret (example.com/role, example.com/region):

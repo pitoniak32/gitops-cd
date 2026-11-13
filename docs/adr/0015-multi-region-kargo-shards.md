@@ -11,8 +11,8 @@ How it fits together (deploy wiring: ADR 0017):
 
 - **Renderer**: each cluster has a `region`. K8S target Stages get `spec.shard: <region>`. Argo CD params and AppProjects go under `rendered/argocd/{deploys,projects}/<region>/`.
 - **Shard identity**: on the hub, a second Kargo chart release per region (`dataPlane.install: false`, or it re-renders the main release's Roles) creates only that controller's ServiceAccount, RBAC and token Secret. In the region, a controller-only release reads the hub through `kubeconfigSecrets.kargo`. It also needs a Role for `events` in `argocd`, which the chart doesn't grant.
-- **Token handoff**: `mise run kargo-shards` runs on the host with every kube context and copies the hub token into the region's `kargo/kargo-hub-kubeconfig` (server `https://kargo-demo-control-plane:6443`). The hub never holds region credentials.
-- **UIs**: each regional Argo CD is at `https://argocd-<r>.localhost`, through hub Traefik to an ExternalName Service `region-<r>-control-plane:30081` (plain HTTP proxying, no credentials). Login goes through Keycloak with a public PKCE client `argocd-<r>`. Regions reach the issuer `http://keycloak.localhost` through a CoreDNS rewrite (`mise run region-dns`, re-run by every `infra`). Kargo `api.argocd.urls` maps each shard to its regional UI.
+- **Token handoff**: `gcd kargo-shards` runs on the host with every kube context and copies the hub token into the region's `kargo/kargo-hub-kubeconfig` (server `https://kargo-demo-control-plane:6443`). The hub never holds region credentials.
+- **UIs**: each regional Argo CD is at `https://argocd-<r>.localhost`, through hub Traefik to an ExternalName Service `region-<r>-control-plane:30081` (plain HTTP proxying, no credentials). Login goes through Keycloak with a public PKCE client `argocd-<r>`. Regions reach the issuer `http://keycloak.localhost` through a CoreDNS rewrite (`gcd region-dns`, re-run by every `infra`). Kargo `api.argocd.urls` maps each shard to its regional UI.
 
 ## Considered Options
 
@@ -22,8 +22,8 @@ How it fits together (deploy wiring: ADR 0017):
 
 ## Consequences
 
-- `mise run up` builds three clusters, takes about 8–9 min and uses about 7 GiB.
-- A new region is a cluster entry in `config.go`, then `mise run regions`, a merge and a clean `mise run up`.
+- `gcd up` builds three clusters, takes about 8–9 min and uses about 7 GiB.
+- A new region is a cluster entry in `config.go`, then `gcd regions`, a merge and a clean `gcd up`.
 - Shard controllers run without Argo Rollouts (`rollouts.integrationEnabled: false`), so Stage verification with AnalysisTemplates would need Rollouts in each region.
-- After a docker restart, the hub IP behind the regional Keycloak rewrite can change. `mise run infra` or `region-dns` fixes it.
+- After a docker restart, the hub IP behind the regional Keycloak rewrite can change. `gcd infra` or `region-dns` fixes it.
 - `argocd-update` must pin `desiredRevision` to a commit SHA. A branch name leaves the Promotion Running forever.

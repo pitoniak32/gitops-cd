@@ -153,7 +153,7 @@ func promotionTasks() []any {
 	}
 }
 
-// RegionConfig is the committed config derived from the cluster registry (`mise run regions`).
+// RegionConfig is the committed config derived from the cluster registry (`gcd regions`).
 type RegionConfig struct {
 	Regions []string
 	// Keycloak public client per regional Argo CD, as JSON objects

@@ -1,6 +1,9 @@
 package system
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 // Render validates one system under root and returns its rendered files, keyed by path under
 // rendered/. Problems in the system's YAML come back as an Error (the diagnostics). teams: from
@@ -30,11 +33,16 @@ func loadModel(cfg Config, root, sysName string, teams *Teams) (*model, []Diag, 
 	}
 	pre := map[string][]Check{}
 	for et, checks := range cfg.PreDeploy {
+		seen := map[string]bool{}
 		for _, c := range checks {
 			n, err := c.Normalize()
 			if err != nil {
 				return nil, nil, err
 			}
+			if seen[n.Name] {
+				return nil, nil, fmt.Errorf("pre-deploy checks for %s: duplicate name %q", et, n.Name)
+			}
+			seen[n.Name] = true
 			pre[et] = append(pre[et], n)
 		}
 	}

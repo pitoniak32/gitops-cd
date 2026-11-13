@@ -4,7 +4,7 @@ flagged:
     promoters:
       dev: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [oncall@example.com]
+    breakGlass: [grace@example.com]
   dev:
     us-east4-dev-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -39,7 +39,7 @@ infra:
       dev: [doug@example.com]
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [oncall@example.com]
+    breakGlass: [grace@example.com]
   dev:
     us-east4-dev-tf:
       module: ghcr.io/pitoniak32/tf-bucket
@@ -95,7 +95,7 @@ my-app:
       perf: [doug@example.com]
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [oncall@example.com]
+    breakGlass: [grace@example.com]
   dev:
     dc1-dev-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -262,7 +262,7 @@ payments:
       staging: [doug@example.com]
       prod: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [oncall@example.com]
+    breakGlass: [grace@example.com]
   dev:
     us-east4-dev-k8s:
       image: ghcr.io/pitoniak32/nginx
@@ -321,7 +321,7 @@ web:
       dev: [doug@example.com]
       staging: [doug@example.com]
     viewers: [bob@example.com]
-    breakGlass: [oncall@example.com]
+    breakGlass: [grace@example.com]
   dev:
     us-east4-dev-k8s:
       image: ghcr.io/example/web
@@ -377,7 +377,7 @@ worker:
       staging: [doug@example.com]
       prod: [alice@example.com]
     viewers: [bob@example.com, carol@example.com]
-    breakGlass: [oncall@example.com]
+    breakGlass: [grace@example.com]
   dev:
     us-east4-dev-k8s:
       image: ghcr.io/pitoniak32/nginx

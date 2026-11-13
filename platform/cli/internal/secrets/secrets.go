@@ -46,7 +46,7 @@ func (k Keychain) Get(ctx context.Context, name string) (string, error) {
 	out, err := k.run(ctx, "find-generic-password", "-s", k.Service, "-a", name, "-g")
 	v, perr := parsePassword(out)
 	if errors.Is(perr, ErrNotFound) || err != nil && strings.Contains(out, "could not be found") {
-		return "", fmt.Errorf("%s: %w (./gcd secret set %s)", name, ErrNotFound, name)
+		return "", fmt.Errorf("%s: %w (gcd secret set %s)", name, ErrNotFound, name)
 	}
 	if err != nil {
 		return "", fmt.Errorf("keychain %s: %w: %s", name, err, strings.TrimSpace(out))

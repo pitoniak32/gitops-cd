@@ -10,7 +10,7 @@ import (
 // marker is the file that identifies the repo root: gcd's own module.
 const marker = "platform/cli/go.mod"
 
-// Root returns GCD_ROOT (set by the ./gcd wrapper), else the nearest ancestor of cwd holding
+// Root returns GCD_ROOT (an override), else the nearest ancestor of cwd holding
 // platform/cli/go.mod.
 func Root() (string, error) {
 	if r := os.Getenv("GCD_ROOT"); r != "" {

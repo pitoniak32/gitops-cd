@@ -7,7 +7,7 @@ Some teams deploy with GitHub Actions rather than Argo CD, one target at a time 
 - **Promotion** (ClusterPromotionTask `promote-gha`, ADR 0027): the same steps through `git-push` (the target branch still records what was deployed), then two Kargo `http` steps:
   - `dispatch`: `POST /repos/<repo>/actions/workflows/<file>/dispatches` with `return_run_details: true` and inputs `system, app, stage, target, commit` (the pushed target-branch commit) plus `image` or `module`. Any non-200 fails the Promotion with GitHub's message.
   - `wait`: `GET /actions/runs/<id>` every 30s, up to 60m. `completed`+`success` succeeds, any other conclusion fails, and a 404 keeps polling (GitHub returns the run id before its API serves the run).
-- **Auth**: a fine-grained PAT (`GITHUB_PAT` in fnox, `Actions: read and write` on each workflow repo). `mise run creds` writes it to `kargo-shared-resources/github-actions`, and the shards read it from the hub.
+- **Auth**: a fine-grained PAT (`GITHUB_PAT` in the keychain, `gcd secret set`, `Actions: read and write` on each workflow repo). `gcd creds` writes it to `kargo-shared-resources/github-actions`, and the shards read it from the hub.
 - **Example workflows** (`.github/workflows/`) check that the artifact matches and write a job summary. They deploy nothing, because GitHub-hosted runners can't reach the local clusters.
 
 ## Considered Options
@@ -22,6 +22,6 @@ Some teams deploy with GitHub Actions rather than Argo CD, one target at a time 
 ## Consequences
 
 - Switching a target from `argocd` to `gha` deletes its Application, but the workload is orphaned, not removed (ADR 0017). Switching back recreates the Application, which tracks the current target branch.
-- `mise run kargo-restore` re-promotes `gha` targets, which re-dispatches their workflow.
+- `gcd kargo-restore` re-promotes `gha` targets, which re-dispatches their workflow.
 - The workflow is read from GitHub at dispatch. A missing file, or one without `workflow_dispatch`, fails at `dispatch` (404/422). GitHub.com only: GHES returns 204 without run details.
 - A `gha` Stage shows **Healthy** after any successful promotion. In OSS Kargo, only `argocd-update` registers a health check, and a Stage with none counts as Healthy. For a real signal, add Kargo verification (an AnalysisTemplate that queries the deploy target). It isn't wired, because the demo workflows deploy nothing.
