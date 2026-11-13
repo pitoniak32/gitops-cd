@@ -214,3 +214,8 @@ func TestCheckEvaluateDir(t *testing.T) {
 		t.Errorf("got %v %v", d, err)
 	}
 }
+
+func TestCheckIndentedEmbedFenceExempt(t *testing.T) {
+	page := "- item\n\n  <!-- embed path=capabilities/payments/stages/dev.yml -->\n  ```yaml\n  a: 1\n  ```\n  <!-- /embed -->\n"
+	want(t, check(t, page))
+}

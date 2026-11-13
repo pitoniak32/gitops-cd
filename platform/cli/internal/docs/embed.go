@@ -24,8 +24,8 @@ const EvaluateDir = "docs/evaluate"
 var Dirs = []string{GuideDir, ReferenceDir, EvaluateDir}
 
 var (
-	embedOpenRx  = regexp.MustCompile(`^<!-- embed(.*?) -->$`)
-	embedCloseRx = regexp.MustCompile(`^<!-- /embed -->$`)
+	embedOpenRx  = regexp.MustCompile(`^( *)<!-- embed(.*?) -->$`)
+	embedCloseRx = regexp.MustCompile(`^ *<!-- /embed -->$`)
 	fenceRx      = regexp.MustCompile("^ *```")
 )
 
@@ -61,7 +61,7 @@ func Embeds(root string, write bool) (changed []string, diags []capability.Diag,
 	return changed, diags, nil
 }
 
-// Embed replaces the body of each <!-- embed path=<p> [lines=A-B] --> … <!-- /embed --> block in text
+// Embed replaces the body of each (optionally indented) <!-- embed path=<p> [lines=A-B] --> … <!-- /embed --> block in text
 // (page = its repo-relative path) with a fence of those lines of the fixture file p, dedented, and a
 // source link. Markers inside code fences are ignored. A broken block is left as is, with a diag at
 // its opening marker.
@@ -109,12 +109,19 @@ func Embed(page, text string, fixture fs.FS) (string, []capability.Diag) {
 			out = append(out, lines[i:]...)
 			break
 		}
-		body, err := embedBody(page, m[1], fixture)
+		body, err := embedBody(page, m[2], fixture)
 		if err != nil {
 			diags = append(diags, at(i, err.Error()))
 			out = append(out, lines[i:end+1]...)
 		} else {
-			out = append(append(append(out, l), body...), lines[end])
+			out = append(out, l)
+			for _, b := range body { // indented like the marker (e.g. inside a list item)
+				if b != "" {
+					b = m[1] + b
+				}
+				out = append(out, b)
+			}
+			out = append(out, lines[end])
 		}
 		i = end
 	}

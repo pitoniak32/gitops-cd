@@ -182,3 +182,18 @@ func TestEmbedHunkErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestEmbedIndented(t *testing.T) {
+	page := "- item\n\n  <!-- embed path=capabilities/payments/stages/dev.yml -->\n  old\n  <!-- /embed -->\n"
+	got, d := embed(t, page)
+	want := "- item\n\n  <!-- embed path=capabilities/payments/stages/dev.yml -->\n" +
+		"  ```yaml\n  dependsOn: []\n  autoPromote: true\n  ```\n\n" +
+		"  Source: [`payments/stages/dev.yml`](../../platform/render/testdata/root/capabilities/payments/stages/dev.yml)\n" +
+		"  <!-- /embed -->\n"
+	if got != want || d != nil {
+		t.Errorf("got %q (%v)\nwant %q", got, d, want)
+	}
+	if again, _ := embed(t, got); again != got {
+		t.Errorf("not idempotent: %q", again)
+	}
+}
