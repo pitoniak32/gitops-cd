@@ -1,5 +1,6 @@
 // Package progress draws one in-place progress line per phase of a long command (lint, render) on a
-// terminal, and leaves a one-line summary when the phase is done. Every method is safe on a nil
+// terminal, and leaves a one-line summary when the phase is done. With a termstatus.Reporter it also
+// reports the running phase and its percentage to the terminal tab (OSC 7501). Every method is safe on a nil
 // *Tracker (no output), so callers pass nil when progress is off; Step is safe for concurrent use.
 package progress
 
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/termstatus"
 )
 
 const (
@@ -20,14 +22,29 @@ const (
 	frameEvery = 50 * time.Millisecond
 )
 
-// Tracker writes phases to w, one at a time.
+// Tracker writes phases to w (nil: no bars), one at a time, and reports them to st (nil: none).
 type Tracker struct {
 	mu        sync.Mutex
 	w         io.Writer
+	st        *termstatus.Reporter
 	now       func() time.Time
 	nameWidth int
 	cur       *Phase
 	lastDraw  time.Time
+	// whole-command progress for the tab status: steps planned over all phases, steps done, and the
+	// last percentage reported (never goes back)
+	planned, stepsDone, pct int
+}
+
+// Plan adds n steps to the whole command's total; the tab status shows one percentage over all
+// phases, not one per phase. Call it before those steps run.
+func (t *Tracker) Plan(n int) {
+	if t == nil {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.planned += n
 }
 
 // clear returns to the line start and erases it (only ever written to a terminal)
@@ -45,12 +62,29 @@ type Phase struct {
 // New draws on w.
 func New(w io.Writer) *Tracker { return &Tracker{w: w, now: time.Now, nameWidth: 14} }
 
-// Auto is New(f) when f is a terminal and off is false, else nil (no progress: CI logs, pipes).
-func Auto(f *os.File, off bool) *Tracker {
-	if off || f == nil || !color.IsTerminal(f) {
+// WithStatus also reports phases to st; returns t.
+func (t *Tracker) WithStatus(st *termstatus.Reporter) *Tracker {
+	if t != nil {
+		t.st = st
+	}
+	return t
+}
+
+// Auto draws bars on the controlling terminal (/dev/tty), so `cmd > file` or `2> file` never
+// captures one. No bars when off, when errOut isn't a process stream (tests capture output in a
+// buffer), or with no terminal (CI). Phases still go to st (the tab status) when bars are off; nil
+// when there is neither.
+func Auto(errOut io.Writer, off bool, st *termstatus.Reporter) *Tracker {
+	var w io.Writer
+	if _, ok := errOut.(*os.File); !off && ok {
+		if f := color.OpenTTY(); f != nil {
+			w = f
+		}
+	}
+	if w == nil && st == nil {
 		return nil
 	}
-	return New(f)
+	return &Tracker{w: w, st: st, now: time.Now, nameWidth: 14}
 }
 
 // Start begins a phase of total steps; a phase still running is finished first.
@@ -81,6 +115,7 @@ func (p *Phase) Step(item string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	p.done++
+	t.stepsDone++
 	p.item = item
 	if t.cur == p {
 		t.draw(false)
@@ -102,7 +137,9 @@ func (p *Phase) Done() {
 
 func (t *Tracker) finish(p *Phase) {
 	el := t.now().Sub(p.start)
-	_, _ = fmt.Fprintf(t.w, "%s✓ %-*s %s  %s\n", clear, t.nameWidth, p.name, count(p), dur(el))
+	if t.w != nil {
+		_, _ = fmt.Fprintf(t.w, "%s✓ %-*s %s  %s\n", clear, t.nameWidth, p.name, count(p), dur(el))
+	}
 	t.cur = nil
 }
 
@@ -114,6 +151,16 @@ func (t *Tracker) draw(force bool) {
 		return
 	}
 	t.lastDraw = now
+	msg := strings.TrimSpace(fmt.Sprintf("%s %s %s", p.name, count(p), p.item))
+	if t.planned > 0 {
+		t.pct = max(t.pct, min(100*t.stepsDone/t.planned, 100))
+		t.st.Progress(msg, t.pct)
+	} else {
+		t.st.Working(msg) // nothing planned: no percentage (indeterminate)
+	}
+	if t.w == nil {
+		return
+	}
 	fill := 0
 	if p.total > 0 {
 		fill = barWidth * p.done / p.total

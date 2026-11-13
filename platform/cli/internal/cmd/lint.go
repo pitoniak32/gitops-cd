@@ -11,6 +11,7 @@ import (
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/progress"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/system"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/termstatus"
 	"github.com/spf13/cobra"
 )
 
@@ -102,7 +103,7 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 					s.Systems = system.Names(root)
 				}
 				// print what was located before any error that couldn't be (it must not hide them)
-				diags, err := lint.Run(system.Default(), root, s, progress.Auto(stderrFile(cmd), noProgress))
+				diags, err := lint.Run(system.Default(), root, s, progress.Auto(cmd.ErrOrStderr(), noProgress, termstatus.From(cmd.Context())))
 				if werr := writeDiags(cmd.OutOrStdout(), diags, github, asJSON); werr != nil {
 					return werr
 				}
@@ -120,7 +121,7 @@ lints everything. Diagnostics are then ::error annotations (--format auto).`,
 		c.Flags().BoolVar(&changed, "changed", false, "lint only what changed since the merge-base with --base")
 		c.Flags().StringVar(&base, "base", "", baseHelp)
 		c.Flags().StringVar(&format, "format", "auto", "diagnostics as text (file:line:col: message), github (::error annotations) or json (array of diagnostics); auto: github in GitHub Actions")
-		c.Flags().BoolVar(&noProgress, "no-progress", false, "no progress bars (they show only when stderr is a terminal)")
+		c.Flags().BoolVar(&noProgress, "no-progress", false, "no progress bars (drawn on the terminal itself, never in redirected output)")
 		return c
 	})
 }

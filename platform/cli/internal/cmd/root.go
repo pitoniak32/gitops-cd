@@ -3,9 +3,11 @@ package cmd
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/color"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/repo"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/termstatus"
 	"github.com/spf13/cobra"
 )
 
@@ -27,9 +29,38 @@ func NewRoot() *cobra.Command {
 	root.PersistentFlags().String("color", "auto", "color human output: auto (terminal and no NO_COLOR), always, never")
 	root.PersistentFlags().String("root", "", "repo root (default: this repo); sandbox: platform/render/testdata/root")
 	for _, f := range subcommands {
-		root.AddCommand(f())
+		c := f()
+		if done, ok := statusCommands[c.Name()]; ok {
+			withStatus(c, done)
+		}
+		root.AddCommand(c)
 	}
 	return root
+}
+
+// statusCommands report to the terminal tab (OSC 7501, e.g. Rex) while they run: command -> message
+// when done. The long ones: validation, rendering, cluster setup.
+var statusCommands = map[string]string{
+	"lint": "Lint clean", "render": "Rendered", "docs": "Docs up to date",
+	"up": "Ready: " + kargoURL, "down": "Clusters deleted", "infra": "Infrastructure ready",
+	"certs": "Certificates ready", "creds": "Credentials applied", "kargo-restore": "Kargo state restored",
+	"kargo-shards": "Shard tokens handed over", "region-dns": "Region DNS ready",
+}
+
+// withStatus wraps c's RunE: report working while it runs (phases come from progress trackers and
+// termstatus.From(ctx)), then done, error, or idle on Ctrl+C. App: gcd-<name>.
+func withStatus(c *cobra.Command, done string) {
+	run := c.RunE
+	c.RunE = func(cmd *cobra.Command, args []string) error {
+		st := termstatus.Open(cmd.ErrOrStderr(), "gcd-"+cmd.Name())
+		defer st.Close()
+		st.Working(strings.TrimSpace("gcd " + cmd.Name() + " " + strings.Join(args, " ")))
+		ctx := cmd.Context()
+		cmd.SetContext(termstatus.With(ctx, st))
+		err := run(cmd, args)
+		st.End(ctx, err, done)
+		return err
+	}
 }
 
 // painter resolves the root --color flag for cmd's stdout.

@@ -2,10 +2,13 @@ package progress
 
 import (
 	"bytes"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/termstatus"
 )
 
 func TestNilIsNoop(t *testing.T) {
@@ -57,5 +60,27 @@ func TestPhases(t *testing.T) {
 	// same clock: only the forced first frame and the final one are drawn, not one per step
 	if n := strings.Count(out, "systems ["); n > 3 {
 		t.Errorf("%d frames for one instant, want frame limiting", n)
+	}
+}
+
+// The tab status shows one percentage for the whole command: it doesn't restart at each phase.
+func TestStatusWholeCommand(t *testing.T) {
+	var st bytes.Buffer
+	tr := New(&bytes.Buffer{}).WithStatus(termstatus.New(&st, "gcd-lint"))
+	tr.Plan(4)
+	a := tr.Start("names", 2)
+	a.Step("x")
+	a.Step("y")
+	a.Done()
+	b := tr.Start("systems", 2)
+	b.Step("p")
+	b.Step("q")
+	b.Done()
+	var got []string
+	for _, m := range regexp.MustCompile(`progress=(\d+)`).FindAllStringSubmatch(st.String(), -1) {
+		got = append(got, m[1])
+	}
+	if strings.Join(got, ",") != "0,50,50,100" { // mid-phase steps within one frame are skipped
+		t.Fatalf("percentages %v", got)
 	}
 }

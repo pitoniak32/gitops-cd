@@ -6,6 +6,7 @@ import (
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/progress"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/render"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/termstatus"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +30,7 @@ Validation errors print like gcd lint.`,
 				if out, err = filepath.Abs(out); err != nil {
 					return err
 				}
-				prog := progress.Auto(stderrFile(cmd), noProgress)
+				prog := progress.Auto(cmd.ErrOrStderr(), noProgress, termstatus.From(cmd.Context()))
 				if everything && (len(systems) > 0 || withPlatform) {
 					fmt.Fprintln(cmd.ErrOrStderr(), "render: --all: everything (overrides named systems, --platform)")
 				}
@@ -49,7 +50,7 @@ Validation errors print like gcd lint.`,
 		c.Flags().StringVar(&out, "out", "rendered", "output directory")
 		c.Flags().BoolVar(&withPlatform, "platform", false, "also write the platform-level files: regions, promotion tasks (alone: only those)")
 		c.Flags().BoolVar(&everything, "all", false, "render everything (the default); overrides named systems and --platform")
-		c.Flags().BoolVar(&noProgress, "no-progress", false, "no progress bars (they show only when stderr is a terminal)")
+		c.Flags().BoolVar(&noProgress, "no-progress", false, "no progress bars (drawn on the terminal itself, never in redirected output)")
 		return c
 	})
 }

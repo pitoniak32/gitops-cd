@@ -30,6 +30,16 @@ func (p P) Cyan(s string) string   { return p.wrap("36", s) }
 // IsTerminal reports whether f is a terminal.
 func IsTerminal(f *os.File) bool { return f != nil && term.IsTerminal(int(f.Fd())) }
 
+// OpenTTY opens the controlling terminal (/dev/tty) for writing: output for the person at the
+// terminal that redirecting stdout/stderr never captures. nil when there is none (CI, cron).
+func OpenTTY() *os.File {
+	f, err := os.OpenFile("/dev/tty", os.O_WRONLY, 0)
+	if err != nil {
+		return nil
+	}
+	return f
+}
+
 // Detect resolves --color (auto|always|never) for output w: auto = w is a terminal and NO_COLOR is
 // unset or empty.
 func Detect(mode string, w io.Writer) (P, error) {

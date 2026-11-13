@@ -118,6 +118,7 @@ func All(root, out string, w io.Writer, prog *progress.Tracker) error {
 			return err
 		}
 	}
+	prog.Plan(3) // platform files, unique names, CODEOWNERS; Selected plans the systems
 	if err := Fragments(root, out, w, prog); err != nil {
 		return err
 	}
@@ -202,6 +203,7 @@ func Fragments(root, out string, w io.Writer, prog *progress.Tracker) error {
 // ("<sys>:"), in names order. "rendered <sys>" lines go to w in names order, unless prog (nil: none)
 // shows a "systems" phase instead.
 func Selected(root string, names []string, out string, w io.Writer, prog *progress.Tracker) error {
+	prog.Plan(len(names))
 	teams, err := system.LoadTeams(root)
 	if err != nil {
 		return err

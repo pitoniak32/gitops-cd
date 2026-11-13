@@ -35,13 +35,19 @@ func Run(cfg system.Config, root string, s Scope, prog *progress.Tracker) ([]Dia
 		return nil, err
 	}
 	var all []Diag
+	names := system.Names(root)
+	// one percentage for the whole lint (tab status): teams + names + systems
+	if s.Teams {
+		prog.Plan(1)
+	}
+	prog.Plan(len(names) + len(s.Systems))
 	if s.Teams {
 		p := prog.Start("teams", 1)
 		all = append(all, teams.Lint()...)
 		p.Step("teams/")
 		p.Done()
 	}
-	p := prog.Start("names", len(system.Names(root)))
+	p := prog.Start("names", len(names))
 	all = append(all, system.CheckNames(root, p.Step)...)
 	p.Done()
 	diags := make([][]Diag, len(s.Systems))

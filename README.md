@@ -15,6 +15,7 @@ mise install   # pinned tools (kind, helm, kubectl, go, fnox, mkcert, oras, terr
 #     env/<sys>/<app>/<target> branches); store it for fnox:
 #     fnox set GITHUB_APP_ID / GITHUB_APP_INSTALLATION_ID / GITHUB_APP_PRIVATE_KEY
 mise run up    # tear down + fresh hub + region clusters + infrastructure + bootstrap (~9 min)
+               # long gcd commands (up, lint, render, …) report their phase to the terminal tab (OSC 7501, e.g. Rex); GCD_NO_STATUS=1 turns it off
 mise run open  # open every UI below in the browser (--print: just list the URLs)
 mise run down  # delete everything
 ```
