@@ -1,16 +1,14 @@
-// Package creds installs Kargo's shared credentials from fnox: git (GitHub App) and the GitHub
+// Package creds installs Kargo's shared credentials from the keychain (internal/secrets): git (GitHub App) and the GitHub
 // Actions token (PAT) that deployWith: gha Stages use to dispatch workflows (ADR 0020).
 package creds
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"os/exec"
-	"strings"
 
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/secrets"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,16 +19,9 @@ const repoURL = "https://github.com/pitoniak32/gitops-cd"
 // Getter returns the named secret value.
 type Getter func(name string) (string, error)
 
-// FnoxGetter reads values with `fnox get <name>`.
-func FnoxGetter(name string) (string, error) {
-	var stderr bytes.Buffer
-	cmd := exec.Command("fnox", "get", name)
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("fnox get %s: %w: %s", name, err, strings.TrimSpace(stderr.String()))
-	}
-	return strings.TrimSuffix(string(out), "\n"), nil
+// KeychainGetter reads values from the macOS keychain (`gcd secret set` stores them).
+func KeychainGetter(ctx context.Context) Getter {
+	return func(name string) (string, error) { return secrets.Default().Get(ctx, name) }
 }
 
 // Run writes kargo-shared-resources/github-gitops-cd (App auth only) and github-actions (PAT, read
@@ -44,7 +35,7 @@ func Run(ctx context.Context, hub *kube.Clients, get Getter, log io.Writer) erro
 			return err
 		}
 		if v == "" {
-			return fmt.Errorf("%s is empty in fnox", n)
+			return fmt.Errorf("%s is empty in the keychain (./gcd secret set %s)", n, n)
 		}
 		vals[n] = v
 	}

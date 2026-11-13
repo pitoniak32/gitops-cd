@@ -103,7 +103,7 @@ func TestCredsMissingPAT(t *testing.T) {
 		return "v", nil
 	}
 	err := Run(context.Background(), &kube.Clients{Core: fake.NewSimpleClientset()}, get, &bytes.Buffer{})
-	if err == nil || !strings.Contains(err.Error(), "GITHUB_PAT is empty in fnox") {
+	if err == nil || !strings.Contains(err.Error(), "GITHUB_PAT is empty in the keychain") {
 		t.Fatalf("err = %v", err)
 	}
 }

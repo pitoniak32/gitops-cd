@@ -11,14 +11,14 @@ func init() {
 	register(func() *cobra.Command {
 		return &cobra.Command{
 			Use:   "creds",
-			Short: "Kargo git credentials (GitHub App) + GitHub Actions token (PAT) from fnox, shared by all projects",
+			Short: "Kargo git credentials (GitHub App) + GitHub Actions token (PAT) from the keychain, shared by all projects",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				hub, err := kube.ForContext(dns.HubContext)
 				if err != nil {
 					return err
 				}
-				return creds.Run(cmd.Context(), hub, creds.FnoxGetter, cmd.ErrOrStderr())
+				return creds.Run(cmd.Context(), hub, creds.KeychainGetter(cmd.Context()), cmd.ErrOrStderr())
 			},
 		}
 	})

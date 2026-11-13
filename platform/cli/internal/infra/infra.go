@@ -144,7 +144,7 @@ func bootstrapHub(ctx context.Context, root string, hub *kube.Clients, log io.Wr
 	if err := argocd.WaitApp(ctx, hub, "kargo", log); err != nil {
 		return err
 	}
-	if err := creds.Run(ctx, hub, creds.FnoxGetter, log); err != nil { // git creds for Kargo
+	if err := creds.Run(ctx, hub, creds.KeychainGetter(ctx), log); err != nil { // git creds for Kargo
 		return fmt.Errorf("creds: %w", err)
 	}
 	for _, app := range HubWaitRest {
