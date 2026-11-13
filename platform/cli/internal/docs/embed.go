@@ -17,8 +17,11 @@ import (
 // ReferenceDir holds the hand-written reference pages, relative to the repo root.
 const ReferenceDir = "docs/reference"
 
+// EvaluateDir holds the evaluator pages (why gitops-cd), relative to the repo root.
+const EvaluateDir = "docs/evaluate"
+
 // Dirs are the doc dirs gcd docs maintains: embeds rewritten, yaml fences checked.
-var Dirs = []string{GuideDir, ReferenceDir}
+var Dirs = []string{GuideDir, ReferenceDir, EvaluateDir}
 
 var (
 	embedOpenRx  = regexp.MustCompile(`^<!-- embed(.*?) -->$`)

@@ -14,7 +14,7 @@ func init() {
 		c := &cobra.Command{
 			Use:   "docs",
 			Short: "Refresh embedded examples in docs/guide + docs/reference, then check their yaml",
-			Long: `Maintain the hand-written pages in ` + docs.GuideDir + ` and ` + docs.ReferenceDir + `:
+			Long: `Maintain the hand-written pages in ` + docs.GuideDir + `, ` + docs.ReferenceDir + ` and ` + docs.EvaluateDir + `:
 
 1. Rewrite each <!-- embed path=<file> [lines=A-B] --> … <!-- /embed --> block from that file of the
    fixture (` + capability.FixtureRoot + `): a fence of those lines, dedented, plus a source link.

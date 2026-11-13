@@ -18,6 +18,7 @@ Each file kind explained, with examples from the sandbox: [reference/](reference
 
 ## Evaluators: what this shows and why
 
+- [Why gitops-cd](evaluate/why.md): governance, guardrails, consistency and flexibility, compared with Argo CD/Flux, Kargo alone, CI pipelines and commercial platforms.
 - [Root README](../README.md): overview, local setup, logins, the delivery flow.
 - [ADRs](adr/): every design decision with its context and trade-offs.
 - [Glossary](../GLOSSARY.md): the terms used everywhere.
