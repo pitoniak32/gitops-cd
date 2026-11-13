@@ -34,17 +34,17 @@ jobs:
       MODULE: ${{ inputs.module }}
     defaults:
       run:
-        working-directory: target   # the env branch commit; mise finds ../.mise.toml
+        working-directory: target   # the env branch commit
     steps:
-      # the workflow's own commit (for .mise.toml pins) + the promoted env branch commit in target/
-      - uses: actions/checkout@v4
+      # the promoted env branch commit in target/
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit }}
           path: target
-      - uses: jdx/mise-action@v2   # oras, terraform, yq pinned in .mise.toml
+      # yq is on GitHub's ubuntu runners; real terraform steps (below): hashicorp/setup-terraform
+      - uses: oras-project/setup-oras@v1
         with:
-          install_args: oras terraform yq
+          version: 1.3.0
       - name: check module matches the branch
         run: |
           got="$(yq '.module' terraform.yaml)"

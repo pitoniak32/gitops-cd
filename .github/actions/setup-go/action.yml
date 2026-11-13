@@ -1,11 +1,19 @@
 name: setup-go
-description: mise-pinned Go (.mise.toml) + module/build cache for platform/cli
+description: mise-pinned Go (.mise.toml) + jj (repo tests) + module/build cache for platform/cli
 runs:
   using: composite
   steps:
-    - uses: jdx/mise-action@v2
-      with:
-        install_args: go jj
+    - uses: jdx/mise-action@v2   # .mise.toml pins only Go
+    # jj: internal/repo and lint/show --changed tests run against a jj repo (skipped without it)
+    - name: jj
+      shell: bash
+      env:
+        JJ_VERSION: 0.39.0
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/jj"
+        gh release download "v$JJ_VERSION" -R jj-vcs/jj -p "jj-v$JJ_VERSION-x86_64-unknown-linux-musl.tar.gz" -O - | tar -xz -C "$RUNNER_TEMP/jj"
+        echo "$RUNNER_TEMP/jj" >> "$GITHUB_PATH"
     - name: go cache dirs
       id: go
       shell: bash

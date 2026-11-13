@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="All tests: test-cli + test-tf (CI runs each only when its code changes: cli.yaml, tf-module.yaml)"
-#MISE depends=["test-cli", "test-tf"]

@@ -8,8 +8,11 @@ import (
 
 func TestRepoRoot(t *testing.T) {
 	top := t.TempDir()
-	t.Setenv("MISE_PROJECT_ROOT", "")
-	if err := os.WriteFile(filepath.Join(top, ".mise.toml"), nil, 0o644); err != nil {
+	t.Setenv("GCD_ROOT", "")
+	if err := os.MkdirAll(filepath.Join(top, "platform/cli"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(top, "platform/cli/go.mod"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	nested := filepath.Join(top, "a", "b")

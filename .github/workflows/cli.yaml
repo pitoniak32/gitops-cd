@@ -12,6 +12,7 @@ on:
       - platform/cluster/**
       - .github/CODEOWNERS.tmpl     # CODEOWNERS golden
       - .mise.toml                  # Go version
+      - gcd                         # wrapper
       - .github/actions/setup-go/**
       - .github/workflows/cli.yaml
       - docs/reference/**           # gcd docs embeds + yaml examples (internal/docs)
@@ -29,12 +30,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}   # .mise.toml evaluates `gh auth token`
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-go
       - name: gofmt, vet, test
-        run: mise run test-cli
+        run: ./gcd test
       - name: region-derived config up to date (cluster registry)
-        run: mise run regions && git diff --exit-code platform/cluster/regions platform/infrastructure/keycloak platform/infrastructure/kargo/values.yaml
+        run: ./gcd regions && git diff --exit-code platform/cluster/regions platform/infrastructure/keycloak platform/infrastructure/kargo/values.yaml

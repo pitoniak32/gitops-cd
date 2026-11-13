@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Kargo controller shard per region: hub identity, token handoff, regional controller (idempotent)"
-#MISE depends=["cli"]
-exec "$MISE_PROJECT_ROOT/.bin/gcd" kargo-shards "$@"

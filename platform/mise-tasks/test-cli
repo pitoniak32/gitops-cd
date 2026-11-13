@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="gcd tests: gofmt + go vet + go test (renderer golden/CODEOWNERS/lint cases, CLI; UPDATE=1 accepts golden)"
-set -euo pipefail
-cd "$MISE_PROJECT_ROOT/platform/cli"
-test -z "$(gofmt -l .)" || { echo "gofmt needed:" >&2; gofmt -l . >&2; exit 1; }
-go vet ./...
-go test ./...
-# docs/guide + docs/reference live outside the Go module: go's test cache can't see them change
-go test -count=1 -run 'TestRepoDocs' ./internal/docs

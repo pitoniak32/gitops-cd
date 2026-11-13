@@ -1,32 +1,3 @@
+# mise pins only Go (builds gcd). Everything else is ./gcd: `./gcd --help` lists the commands.
 [tools]
-kind = '0.31.0'
-helm = '4.1.4'
-kubectl = '1.36.1'
-fnox = '1.29.0'
-yq = '4.54.2'
-jq = '1.8.1'
-mkcert = '1.4.4'
 go = '1.27.2'
-oras = '1.3.6'
-terraform = '1.16.7'
-jj = '0.39.0'
-
-[env]
-# gcd (`mise run cli` builds it): `gcd lint`, `gcd render` run it directly
-_.path = ["{{config_root}}/.bin"]
-# project-local kubeconfig: never touches ~/.kube/config
-KUBECONFIG = '{{config_root}}/.kubeconfig'
-
-GITHUB_AUTH_TOKEN = {
-  value = "{{ exec(command='gh auth token', cache_key='gh_auth_token_user', cache_duration='1h') }}",
-  redact = true
-}
-
-[task_config]
-includes = ["platform/mise-tasks"]
-
-[tasks.cli]
-description = "Build the gcd CLI to .bin/gcd"
-run = "go build -C platform/cli -o ../../.bin/gcd ."
-sources = ["platform/cli/**/*.go", "platform/cli/go.mod", "platform/cli/go.sum"]
-outputs = [".bin/gcd"]

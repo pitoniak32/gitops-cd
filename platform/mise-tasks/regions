@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Regenerate region-derived committed config from the cluster registry (platform/cli/internal/system/config.go) (idempotent; CI checks drift)"
-#MISE depends=["cli"]
-# Writes: platform/cluster/regions (host tasks), keycloak argocd-<r> clients, kargo api.argocd.urls
-exec "$MISE_PROJECT_ROOT/.bin/gcd" regions "$@"

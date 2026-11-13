@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Browser-trusted TLS for *.localhost UIs: mkcert CA in macOS keychain + traefik default cert"
-#MISE depends=["cli"]
-exec "$MISE_PROJECT_ROOT/.bin/gcd" certs "$@"

@@ -2,7 +2,7 @@
 # re-renders everything too). Code tests run only when their code changes: cli.yaml, tf-module.yaml.
 # ADR 0002: rendered/ lives on the orphan branch `rendered`, written only by this workflow on main (push, or workflow_dispatch to re-run);
 # main gets no bot commits. PRs comment the render diff against it. CODEOWNERS stays on main (GitHub reads it
-# there): authors regenerate it with `mise run codeowners`, CI checks it.
+# there): authors regenerate it with `./gcd codeowners`, CI checks it.
 name: config
 on:
   pull_request:
@@ -22,7 +22,6 @@ jobs:
   config:
     runs-on: ubuntu-latest
     env:
-      # .mise.toml evaluates `gh auth token` for GITHUB_AUTH_TOKEN; gh uses GH_TOKEN on runners
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +38,7 @@ jobs:
           fi
 
       - name: build gcd
-        run: mise run cli
+        run: ./gcd --help >/dev/null   # builds .bin/gcd
 
       # gcd picks the scope from the event (PR: what changed, label lint-all: everything; main: everything)
       # and prints ::error annotations (`gcd lint --help`)
@@ -49,10 +48,10 @@ jobs:
       # PRs fail; on main only warn, so a stale CODEOWNERS (two PRs that each passed) never blocks the render
       - name: CODEOWNERS up to date
         run: |
-          mise run codeowners >/dev/null
+          ./gcd codeowners >/dev/null
           git diff --exit-code .github/CODEOWNERS && exit 0
           lvl="$([[ "$GITHUB_EVENT_NAME" == pull_request ]] && echo error || echo warning)"
-          echo "::$lvl file=.github/CODEOWNERS::stale; run mise run codeowners and commit it in a PR"
+          echo "::$lvl file=.github/CODEOWNERS::stale; run ./gcd codeowners and commit it in a PR"
           [[ "$lvl" == warning ]]
 
       - name: render

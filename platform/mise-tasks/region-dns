@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Regions: resolve keycloak.localhost to the hub traefik (CoreDNS rewrite + selectorless Service, idempotent)"
-#MISE depends=["cli"]
-exec "$MISE_PROJECT_ROOT/.bin/gcd" region-dns "$@"

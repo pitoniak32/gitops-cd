@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Open every UI in the browser: Kargo, hub Argo CD, each regional Argo CD, Keycloak"
-#MISE depends=["cli"]
-#USAGE flag "--print" help="only print the URLs"
-exec "$MISE_PROJECT_ROOT/.bin/gcd" open "$@"

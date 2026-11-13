@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Bootstrap Argo CD + root app of ApplicationSets on hub and regions, wait for add-ons in order (idempotent)"
-#MISE depends=["cli"]
-exec "$MISE_PROJECT_ROOT/.bin/gcd" infra "$@"

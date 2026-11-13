@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Delete demo clusters (hub + regions)"
-#MISE depends=["cli"]
-exec "$MISE_PROJECT_ROOT/.bin/gcd" down "$@"

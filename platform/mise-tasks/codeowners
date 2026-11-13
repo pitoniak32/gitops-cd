@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Regenerate .github/CODEOWNERS from owners files + CODEOWNERS.tmpl (commit it with your PR; CI checks it)"
-#MISE depends=["cli"]
-# ADR 0002: CODEOWNERS lives on main and no bot writes main, so authors regenerate it; owner fragments are
-# rendered to a temp dir (rendered/ itself is untouched).
-exec "$MISE_PROJECT_ROOT/.bin/gcd" codeowners "$@"

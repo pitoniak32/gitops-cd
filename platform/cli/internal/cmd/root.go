@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -22,9 +23,16 @@ func NewRoot() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "gcd",
 		Short:         "gitops-cd cluster setup CLI",
-		Long:          "gcd: gitops-cd cluster setup CLI (replaces bash mise tasks).",
+		Long:          "gcd: gitops-cd cluster setup, rendering and checks. Run it with ./gcd (builds it first).",
 		SilenceUsage:  true,
 		SilenceErrors: false,
+		// every command uses the project-local kubeconfig (never ~/.kube/config or a $KUBECONFIG of
+		// other clusters); `gcd env` prints it for kubectl
+		PersistentPreRun: func(*cobra.Command, []string) {
+			if r, err := repo.Root(); err == nil {
+				os.Setenv("KUBECONFIG", kubeconfigFor(r))
+			}
+		},
 	}
 	root.PersistentFlags().String("color", "auto", "color human output: auto (terminal and no NO_COLOR), always, never")
 	root.PersistentFlags().String("root", "", "repo root (default: this repo); sandbox: platform/render/testdata/root")
