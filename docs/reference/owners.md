@@ -5,23 +5,23 @@ File: `capabilities/{cap}/owners.yml`
 
 who reviews, promotes and views a capability (one file per capability)
 
-| Field | Type | Required | Values | Platforms | Description | Example |
-|---|---|---|---|---|---|---|
-| `codeOwners` | list | yes |  |  | teams in teams/ that approve code changes (CODEOWNERS) | [`payments/owners.yml:1`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L1) |
-| `codeOwners[]` | str |  |  |  |  | [`payments/owners.yml:1`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L1) |
-| `promoters` | dict | yes |  |  | per stage name (a stage of this capability), emails that may promote into it | [`payments/owners.yml:2`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L2) |
-| `promoters.<stage>` | list |  |  |  |  | [`payments/owners.yml:3`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L3) |
-| `promoters.<stage>[]` | str |  | `^[a-z0-9._%+-]+@example\.com$` |  |  | [`payments/owners.yml:3`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L3) |
-| `viewers` | list |  |  |  | emails with read-only access in Kargo and Argo CD | [`payments/owners.yml:7`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L7) |
-| `viewers[]` | str |  | `^[a-z0-9._%+-]+@example\.com$` |  |  | [`payments/owners.yml:7`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L7) |
-| `breakGlass` | list |  |  |  | emails that may approve Freight that skipped upstream verification | [`payments/owners.yml:8`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L8) |
-| `breakGlass[]` | str |  | `^[a-z0-9._%+-]+@example\.com$` |  |  | [`payments/owners.yml:8`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L8) |
-| `apps` | dict |  |  |  | per app name (an app of this capability) overrides; each field set replaces the capability's | [`payments/owners.yml:10`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L10) |
-| `apps.<app>` | map |  |  |  |  | [`payments/owners.yml:11`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L11) |
-| `apps.<app>.codeOwners` | list |  |  |  | teams in teams/ that approve this app's code changes | [`payments/owners.yml:12`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L12) |
-| `apps.<app>.codeOwners[]` | str |  |  |  |  | [`payments/owners.yml:12`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L12) |
-| `apps.<app>.promoters` | dict |  |  |  | per stage name, emails that may promote this app into it; replaces the capability's for that stage | [`payments/owners.yml:14`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L14) |
-| `apps.<app>.promoters.<stage>` | list |  |  |  |  | [`payments/owners.yml:15`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L15) |
-| `apps.<app>.promoters.<stage>[]` | str |  | `^[a-z0-9._%+-]+@example\.com$` |  |  | [`payments/owners.yml:15`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L15) |
-| `apps.<app>.viewers` | list |  |  |  | emails with read-only access to this app | [`payments/owners.yml:13`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L13) |
-| `apps.<app>.viewers[]` | str |  | `^[a-z0-9._%+-]+@example\.com$` |  |  | [`payments/owners.yml:13`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L13) |
+| Field | Type | Description |
+|---|---|---|
+| `codeOwners` | list | **Required.** teams in teams/ that approve code changes (CODEOWNERS)<br>Example: [`payments/owners.yml:1`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L1) |
+| `codeOwners[]` | str | Example: [`payments/owners.yml:1`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L1) |
+| `promoters` | dict | **Required.** per stage name (a stage of this capability), emails that may promote into it<br>Example: [`payments/owners.yml:2`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L2) |
+| `promoters.<stage>` | list | Example: [`payments/owners.yml:3`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L3) |
+| `promoters.<stage>[]` | str | Pattern: `^[a-z0-9._%+-]+@example\.com$`<br>Example: [`payments/owners.yml:3`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L3) |
+| `viewers` | list | emails with read-only access in Kargo and Argo CD<br>Example: [`payments/owners.yml:7`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L7) |
+| `viewers[]` | str | Pattern: `^[a-z0-9._%+-]+@example\.com$`<br>Example: [`payments/owners.yml:7`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L7) |
+| `breakGlass` | list | emails that may approve Freight that skipped upstream verification<br>Example: [`payments/owners.yml:8`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L8) |
+| `breakGlass[]` | str | Pattern: `^[a-z0-9._%+-]+@example\.com$`<br>Example: [`payments/owners.yml:8`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L8) |
+| `apps` | dict | per app name (an app of this capability) overrides; each field set replaces the capability's<br>Example: [`payments/owners.yml:10`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L10) |
+| `apps.<app>` | map | Example: [`payments/owners.yml:11`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L11) |
+| `apps.<app>.codeOwners` | list | teams in teams/ that approve this app's code changes<br>Example: [`payments/owners.yml:12`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L12) |
+| `apps.<app>.codeOwners[]` | str | Example: [`payments/owners.yml:12`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L12) |
+| `apps.<app>.promoters` | dict | per stage name, emails that may promote this app into it; replaces the capability's for that stage<br>Example: [`payments/owners.yml:14`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L14) |
+| `apps.<app>.promoters.<stage>` | list | Example: [`payments/owners.yml:15`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L15) |
+| `apps.<app>.promoters.<stage>[]` | str | Pattern: `^[a-z0-9._%+-]+@example\.com$`<br>Example: [`payments/owners.yml:15`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L15) |
+| `apps.<app>.viewers` | list | emails with read-only access to this app<br>Example: [`payments/owners.yml:13`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L13) |
+| `apps.<app>.viewers[]` | str | Pattern: `^[a-z0-9._%+-]+@example\.com$`<br>Example: [`payments/owners.yml:13`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L13) |

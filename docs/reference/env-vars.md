@@ -5,6 +5,6 @@ File: `capabilities/{cap}/targets/*/environment-variables/*.yml`
 
 environment variables shared by apps that opt in with envFrom
 
-| Field | Type | Required | Values | Platforms | Description | Example |
-|---|---|---|---|---|---|---|
-| `<KEY>` | str |  |  |  | value of the variable named by the key | [`payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:1`](../../platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml#L1) |
+| Field | Type | Description |
+|---|---|---|
+| `<KEY>` | str | value of the variable named by the key<br>Example: [`payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml:1`](../../platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml#L1) |
