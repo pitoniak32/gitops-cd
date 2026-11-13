@@ -8,7 +8,8 @@ identity-provider groups: people are matched by the `email` of their login
 
 ## `owners.yml`
 
-```yaml path=capabilities/payments/owners.yml
+<!-- embed path=capabilities/payments/owners.yml -->
+```yaml
 codeOwners: [team1]
 promoters:
   dev: [doug@example.com]
@@ -17,6 +18,7 @@ promoters:
   prod: [doug@example.com]
 viewers: [bob@example.com]
 breakGlass: [carol@example.com]
+# per-app overrides of the lists above
 apps:
   worker:
     codeOwners: [team1, team2]
@@ -25,6 +27,9 @@ apps:
       dev: [alice@example.com, doug@example.com]
       prod: [alice@example.com]
 ```
+
+Source: [`payments/owners.yml`](../../platform/render/testdata/root/capabilities/payments/owners.yml)
+<!-- /embed -->
 
 | Key | Who | Can |
 |---|---|---|
