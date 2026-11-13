@@ -1,4 +1,5 @@
-// Package docs checks the yaml examples in docs/guide/ against lint.
+// Package docs maintains docs/guide/ and docs/reference/: embed blocks spliced from the fixture
+// (embed.go) and yaml examples checked against lint.
 //
 // A yaml fence must say what it is: path=<repo-relative file> (full file, must lint clean),
 // path=… expect="<substring>" (lint must report a matching error) or fragment (not checked).
@@ -40,24 +41,57 @@ type block struct {
 	body     string
 }
 
-// Check lints every annotated yaml block of docs/guide/*.md under root, each written over its own copy
+// Run is gcd docs: rewrite embeds (Embeds; written only if write), lint the fixture they come from,
+// then Check. No doc dir under root: nothing to do.
+func Run(root string, write bool) (changed []string, diags []capability.Diag, err error) {
+	has := false
+	for _, d := range Dirs {
+		if fi, err := os.Stat(filepath.Join(root, filepath.FromSlash(d))); err == nil && fi.IsDir() {
+			has = true
+		}
+	}
+	if !has {
+		return nil, nil, nil
+	}
+	changed, diags, err = Embeds(root, write)
+	if err != nil {
+		return nil, nil, err
+	}
+	found, err := lint.All(filepath.Join(root, filepath.FromSlash(capability.FixtureRoot)), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, d := range found {
+		d.File = capability.FixtureRoot + "/" + d.File
+		diags = append(diags, d)
+	}
+	checked, err := Check(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	return changed, capability.SortDedupe(append(diags, checked...)), nil
+}
+
+// Check lints every annotated yaml block of the *.md pages in Dirs under root, each written over its own copy
 // of the fixture (capability.FixtureRoot). Diagnostics point into the markdown: the snippet's own file
 // at fence line + its line, any other file at the fence line. No guide dir: nothing to check.
 func Check(root string) ([]capability.Diag, error) {
-	pages, err := filepath.Glob(filepath.Join(root, filepath.FromSlash(GuideDir), "*.md"))
-	if err != nil {
-		return nil, err
-	}
 	var blocks []block
 	var diags []capability.Diag
-	for _, p := range pages {
-		b, err := os.ReadFile(p)
+	for _, dir := range Dirs {
+		pages, err := filepath.Glob(filepath.Join(root, filepath.FromSlash(dir), "*.md"))
 		if err != nil {
 			return nil, err
 		}
-		bs, ds := parse(GuideDir+"/"+filepath.Base(p), string(b))
-		blocks = append(blocks, bs...)
-		diags = append(diags, ds...)
+		for _, p := range pages {
+			b, err := os.ReadFile(p)
+			if err != nil {
+				return nil, err
+			}
+			bs, ds := parse(dir+"/"+filepath.Base(p), string(b))
+			blocks = append(blocks, bs...)
+			diags = append(diags, ds...)
+		}
 	}
 	if len(blocks) == 0 && len(diags) == 0 {
 		return nil, nil
@@ -88,7 +122,14 @@ func parse(page, text string) ([]block, []capability.Diag) {
 	var blocks []block
 	var diags []capability.Diag
 	lines := strings.Split(text, "\n")
+	inEmbed := false
 	for i := 0; i < len(lines); i++ {
+		switch {
+		case embedOpenRx.MatchString(lines[i]):
+			inEmbed = true
+		case embedCloseRx.MatchString(lines[i]):
+			inEmbed = false
+		}
 		m := openRx.FindStringSubmatch(lines[i])
 		if m == nil {
 			continue
@@ -98,7 +139,7 @@ func parse(page, text string) ([]block, []capability.Diag) {
 		for i++; i < len(lines) && !closeRx.MatchString(lines[i]); i++ {
 			body.WriteString(strings.TrimPrefix(lines[i], m[1]) + "\n")
 		}
-		if m[2] != "yaml" {
+		if m[2] != "yaml" || inEmbed {
 			continue
 		}
 		b := block{page: page, line: start + 1, body: body.String(), fragment: fragRx.MatchString(m[3])}

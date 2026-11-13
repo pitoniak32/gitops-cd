@@ -136,14 +136,54 @@ func TestCheckIsolation(t *testing.T) {
 	want(t, check(t, page), "docs/guide/x.md:2:1: bogus: field not allowed")
 }
 
-func TestRepoGuides(t *testing.T) {
-	d, err := Check("../../../..")
+func TestRepoDocs(t *testing.T) {
+	changed, d, err := Run("../../../..", false)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if changed != nil {
+		t.Errorf("stale embeds in %v: run gcd docs", changed)
 	}
 	for _, x := range d {
 		t.Error(x)
 	}
+}
+
+func TestCheckReferenceDir(t *testing.T) {
+	root := guideRoot(t, "")
+	ref := filepath.Join(root, "docs", "reference")
+	if err := os.MkdirAll(ref, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ref, "x.md"), []byte(fence("path=capabilities/payments/stages/dev.yml", "bogus: 1\n")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	d, err := Check(root)
+	if err != nil || len(d) != 1 || d[0].String() != "docs/reference/x.md:2:1: bogus: field not allowed" {
+		t.Errorf("got %v %v", d, err)
+	}
+}
+
+func TestCheckEmbedFenceExempt(t *testing.T) {
+	page := "<!-- embed path=capabilities/payments/stages/dev.yml -->\n```yaml\na: 1\n```\n<!-- /embed -->\n```yaml\nb: 1\n```\n"
+	want(t, check(t, page), "docs/guide/x.md:6:1: yaml block needs path=…, expect=… or fragment")
+}
+
+func TestRunFixtureLint(t *testing.T) {
+	root := guideRoot(t, "# x\n")
+	dev := filepath.Join(root, filepath.FromSlash(capability.FixtureRoot), "capabilities", "payments", "stages", "dev.yml")
+	if err := os.WriteFile(dev, []byte("bogus: 1\n"+fixtureFile(t, "capabilities/payments/stages/dev.yml")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, d, err := Run(root, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, x := range d {
+		got = append(got, x.String())
+	}
+	want(t, got, "platform/render/testdata/root/capabilities/payments/stages/dev.yml:1:1: bogus: field not allowed")
 }
 
 func TestCheckIndentedFence(t *testing.T) {
