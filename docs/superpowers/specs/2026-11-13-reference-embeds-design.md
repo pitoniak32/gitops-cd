@@ -21,7 +21,10 @@ help (enum values, variable lists). Examples can't rot: they are spliced from th
 ```
 
 - `path` relative to the fixture root (`platform/render/testdata/root`), same convention as `path=` fences.
-- `lines=A-B` inclusive, 1-based. No `lines` = whole file.
+- `lines=A-B` inclusive, 1-based. No `lines` = whole file. Several hunks:
+  `lines="1-2,(9-10;text='dev overrides'),30"`: comma-separated, in order, no overlap; `(range;text='…')`
+  adds a `# …` comment line above the hunk (keyword options only). Hunks are dedented together; a gap
+  between hunks shows as `# …`. The source label lists the hunks; the link spans first to last line.
 - `gcd docs` replaces everything between the markers with: a fence (language from the file extension,
   `yaml` for `.yml`/`.yaml`) holding those lines, dedented by their common indent, then a source line
   ``Source: [`payments/apps/my-app/app.yml:1-12`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L1-L12)``

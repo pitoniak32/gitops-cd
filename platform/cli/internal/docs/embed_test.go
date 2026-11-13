@@ -129,3 +129,56 @@ func TestEmbedsWalk(t *testing.T) {
 		t.Errorf("second run changed %v", changed)
 	}
 }
+
+func TestEmbedHunks(t *testing.T) {
+	got, d := embed(t, `<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="1-2,(9-10;text='dev overrides'),(17-20;text='target wins')" -->`+"\n<!-- /embed -->\n")
+	want := "```yaml\n" +
+		"image: ghcr.io/pitoniak32/nginx\n" +
+		"sourceRepo: acme/my-app\n" +
+		"# …\n" +
+		"# dev overrides\n" +
+		"stages:\n" +
+		"  dev:\n" +
+		"      # …\n" +
+		"      # target wins\n" +
+		"      dc1-dev-k8s:  # target level wins over stage and app level\n" +
+		"        env:\n" +
+		"          APP_ENV: 'false'\n" +
+		"        replicas: 3\n" +
+		"```\n\n" +
+		"Source: [`payments/apps/my-app/app.yml:1-2,9-10,17-20`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L1-L20)\n"
+	if !strings.Contains(got, want) || d != nil {
+		t.Errorf("got %q (%v)\nwant %q", got, d, want)
+	}
+}
+
+func TestEmbedHunksAdjacentAndSingle(t *testing.T) {
+	got, d := embed(t, `<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="1-2, 3" -->`+"\n<!-- /embed -->\n")
+	if !strings.Contains(got, "```yaml\nimage: ghcr.io/pitoniak32/nginx\nsourceRepo: acme/my-app\nimageConstraint: ^1\n```") || d != nil {
+		t.Errorf("adjacent: %q %v", got, d)
+	}
+	got, d = embed(t, "<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=3 -->\n<!-- /embed -->\n")
+	if !strings.Contains(got, "```yaml\nimageConstraint: ^1\n```\n\nSource: [`payments/apps/my-app/app.yml:3`](") || d != nil {
+		t.Errorf("single: %q %v", got, d)
+	}
+}
+
+func TestEmbedHunkErrors(t *testing.T) {
+	const p = "<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="
+	for _, tc := range []struct{ lines, msg string }{
+		{`"(9-10;'x')"`, "hunk options are key='value': (9-10;'x')"},
+		{`"(9-10;foo='x')"`, `unknown hunk option "foo"`},
+		{`"5-10,8-12"`, "hunks must be in order without overlap: 5-10,8-12"},
+		{`"9-10,1-2"`, "hunks must be in order without overlap: 9-10,1-2"},
+		{`"(9-10;text='x)"`, "unterminated quote"},
+		{`"(9-10"`, "unbalanced parentheses"},
+		{`"1-2,,3"`, "lines must be A-B with 1 <= A <= B <= 44"},
+		{`"1-2`, "unterminated quote"},
+	} {
+		page := p + tc.lines + " -->\nkeep\n<!-- /embed -->\n"
+		got, d := embed(t, page)
+		if got != page || len(d) != 1 || d[0] != "docs/guide/x.md:1:1: "+tc.msg {
+			t.Errorf("%s: got %v", tc.lines, d)
+		}
+	}
+}
