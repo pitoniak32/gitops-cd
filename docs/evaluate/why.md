@@ -12,6 +12,7 @@ YAML, the review, the promotion and the guardrails are the same whichever deploy
 | | gitops-cd | Argo CD / Flux | Kargo alone | CI pipelines | Commercial / IDP |
 |---|---|---|---|---|---|
 | **Governance**: mandatory checks and restrictions on every platform | ✓ platform-owned, teams can't edit or skip | ~ cluster admission policy only; no gate before deploy | ~ verification after deploy; config teams can edit | ~ per-repo rules; teams own the pipeline file | ✓ policy engines and approvals, at license cost |
+| **Consistent access** from one file | ✓ one `owners.yml` per capability generates Kargo, Argo CD and CODEOWNERS access | ✗ AppProject roles and IdP groups, set per cluster | ✗ project RBAC written per project | ~ repo and environment permissions, per repo | ~ the portal's roles, plus each underlying tool's |
 | **Learn with guardrails**: new members can't ship a broken config | ✓ one schema, located errors in the PR and locally | ✗ errors surface at sync | ✗ hand-written Kargo resources | ~ reusable workflows, errors at run time | ~ templates at scaffold time, drift after |
 | **Consistency** across apps, targets and platforms | ✓ every app renders through the same model | ~ by convention (shared charts) | ✗ each pipeline built by hand | ✗ pipelines drift between repos | ~ per vendor model |
 | **Full picture** for teams | ✓ merged config with sources, render diff per PR, pipeline view | ~ sync status per app | ✓ pipeline view | ✗ run logs, no environment state | ✓ dashboards |
@@ -59,11 +60,38 @@ code (`platform/cli/internal/capability/config.go`), not in team YAML.
 - **The UIs are read-only for changes.** No Kargo or Argo CD user can create, edit or delete resources;
   an admission policy in the cluster rejects anything but promotions and Freight, whatever a user's RBAC
   says (`platform/infrastructure/kargo-config/manifests/gitops-only.yaml`).
-- **Access is generated, never granted by hand.** Who may promote, view or break glass comes from each
-  capability's `owners.yml`, matched on login email ([ADR 0011](../adr/0011-access-by-email.md)); changes
-  to it need platform approval through generated CODEOWNERS.
+- **Access comes from one file, generated everywhere** ([below](#consistent-access-from-one-file)).
 - **Skipping verification is guarded.** Approving Freight that skipped an upstream stage is limited to
   named on-call people by a guard in front of the Kargo API ([ADR 0013](../adr/0013-break-glass-approval.md)).
+
+### Consistent access from one file
+
+Each capability's `owners.yml` is the only place permissions are set. From it the platform generates who
+may approve PRs (CODEOWNERS), promote each stage and view each app in Kargo, view apps in Argo CD, and break
+glass, matched on login email, never on identity-provider groups
+([ADR 0011](../adr/0011-access-by-email.md)). Nobody grants access by hand in a UI, so the tools can't
+drift apart: what the file says is what every tool enforces. Changes to it need platform approval.
+
+<!-- embed path=capabilities/payments/owners.yml lines=1-8 -->
+```yaml
+codeOwners: [team1]
+promoters:
+  dev: [doug@example.com]
+  staging: [doug@example.com]
+  perf: [doug@example.com]
+  prod: [doug@example.com]
+viewers: [bob@example.com]
+breakGlass: [carol@example.com]
+```
+
+Source: [`payments/owners.yml:1-8`](../../platform/render/testdata/root/capabilities/payments/owners.yml#L1-L8)
+<!-- /embed -->
+
+With Argo CD, Kargo and CI configured separately, the same permissions live in several places (AppProject
+roles, Kargo project RBAC, IdP groups, repo settings), each edited on its own, with nothing keeping them
+in step.
+
+### Full picture for teams
 
 **Teams still see everything about their apps.** `gcd show <cap>/<app> -s` prints the merged config of
 every target with the file and line each value came from; every PR gets a comment with the rendered diff;
