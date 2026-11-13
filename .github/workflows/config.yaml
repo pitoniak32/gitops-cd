@@ -1,5 +1,5 @@
 # Config: lint + render the system YAML on every PR and main push (no path filter: a renderer change
-# re-renders everything too). Code tests run only when their code changes: cli.yaml, tf-module.yaml.
+# re-renders everything too). Code tests run only when their code changes: cli.yaml.
 # ADR 0002: rendered/ lives on the orphan branch `rendered`, written only by this workflow on main (push, or workflow_dispatch to re-run);
 # main gets no bot commits. PRs comment the render diff against it. CODEOWNERS stays on main (GitHub reads it
 # there): authors regenerate it with `./gcd codeowners`, CI checks it.

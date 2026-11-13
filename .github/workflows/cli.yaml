@@ -1,4 +1,4 @@
-# gcd (platform/cli): gofmt, vet, tests, region-derived config drift. Only when the Go code or a file its
+# gcd (platform/cli): gofmt, vet, tests (incl. tf-module-push), region-derived config drift. Only when the Go code or a file its
 # tests read changes; config-only PRs skip it (config.yaml lints and renders those).
 name: cli
 on:
@@ -10,6 +10,7 @@ on:
       - platform/bootstrap/**
       - platform/infrastructure/**  # regions drift (keycloak, kargo values), appsets checks
       - platform/cluster/**
+      - examples/terraform/**       # internal/tfmodule pushes it (in-memory registry)
       - .github/CODEOWNERS.tmpl     # CODEOWNERS golden
       - .mise.toml                  # Go version
       - gcd                         # wrapper
