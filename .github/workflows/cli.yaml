@@ -14,7 +14,8 @@ on:
       - .mise.toml                  # Go version
       - .github/actions/setup-go/**
       - .github/workflows/cli.yaml
-      - docs/reference/**           # gcd docs golden
+      - docs/reference/**           # gcd docs embeds + yaml examples (internal/docs)
+      - docs/evaluate/**
       - docs/guide/**               # guide yaml examples (internal/docs)
   push:
     branches: [main]

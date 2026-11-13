@@ -199,3 +199,18 @@ func TestCheckMarkerInPlainFence(t *testing.T) {
 	page := "```\n<!-- embed path=capabilities/payments/stages/dev.yml -->\n```\n```yaml\na: 1\n```\n"
 	want(t, check(t, page), "docs/guide/x.md:4:1: yaml block needs path=…, expect=… or fragment")
 }
+
+func TestCheckEvaluateDir(t *testing.T) {
+	root := guideRoot(t, "")
+	ev := filepath.Join(root, "docs", "evaluate")
+	if err := os.MkdirAll(ev, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ev, "x.md"), []byte(fence("path=capabilities/payments/stages/dev.yml", "bogus: 1\n")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	d, err := Check(root)
+	if err != nil || len(d) != 1 || d[0].String() != "docs/evaluate/x.md:2:1: bogus: field not allowed" {
+		t.Errorf("got %v %v", d, err)
+	}
+}
