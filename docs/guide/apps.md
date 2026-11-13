@@ -17,7 +17,8 @@ Kargo watches the repository for SemVer tags. `imageConstraint` / `moduleConstra
 count (`^1` = 1.x only). When promoting, a promoter picks a tag; Freight pins its digest
 ([ADR 0016](../adr/0016-image-discovery-freight-assembly.md)).
 
-```yaml path=capabilities/payments/apps/infra/app.yml
+<!-- embed path=capabilities/payments/apps/infra/app.yml -->
+```yaml
 module: ghcr.io/pitoniak32/tf-bucket
 sourceRepo: pitoniak32/gitops-cd
 moduleConstraint: ^1
@@ -37,6 +38,9 @@ stages:
           TF_VAR_region: us-east1
 ```
 
+Source: [`payments/apps/infra/app.yml`](../../platform/render/testdata/root/capabilities/payments/apps/infra/app.yml)
+<!-- /embed -->
+
 `image`, `module`, their constraints, `port` and `sourceRepo` are app-level only. The artifact promotes as
 one unit across every target.
 
@@ -54,7 +58,9 @@ specific wins ([ADR 0004](../adr/0004-layered-override-merge.md)):
 removes them. `workflow` and `resources` resolve per field. `replicas` and `deployWith` take the most
 specific layer that sets them.
 
-```yaml path=capabilities/payments/apps/my-app/app.yml
+<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="(1-8;text='app level'),(9-14;text='stage level: dev'),15,(17-23;text='target level: dc1-dev-k8s'),(24-34;text='staging: dc1-npr-k8s deploys with GitHub Actions')" -->
+```yaml
+# app level
 image: ghcr.io/pitoniak32/nginx
 sourceRepo: acme/my-app
 imageConstraint: ^1
@@ -63,21 +69,24 @@ replicas: 2
 env:
   APP_ENV: 'true'
   APP_SECRET: 'secret:acme-proj1/my-app-secret'
+# stage level: dev
 stages:
   dev:
-    envFrom: [launchdarkly]
+    envFrom: [launchdarkly]  # environment-variables files of the target, merged under env
     env:
       STAGE_ENV: 'false'
     replicas: 1
     targets:
-      us-east4-dev-k8s: {}
-      dc1-dev-k8s:
+      # …
+      # target level: dc1-dev-k8s
+      dc1-dev-k8s:  # target level wins over stage and app level
         env:
           APP_ENV: 'false'
         replicas: 3
         resources:
           cpu: 250m
           memory: 256Mi
+  # staging: dc1-npr-k8s deploys with GitHub Actions
   staging:
     targets:
       us-east4-npr-k8s: {}
@@ -89,17 +98,10 @@ stages:
           repo: acme/deploys
           file: onprem.yml
           ref: v1
-  perf:
-    targets:
-      us-east4-npr-k8s-perf: {}
-  prod:
-    resources:
-      cpu: 500m
-      memory: 512Mi
-    targets:
-      us-east4-prd-k8s: {}
-      dc1-prd-k8s: {}
 ```
+
+Source: [`payments/apps/my-app/app.yml:1-15,17-34`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L1-L34)
+<!-- /embed -->
 
 `gcd show -s` shows which layer each value came from. For `dc1-dev-k8s` in `dev`, the target level wins
 for `replicas`, `resources` and `APP_ENV`. `STAGE_ENV` comes from the stage, and `APP_SECRET` from the app:
@@ -134,11 +136,15 @@ If you edit a wider layer and nothing changes, a narrower layer overrides it. `-
   ([ADR 0014](../adr/0014-target-environment-variables.md)). Every target the setting reaches must have
   that file. Keys in `env` win over keys from `envFrom`.
 
-```yaml path=capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml
+<!-- embed path=capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml -->
+```yaml
 LD_SDK_KEY: 'secret:acme-dev-onprem/launchdarkly-sdk-key'
 LD_RELAY_URL: https://ld-relay.onprem-dev.example.com
 APP_ENV: 'from-bundle'
 ```
+
+Source: [`payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml`](../../platform/render/testdata/root/capabilities/payments/targets/dc1-dev-k8s/environment-variables/launchdarkly.yml)
+<!-- /embed -->
 
 Fields: [reference/env-vars.md](../reference/env-vars.md).
 

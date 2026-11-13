@@ -154,7 +154,7 @@ func TestEmbedHunks(t *testing.T) {
 
 func TestEmbedHunksAdjacentAndSingle(t *testing.T) {
 	got, d := embed(t, `<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="1-2, 3" -->`+"\n<!-- /embed -->\n")
-	if !strings.Contains(got, "```yaml\nimage: ghcr.io/pitoniak32/nginx\nsourceRepo: acme/my-app\nimageConstraint: ^1\n```") || d != nil {
+	if !strings.Contains(got, "```yaml\nimage: ghcr.io/pitoniak32/nginx\nsourceRepo: acme/my-app\nimageConstraint: ^1\n```\n\nSource: [`payments/apps/my-app/app.yml:1-3`](") || d != nil {
 		t.Errorf("adjacent: %q %v", got, d)
 	}
 	got, d = embed(t, "<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=3 -->\n<!-- /embed -->\n")

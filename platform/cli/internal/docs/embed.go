@@ -145,8 +145,16 @@ func embedBody(page, attrs string, fixture fs.FS) ([]string, error) {
 		if hunks, err = parseHunks(rng, len(src)); err != nil {
 			return nil, err
 		}
-		var parts []string
+		var spans []hunk // touching hunks merged, for the label
 		for _, h := range hunks {
+			if k := len(spans) - 1; k >= 0 && h.a == spans[k].z+1 {
+				spans[k].z = h.z
+				continue
+			}
+			spans = append(spans, h)
+		}
+		var parts []string
+		for _, h := range spans {
 			parts = append(parts, h.String())
 		}
 		label += ":" + strings.Join(parts, ",")

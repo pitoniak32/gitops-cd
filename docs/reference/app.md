@@ -138,8 +138,14 @@ Below the app level come the target platform's defaults, then global defaults
 ([ADR 0004](../adr/0004-layered-override-merge.md)). Here the `dc1-dev-k8s` target overrides
 `APP_ENV`, `replicas` and `resources` of its stage and app:
 
-<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=9-23 -->
+<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="(5-8;text='app level'),(9-14;text='stage level: dev'),15,(17-23;text='target level: dc1-dev-k8s')" -->
 ```yaml
+# app level
+replicas: 2
+env:
+  APP_ENV: 'true'
+  APP_SECRET: 'secret:acme-proj1/my-app-secret'
+# stage level: dev
 stages:
   dev:
     envFrom: [launchdarkly]  # environment-variables files of the target, merged under env
@@ -147,7 +153,8 @@ stages:
       STAGE_ENV: 'false'
     replicas: 1
     targets:
-      us-east4-dev-k8s: {}
+      # …
+      # target level: dc1-dev-k8s
       dc1-dev-k8s:  # target level wins over stage and app level
         env:
           APP_ENV: 'false'
@@ -157,7 +164,7 @@ stages:
           memory: 256Mi
 ```
 
-Source: [`payments/apps/my-app/app.yml:9-23`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L9-L23)
+Source: [`payments/apps/my-app/app.yml:5-15,17-23`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L5-L23)
 <!-- /embed -->
 
 `gcd show <cap>/<app> -s` prints the merged result with the file and line each value came from.

@@ -19,10 +19,14 @@ The file name (`team3`) is how `owners.yml` refers to the team. That team or the
 
 ## 2. Say who owns it: `owners.yml`
 
-```yaml path=capabilities/search/owners.yml
+<!-- embed path=capabilities/search/owners.yml -->
+```yaml
 codeOwners: [team2]
 promoters: {dev: [alice@example.com]}
 ```
+
+Source: [`search/owners.yml`](../../platform/render/testdata/root/capabilities/search/owners.yml)
+<!-- /embed -->
 
 - `codeOwners`: teams (file names from `teams/`) that approve PRs to this capability.
 - `promoters`: per stage, the emails that may promote there. Keys are stage names.
@@ -35,10 +39,14 @@ promoters: {dev: [alice@example.com]}
 
 One file per stage in `stages/`; the file name is the stage name.
 
-```yaml path=capabilities/search/stages/dev.yml
+<!-- embed path=capabilities/search/stages/dev.yml -->
+```yaml
 dependsOn: []
 autoPromote: true
 ```
+
+Source: [`search/stages/dev.yml`](../../platform/render/testdata/root/capabilities/search/stages/dev.yml)
+<!-- /embed -->
 
 A first stage depends on nothing. `autoPromote: true` promotes new Freight automatically once it's
 assembled; it's not allowed on stages that reach a `prd` target. More stages: [targets and stages](targets-stages.md).
@@ -48,7 +56,8 @@ assembled; it's not allowed on stages that reach a `prd` target. More stages: [t
 One directory per target in `targets/`; the directory name must follow
 `<region>-<environmentType>-<k8s|tf|cr>[-<qualifier>]` ([ADR 0025](../adr/0025-target-naming-convention.md)).
 
-```yaml path=capabilities/search/targets/us-east4-dev-k8s/target.yml
+<!-- embed path=capabilities/search/targets/us-east4-dev-k8s/target.yml -->
+```yaml
 config:
   cluster: us-east4
   namespace: search-us-dev
@@ -60,6 +69,9 @@ config:
   platform: K8S
 ```
 
+Source: [`search/targets/us-east4-dev-k8s/target.yml`](../../platform/render/testdata/root/capabilities/search/targets/us-east4-dev-k8s/target.yml)
+<!-- /embed -->
+
 `cluster` must be one the platform registers, accepting this `environmentType`. A target does nothing
 until an app lists it.
 
@@ -67,7 +79,8 @@ until an app lists it.
 
 One directory per app in `apps/`; the directory name is the app name.
 
-```yaml path=capabilities/search/apps/api/app.yml
+<!-- embed path=capabilities/search/apps/api/app.yml -->
+```yaml
 image: ghcr.io/pitoniak32/nginx
 sourceRepo: pitoniak32/gitops-cd
 port: 80
@@ -76,6 +89,9 @@ stages:
     targets:
       us-east4-dev-k8s: {}
 ```
+
+Source: [`search/apps/api/app.yml`](../../platform/render/testdata/root/capabilities/search/apps/api/app.yml)
+<!-- /embed -->
 
 - `image`: repository only, no tag. Kargo discovers SemVer tags; you pick one when you promote.
 - `sourceRepo`: where the app's code lives (pre-deploy checks run there).

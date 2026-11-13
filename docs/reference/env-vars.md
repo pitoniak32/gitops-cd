@@ -25,21 +25,25 @@ The file is a flat map of `KEY: value`, no nesting. Values are strings, or
 
 An app includes the file by its `<name>` in `envFrom`, at any layer of its `app.yml`:
 
-<!-- embed path=capabilities/payments/apps/my-app/app.yml lines=9-11 -->
+<!-- embed path=capabilities/payments/apps/my-app/app.yml lines="(6-7;text='env: APP_ENV here wins over the file'),(9-11;text='envFrom: dev targets also get launchdarkly.yml')" -->
 ```yaml
+# env: APP_ENV here wins over the file
+env:
+  APP_ENV: 'true'
+# …
+# envFrom: dev targets also get launchdarkly.yml
 stages:
   dev:
     envFrom: [launchdarkly]  # environment-variables files of the target, merged under env
 ```
 
-Source: [`payments/apps/my-app/app.yml:9-11`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L9-L11)
+Source: [`payments/apps/my-app/app.yml:6-7,9-11`](../../platform/render/testdata/root/capabilities/payments/apps/my-app/app.yml#L6-L11)
 <!-- /embed -->
 
 - Every target the setting reaches must have that file; set `envFrom` at the app level only if all of
   the app's targets do.
 - `envFrom` lists add up across layers: a narrower layer adds files, it never removes one.
-- Keys in the app's `env` win over keys from `envFrom`. `my-app` also sets `APP_ENV` in its `env`, so
-  the file's `APP_ENV` is ignored for it.
+- Keys in the app's `env` win over keys from `envFrom`: above, `my-app`'s `APP_ENV` beats the file's.
 
 The name must be lowercase letters, digits and `-`, starting with a letter, up to 40 characters.
 
