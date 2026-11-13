@@ -135,7 +135,7 @@ func bootstrapHub(ctx context.Context, root string, hub *kube.Clients, log io.Wr
 	if err := argocd.WaitApp(ctx, hub, "traefik", log); err != nil {
 		return err
 	}
-	if err := certs.Run(ctx, root, hub, certs.ExecRunner, log); err != nil { // browser-trusted TLS
+	if err := certs.Run(ctx, root, hub, certs.DefaultCA(), log); err != nil { // browser-trusted TLS
 		return fmt.Errorf("certs: %w", err)
 	}
 	if err := kargo.KickCertPods(ctx, hub, log); err != nil {

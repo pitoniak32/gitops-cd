@@ -22,7 +22,7 @@ func init() {
 				if err != nil {
 					return err
 				}
-				return certs.Run(cmd.Context(), root, hub, certs.ExecRunner, cmd.ErrOrStderr())
+				return certs.Run(cmd.Context(), root, hub, certs.DefaultCA(), cmd.ErrOrStderr())
 			},
 		}
 	})
