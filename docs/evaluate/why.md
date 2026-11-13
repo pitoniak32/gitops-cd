@@ -189,7 +189,17 @@ platform table plus its output.
 
 ## Next
 
-- **Team deploy templates**: a team requires a stage structure for every app it deploys (for example
-  `dev → staging → prod`) and lint enforces it.
+- **Team deploy templates**: the platform declares a required pipeline, a set of stages in order (for
+  example `dev → staging → prod`) with the checks and rules each one carries, and applies it to a list of
+  capabilities or apps. Like pre-deploy checks, the template lives in platform-owned config, not team YAML.
+  Lint then rejects any covered app that skips a required stage or whose `dependsOn` graph doesn't put
+  each required stage upstream of the next. Because Kargo only promotes Freight that was verified in the
+  upstream stages, the order can't be skipped at deploy time either; the break-glass approval stays the
+  one audited exception.
+- **Config in the monorepo or in a team's own repo**: a team either keeps its capabilities in the GitOps
+  monorepo, as today, or in its own config repo with the same structure (`capabilities/<cap>/…`). The same
+  `gcd lint` runs in that repo's PRs, and the platform renders and promotes both the same way, with the
+  same schema, guardrails and access model. Teams get their own repo, reviews and history without giving
+  up any platform rule.
 - **Checks and restrictions on named stages or targets**: today mandatory checks are chosen per environment
   type (`prd`). Selecting them per stage or target, for one team or all, builds on the same mechanism.
