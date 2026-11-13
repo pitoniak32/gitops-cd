@@ -25,7 +25,7 @@ import (
 const GuideDir = "docs/guide"
 
 var (
-	openRx   = regexp.MustCompile("^( *)```(\\w+)(.*)$")
+	openRx   = regexp.MustCompile("^( *)```(\\w*)(.*)$")
 	closeRx  = regexp.MustCompile("^ *```\\s*$")
 	pathRx   = regexp.MustCompile(`(?:^|\s)path=(\S+)`)
 	expectRx = regexp.MustCompile(`(?:^|\s)expect="([^"]*)"`)

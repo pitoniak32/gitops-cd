@@ -193,3 +193,9 @@ func TestCheckIndentedFence(t *testing.T) {
 	want(t, check(t, "- item\n\n  ```yaml\n  a: 1\n  ```\n"),
 		"docs/guide/x.md:3:1: yaml block needs path=…, expect=… or fragment")
 }
+
+func TestCheckMarkerInPlainFence(t *testing.T) {
+	// a marker shown in a plain fence must not exempt later yaml fences
+	page := "```\n<!-- embed path=capabilities/payments/stages/dev.yml -->\n```\n```yaml\na: 1\n```\n"
+	want(t, check(t, page), "docs/guide/x.md:4:1: yaml block needs path=…, expect=… or fragment")
+}
