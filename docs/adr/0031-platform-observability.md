@@ -21,6 +21,7 @@ Decision:
 
 ## Consequences
 
+- Measured cost (hub + one region): lgtm ~700 MiB, Alloy ~200–300 MiB per cluster, so about 1.4 GB for hub + 2 regions. The lgtm image is ~3.5 GB, so the first pull is slow. On a ~12 GB Docker VM the hub node was already swapping: give Docker more memory, or drop a region.
 - One Grafana for the whole platform; regions show up as `k8s_cluster_name` values.
 - Data is ephemeral, and only admins see it.
 - No kube-state-metrics (no object-state dashboards) and no apiserver/kubelet traces yet.

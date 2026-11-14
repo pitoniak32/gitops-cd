@@ -45,6 +45,7 @@ gcd down  # delete everything
 | Argo CD (hub) | https://argocd.localhost/applications | infrastructure apps only, no workloads (admin) | "Log in via Keycloak" (no local accounts) |
 | Argo CD (us-east4) | https://argocd-us-east4.localhost/applications | workload apps of targets on cluster `us-east4` | "Log in via Keycloak" |
 | Argo CD (dc1) | https://argocd-dc1.localhost/applications | workload apps of targets on cluster `dc1` | "Log in via Keycloak" |
+| Grafana | https://grafana.localhost | platform metrics, logs, traces of hub + every region (`k8s_cluster_name`; ADR 0031) | Keycloak, admins only |
 | Keycloak | http://keycloak.localhost/admin/master/console/ | users, OIDC clients | `admin` / `admin` |
 
 One regional Argo CD per line in `platform/cluster/regions` (`https://argocd-<region>.localhost`); `gcd open` picks new ones up.

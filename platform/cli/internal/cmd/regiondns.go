@@ -9,7 +9,7 @@ func init() {
 	register(func() *cobra.Command {
 		return &cobra.Command{
 			Use:   "region-dns",
-			Short: "Regions: resolve keycloak.localhost to the hub traefik (CoreDNS rewrite + selectorless Service, idempotent)",
+			Short: "Regions: resolve keycloak.localhost + otlp.localhost to the hub traefik (CoreDNS rewrite + selectorless Service, idempotent)",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				root, err := resolveRoot(cmd)
