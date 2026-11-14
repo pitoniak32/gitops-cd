@@ -140,14 +140,17 @@ func lines(s string) []string {
 }
 
 // Unified renders d as a unified diff (3 context lines) with a/rendered/ and b/rendered/ headers.
-func Unified(d []FileDiff) string {
+func Unified(d []FileDiff) string { return UnifiedIn(d, "rendered/") }
+
+// UnifiedIn is Unified with a/<prefix> and b/<prefix> headers.
+func UnifiedIn(d []FileDiff, prefix string) string {
 	var sb strings.Builder
 	for _, f := range d {
 		ud := difflib.UnifiedDiff{
 			A:        lines(f.Old),
 			B:        lines(f.New),
-			FromFile: "a/rendered/" + f.Path,
-			ToFile:   "b/rendered/" + f.Path,
+			FromFile: "a/" + prefix + f.Path,
+			ToFile:   "b/" + prefix + f.Path,
 			Context:  3,
 		}
 		if f.Old == "" {

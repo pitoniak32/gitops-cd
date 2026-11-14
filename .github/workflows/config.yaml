@@ -81,10 +81,10 @@ jobs:
           { echo 'body<<EOF'
             echo '### Rendered manifest diff (vs the rendered branch)'
             if [[ -z "$against" ]]; then echo '_first render_'
-            elif [[ -z "$(.bin/gcd show --diff --against "$against" --stat --color never)" ]]; then echo '_no changes_'
+            elif [[ -z "$(.bin/gcd show --diff --rendered --against "$against" --stat --color never)" ]]; then echo '_no changes_'
             else
-              echo '```text'; .bin/gcd show --diff --against "$against" --stat --color never; echo '```'
-              echo '```diff'; .bin/gcd show --diff --against "$against" --color never | head -c 55000; echo; echo '```'
+              echo '```text'; .bin/gcd show --diff --rendered --against "$against" --stat --color never; echo '```'
+              echo '```diff'; .bin/gcd show --diff --rendered --against "$against" --color never | head -c 55000; echo; echo '```'
             fi
             echo EOF; } >> "$GITHUB_OUTPUT"
 

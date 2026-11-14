@@ -44,6 +44,11 @@ type ShowDeploy struct {
 	artifact string  // "image" | "module": the key its artifact is shown under
 }
 
+// UnknownFilterError: a ShowFilter names an app, stage or target the system lacks.
+type UnknownFilterError string
+
+func (e UnknownFilterError) Error() string { return string(e) }
+
 // ShowResult is the effective config of a system.
 type ShowResult struct {
 	Deploys []ShowDeploy       `json:"deploys"`
@@ -75,7 +80,7 @@ func Show(cfg Config, root, sysName string, teams *Teams, f ShowFilter) (ShowRes
 		all     []string
 	}{{"app", f.App, apps}, {"stage", f.Stage, stages}, {"target", f.Target, targets}} {
 		if c.x != "" && !has(c.all, c.x) {
-			return ShowResult{}, fmt.Errorf("unknown %s %s; allowed: %s", c.what, c.x, strings.Join(sorted(c.all), ", "))
+			return ShowResult{}, UnknownFilterError(fmt.Sprintf("unknown %s %s; allowed: %s", c.what, c.x, strings.Join(sorted(c.all), ", ")))
 		}
 	}
 	res := ShowResult{Owners: map[string][]Value{}}

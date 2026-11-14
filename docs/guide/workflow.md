@@ -70,16 +70,18 @@ systems/payments/stages/dev.yml:3:1: bogus: field not allowed
 
 `--format json` gives machine-readable output. Common messages and fixes: [troubleshooting](troubleshooting.md).
 
-## 4. See the rendered effect
+## 4. See the effect
 
 ```sh
-gcd show --diff --stat                        # every system your branch changes, file counts
-gcd show payments/web --stage dev --diff      # the manifest diff for one app/stage
-gcd show payments/web --stage dev --rendered  # the full rendered manifests
+gcd show --diff                                          # merged config diff, every system your branch changes
+gcd show payments/web --stage dev --diff                 # merged config diff for one app/stage
+gcd show --diff --rendered --stat                        # rendered manifests changed, file counts
+gcd show payments/web --stage dev --diff --rendered      # the manifest diff for one app/stage
+gcd show payments/web --stage dev --rendered             # the full rendered manifests
 ```
 
 The diff base is where your branch forked from `main`, so committed and uncommitted work both show.
-An empty diff means your change has no rendered effect, which usually means a narrower layer overrides it.
+An empty diff means your change has no effect, which usually means a narrower layer overrides it.
 
 ## 5. Open the PR
 

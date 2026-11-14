@@ -131,7 +131,8 @@ func TestShowFlagConflicts(t *testing.T) {
 	for _, args := range [][]string{
 		{"payments", "--rendered", "--json"},
 		{"payments", "--diff", "--sources"},
-		{"payments", "--rendered", "--diff"},
+		{"payments", "--diff", "--include-platform"},
+		{"payments", "--diff", "--json"},
 		{"payments", "--include-platform"},
 		{"payments", "--stat"},
 		{"payments", "--base", "main"},
@@ -198,7 +199,7 @@ func TestShowDiff(t *testing.T) {
 		t.Run(kind, func(t *testing.T) {
 			root := vcsRepo(t, kind)
 			// the edit is the dev stage's replicas: us-east4-dev-k8s inherits it, dc1-dev-k8s overrides it
-			out, errOut, err := runShow(t, root, "payments/my-app", "--stage", "dev", "--diff")
+			out, errOut, err := runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--rendered")
 			if err != nil {
 				t.Fatalf("%v\n%s", err, errOut)
 			}
@@ -236,7 +237,7 @@ func TestShowDiffAllChanged(t *testing.T) {
 	for _, kind := range []string{"git", "jj"} {
 		t.Run(kind, func(t *testing.T) {
 			root := vcsRepo(t, kind)
-			out, errOut, err := runShow(t, root, "--diff")
+			out, errOut, err := runShow(t, root, "--diff", "--rendered")
 			if err != nil {
 				t.Fatalf("%v\n%s", err, errOut)
 			}
@@ -246,7 +247,7 @@ func TestShowDiffAllChanged(t *testing.T) {
 			if strings.Contains(out, "rendered/apps/search") {
 				t.Errorf("unchanged system present:\n%s", out)
 			}
-			stat, _, err := runShow(t, root, "--diff", "--stat")
+			stat, _, err := runShow(t, root, "--diff", "--rendered", "--stat")
 			if err != nil || !strings.Contains(stat, "my-app") || !strings.Contains(stat, "files changed") || strings.Contains(stat, "@@") {
 				t.Errorf("stat: %v\n%s", err, stat)
 			}
@@ -254,7 +255,7 @@ func TestShowDiffAllChanged(t *testing.T) {
 			if err := os.RemoveAll(filepath.Join(root, "systems/search")); err != nil {
 				t.Fatal(err)
 			}
-			out, _, err = runShow(t, root, "--diff", "--stat")
+			out, _, err = runShow(t, root, "--diff", "--rendered", "--stat")
 			if err != nil || !strings.Contains(out, "apps/search/") {
 				t.Errorf("deleted system: %v\n%s", err, out)
 			}
@@ -265,7 +266,7 @@ func TestShowDiffAllChanged(t *testing.T) {
 // With a system, --stat counts only the selected deploys' files.
 func TestShowDiffStatSystem(t *testing.T) {
 	root := vcsRepo(t, "git")
-	out, _, err := runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--stat")
+	out, _, err := runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--rendered", "--stat")
 	if err != nil || !strings.Contains(out, "us-east4-dev-k8s/deployment.yaml | +1 -1") || strings.Contains(out, "@@") {
 		t.Errorf("%v\n%s", err, out)
 	}
@@ -336,7 +337,7 @@ func TestShowDiffAgainst(t *testing.T) {
 				rev = "@-"
 			}
 			// the working tree edit (replicas 1 -> 5) is the only change
-			out, errOut, err := runShow(t, root, "--diff", "--against", rev)
+			out, errOut, err := runShow(t, root, "--diff", "--rendered", "--against", rev)
 			if err != nil {
 				t.Fatalf("%v\n%s", err, errOut)
 			}
@@ -346,16 +347,16 @@ func TestShowDiffAgainst(t *testing.T) {
 			if strings.Contains(out, "README") || strings.Contains(out, "rendered/apps/search") {
 				t.Errorf("unchanged files present:\n%s", out)
 			}
-			stat, _, err := runShow(t, root, "--diff", "--against", rev, "--stat")
+			stat, _, err := runShow(t, root, "--diff", "--rendered", "--against", rev, "--stat")
 			if err != nil || !strings.Contains(stat, "us-east4-dev-k8s/deployment.yaml | +1 -1") || strings.Contains(stat, "@@") {
 				t.Errorf("stat: %v\n%s", err, stat)
 			}
 			// with a system, filtered to the selected deploys
-			out, _, err = runShow(t, root, "payments/my-app", "--stage", "prod", "--diff", "--against", rev)
+			out, _, err = runShow(t, root, "payments/my-app", "--stage", "prod", "--diff", "--rendered", "--against", rev)
 			if err != nil || out != "" {
 				t.Errorf("unselected stage: %v %q", err, out)
 			}
-			out, _, err = runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--against", rev, "--stat")
+			out, _, err = runShow(t, root, "payments/my-app", "--stage", "dev", "--diff", "--rendered", "--against", rev, "--stat")
 			if err != nil || !strings.Contains(out, "us-east4-dev-k8s/deployment.yaml | +1 -1") {
 				t.Errorf("sys stat: %v %q", err, out)
 			}
@@ -365,14 +366,14 @@ func TestShowDiffAgainst(t *testing.T) {
 			if err := os.WriteFile(p, []byte(strings.Replace(string(b), "    replicas: 5\n", "    replicas: 1\n", 1)), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			if out, _, err := runShow(t, root, "--diff", "--against", rev); err != nil || out != "" {
+			if out, _, err := runShow(t, root, "--diff", "--rendered", "--against", rev); err != nil || out != "" {
 				t.Errorf("unchanged: err=%v out=%q", err, out)
 			}
 			// a file only at the rev is a deletion
 			if err := os.RemoveAll(filepath.Join(root, "systems/search")); err != nil {
 				t.Fatal(err)
 			}
-			out, _, err = runShow(t, root, "--diff", "--against", rev, "--stat")
+			out, _, err = runShow(t, root, "--diff", "--rendered", "--against", rev, "--stat")
 			if err != nil || !strings.Contains(out, "apps/search/") {
 				t.Errorf("deleted system: %v\n%s", err, out)
 			}
@@ -383,7 +384,7 @@ func TestShowDiffAgainst(t *testing.T) {
 // A rev without rendered/ is empty: everything is added.
 func TestShowDiffAgainstNoRendered(t *testing.T) {
 	root := vcsRepo(t, "git")
-	out, _, err := runShow(t, root, "--diff", "--against", "HEAD", "--stat")
+	out, _, err := runShow(t, root, "--diff", "--rendered", "--against", "HEAD", "--stat")
 	if err != nil || !strings.Contains(out, "README.md | +") || !strings.Contains(out, "apps/payments/my-app/") {
 		t.Errorf("%v\n%s", err, out)
 	}
@@ -395,12 +396,71 @@ func TestShowDiffAgainstNoRendered(t *testing.T) {
 func TestShowDiffAgainstFlags(t *testing.T) {
 	root := vcsRepo(t, "git")
 	for _, args := range [][]string{
-		{"--diff", "--against", "HEAD", "--base", "HEAD"},
+		{"--diff", "--rendered", "--against", "HEAD", "--base", "HEAD"},
 		{"payments", "--against", "HEAD"},
-		{"--diff", "--against", "nope"},
+		{"--diff", "--against", "HEAD"},
+		{"--diff", "--rendered", "--against", "nope"},
 	} {
 		if out, _, err := runShow(t, root, args...); err == nil || out != "" {
 			t.Errorf("%v: want error, got %v %q", args, err, out)
 		}
+	}
+}
+
+// --diff alone diffs the merged config (gcd show output): per system, or the selected deploys.
+func TestShowConfigDiff(t *testing.T) {
+	for _, kind := range []string{"git", "jj"} {
+		t.Run(kind, func(t *testing.T) {
+			root := vcsRepo(t, kind)
+			out, errOut, err := runShow(t, root, "--diff")
+			if err != nil {
+				t.Fatalf("%v\n%s", err, errOut)
+			}
+			if !strings.Contains(out, "+++ b/payments\n") || !strings.Contains(out, "+      replicas: 5") || !strings.Contains(out, "-      replicas: 1") {
+				t.Errorf("want payments config diff:\n%s", out)
+			}
+			if strings.Contains(out, "rendered/") || strings.Contains(out, "search") {
+				t.Errorf("rendered files or unchanged system present:\n%s", out)
+			}
+			stat, _, err := runShow(t, root, "--diff", "--stat")
+			if err != nil || !strings.Contains(stat, "payments | +") || strings.Contains(stat, "@@") {
+				t.Errorf("stat: %v\n%s", err, stat)
+			}
+			// with a system: only the selected deploys
+			out, _, err = runShow(t, root, "payments/my-app", "--stage", "prod", "--diff")
+			if err != nil || out != "" {
+				t.Errorf("unselected stage: %v %q", err, out)
+			}
+			out, _, err = runShow(t, root, "payments/my-app", "--stage", "dev", "--diff")
+			if err != nil || !strings.Contains(out, "+++ b/payments/my-app\n") || !strings.Contains(out, "+      replicas: 5") {
+				t.Errorf("sys: %v\n%s", err, out)
+			}
+			// a system deleted in the working tree: all removed
+			if err := os.RemoveAll(filepath.Join(root, "systems/search")); err != nil {
+				t.Fatal(err)
+			}
+			out, _, err = runShow(t, root, "--diff")
+			if err != nil || !strings.Contains(out, "--- a/search\n+++ /dev/null") {
+				t.Errorf("deleted system: %v\n%s", err, out)
+			}
+		})
+	}
+}
+
+// An app absent at the base diffs from empty.
+func TestShowConfigDiffNewApp(t *testing.T) {
+	root := vcsRepo(t, "git")
+	src := filepath.Join(root, "systems/payments/apps/my-app/app.yml")
+	b, _ := os.ReadFile(src)
+	dir := filepath.Join(root, "systems/payments/apps/my-new-app")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "app.yml"), b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, errOut, err := runShow(t, root, "payments/my-new-app", "--diff")
+	if err != nil || !strings.Contains(out, "--- /dev/null\n+++ b/payments/my-new-app") {
+		t.Errorf("%v %s\n%s", err, errOut, out)
 	}
 }

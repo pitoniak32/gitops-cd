@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -27,18 +28,20 @@ Narrow with <sys>/<app>, --stage, --target. The system must lint clean. --json p
 --rendered prints the rendered manifests of the selected deploys instead (apps/<sys>/<app>/<stage>/<target>/*),
 each under a "# rendered/<path>" line. --include-platform adds their Argo CD params and Kargo Stage.
 
---diff shows how the working tree changes the rendered output against --base, as a unified diff
-(--stat: per-file +added -removed counts); unchanged files print nothing. Both sides are rendered with
-the current gcd, so only input changes show. With a system it covers the selected deploys; with none,
-every system whose files under systems/ or teams/ differ from --base (a teams/ change selects
-all; deleted systems included) with all their rendered files. --base is a jj revset (exactly one
+--diff shows how the working tree changes the merged config (the plain gcd show output) against --base,
+as a unified diff per system (--stat: per-system +added -removed counts); unchanged prints nothing.
+--diff --rendered does the same for the rendered manifests (per rendered file; unchanged files omitted).
+Both sides use the current gcd, so only input changes show. With a system it covers the selected
+deploys; with none, every system whose files under systems/ or teams/ differ from --base (a teams/
+change selects all; deleted systems included), all their deploys. --base is a jj revset (exactly one
 commit) or git rev, used as given; the default is where this branch left trunk (jj:
 fork_point(trunk() | @); git: merge-base of HEAD and origin/main, else main), so the diff is the
 branch's. The root must be a jj or git repo.
---diff --against <rev> instead compares a fresh in-memory render with the rendered/ tree committed at <rev>
-(same rev syntax as --base; e.g. the rendered branch; CI uses it). A rev without rendered/ counts as empty.
-With a system: its selected deploys; with none: everything gcd render writes under rendered/ (files only
-at <rev> show as removed). Excludes --base. Nothing is written to rendered/. --json, --sources, --rendered and --diff exclude each other.`,
+--diff --rendered --against <rev> instead compares a fresh in-memory render with the rendered/ tree committed
+at <rev> (same rev syntax as --base; e.g. the rendered branch; CI uses it). A rev without rendered/ counts as
+empty. With a system: its selected deploys; with none: everything gcd render writes under rendered/ (files
+only at <rev> show as removed). Excludes --base. Nothing is written to rendered/.
+--json and --sources exclude --rendered and --diff.`,
 			Args: cobra.MaximumNArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
 				pt, err := painter(cmd)
@@ -49,17 +52,17 @@ at <rev> show as removed). Excludes --base. Nothing is written to rendered/. --j
 				if err != nil {
 					return err
 				}
-				if rendered && diff {
-					return fmt.Errorf("use one of --rendered, --diff")
-				}
 				if (rendered || diff) && (asJSON || sources) {
 					return fmt.Errorf("--json and --sources cannot be combined with --rendered or --diff")
 				}
-				if platform && !rendered && !diff {
-					return fmt.Errorf("--include-platform needs --rendered or --diff")
+				if platform && !rendered {
+					return fmt.Errorf("--include-platform needs --rendered")
 				}
 				if (stat || base != "" || against != "") && !diff {
 					return fmt.Errorf("--base, --against and --stat need --diff")
+				}
+				if against != "" && !rendered {
+					return fmt.Errorf("--against needs --rendered (it compares with a committed rendered/ tree)")
 				}
 				if base != "" && against != "" {
 					return fmt.Errorf("use one of --base, --against")
@@ -71,10 +74,13 @@ at <rev> show as removed). Excludes --base. Nothing is written to rendered/. --j
 					if stage != "" || target != "" {
 						return fmt.Errorf("--stage and --target need a system")
 					}
-					if against != "" {
+					switch {
+					case against != "":
 						return showAllAgainst(cmd, root, against, stat, pt)
+					case rendered:
+						return showAllDiff(cmd, root, base, stat, pt)
 					}
-					return showAllDiff(cmd, root, base, stat, pt)
+					return showAllConfigDiff(cmd, root, base, stat, pt)
 				}
 				sysName, app, _ := strings.Cut(args[0], "/")
 				if names := system.Names(root); !contains(names, sysName) {
@@ -85,7 +91,16 @@ at <rev> show as removed). Excludes --base. Nothing is written to rendered/. --j
 					return reportErr(cmd, err, sysName)
 				}
 				out := cmd.OutOrStdout()
-				if rendered || diff {
+				if diff && !rendered {
+					f := system.ShowFilter{App: app, Stage: stage, Target: target}
+					text, err := showConfigDiff(root, args[0], sysName, f, res, base, stat, pt)
+					if err != nil {
+						return reportErr(cmd, err, sysName)
+					}
+					_, err = fmt.Fprint(out, text)
+					return err
+				}
+				if rendered {
 					text, err := showRendered(root, sysName, res, platform, diff, base, against, stat, pt)
 					if err != nil {
 						return reportErr(cmd, err, sysName)
@@ -109,12 +124,12 @@ at <rev> show as removed). Excludes --base. Nothing is written to rendered/. --j
 		c.Flags().StringVar(&target, "target", "", "only this target")
 		c.Flags().BoolVar(&asJSON, "json", false, "JSON instead of YAML")
 		c.Flags().BoolVarP(&sources, "sources", "s", false, "comment each value with the file:line (or default) it comes from")
-		c.Flags().BoolVar(&rendered, "rendered", false, "print the rendered manifests of the selected deploys")
-		c.Flags().BoolVar(&diff, "diff", false, "like --rendered, but changed files as a diff against --base (system optional: then all changed ones)")
+		c.Flags().BoolVar(&rendered, "rendered", false, "print the rendered manifests of the selected deploys (with --diff: diff them)")
+		c.Flags().BoolVar(&diff, "diff", false, "diff the merged config (with --rendered: the rendered manifests) against --base (system optional: then all changed ones)")
 		c.Flags().StringVar(&base, "base", "", "with --diff: "+baseHelp)
-		c.Flags().StringVar(&against, "against", "", "with --diff: compare with the rendered/ tree at this rev (e.g. the rendered branch) instead of rendering a base; "+baseHelp)
+		c.Flags().StringVar(&against, "against", "", "with --diff --rendered: compare with the rendered/ tree at this rev (e.g. the rendered branch) instead of rendering a base; "+baseHelp)
 		c.Flags().BoolVar(&stat, "stat", false, "with --diff: per-file +added -removed line counts instead of the diff")
-		c.Flags().BoolVar(&platform, "include-platform", false, "with --rendered/--diff and a system: also the Argo CD params and Kargo Stage of each deploy")
+		c.Flags().BoolVar(&platform, "include-platform", false, "with --rendered (and --diff) and a system: also the Argo CD params and Kargo Stage of each deploy")
 		return c
 	})
 }
@@ -179,20 +194,20 @@ func showAllAgainst(cmd *cobra.Command, root, rev string, stat bool, pt color.P)
 		if err != nil {
 			return reportErr(cmd, err, "diff")
 		}
-		_, err = fmt.Fprint(cmd.OutOrStdout(), diffText(render.SelectedDiffs(old, now), stat, pt))
+		_, err = fmt.Fprint(cmd.OutOrStdout(), diffText(render.SelectedDiffs(old, now), "rendered/", stat, pt))
 		return err
 	})
 }
 
-// diffText formats d as the unified diff, or the per-file counts with stat; "" when d is empty.
-func diffText(d []render.FileDiff, stat bool, pt color.P) string {
+// diffText formats d as the unified diff (headers a/<prefix><path>), or the per-file counts with stat; "" when d is empty.
+func diffText(d []render.FileDiff, prefix string, stat bool, pt color.P) string {
 	switch {
 	case len(d) == 0:
 		return ""
 	case stat:
 		return render.ColorStat(render.Stat(d), pt)
 	}
-	return render.ColorDiff(render.Unified(d), pt)
+	return render.ColorDiff(render.UnifiedIn(d, prefix), pt)
 }
 
 // showAllDiff prints the rendered diff of every system changed since base.
@@ -206,7 +221,7 @@ func showAllDiff(cmd *cobra.Command, root, base string, stat bool, pt color.P) e
 		if err != nil {
 			return reportErr(cmd, err, "diff")
 		}
-		_, err = fmt.Fprint(cmd.OutOrStdout(), diffText(d, stat, pt))
+		_, err = fmt.Fprint(cmd.OutOrStdout(), diffText(d, "rendered/", stat, pt))
 		return err
 	})
 }
@@ -230,7 +245,7 @@ func showRendered(root, sysName string, res system.ShowResult, platform, diff bo
 	var text string
 	if against != "" {
 		err = withRendered(root, against, func(old map[string]string) error {
-			text = diffText(render.SelectedDiffs(render.SelectFiles(old, sysName, picks, platform), cur), stat, pt)
+			text = diffText(render.SelectedDiffs(render.SelectFiles(old, sysName, picks, platform), cur), "rendered/", stat, pt)
 			return nil
 		})
 		return text, err
@@ -240,8 +255,62 @@ func showRendered(root, sysName string, res system.ShowResult, platform, diff bo
 		if err != nil {
 			return fmt.Errorf("base: %w", err)
 		}
-		text = diffText(render.SelectedDiffs(render.SelectFiles(was, sysName, picks, platform), cur), stat, pt)
+		text = diffText(render.SelectedDiffs(render.SelectFiles(was, sysName, picks, platform), cur), "rendered/", stat, pt)
 		return nil
 	})
 	return text, err
+}
+
+// configText is sysName's merged config at root as gcd show prints it (no sources, no color), filtered
+// by f; "" when root lacks the system or the app, stage or target f names.
+func configText(root, sysName string, f system.ShowFilter) (string, error) {
+	if !contains(system.Names(root), sysName) {
+		return "", nil
+	}
+	res, err := system.Show(system.Default(), root, sysName, nil, f)
+	var unknown system.UnknownFilterError
+	if errors.As(err, &unknown) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return res.YAML(false, color.P{}), nil
+}
+
+// showConfigDiff diffs the merged config of sysName (res: the working side, filtered by f) against base,
+// labelled label (the <sys>[/<app>] argument).
+func showConfigDiff(root, label, sysName string, f system.ShowFilter, res system.ShowResult, base string, stat bool, pt color.P) (string, error) {
+	now := res.YAML(false, color.P{})
+	var text string
+	err := withBase(root, base, func(baseRoot string) error {
+		was, err := configText(baseRoot, sysName, f)
+		if err != nil {
+			return fmt.Errorf("base: %w", err)
+		}
+		text = diffText(render.SelectedDiffs(map[string]string{label: was}, map[string]string{label: now}), "", stat, pt)
+		return nil
+	})
+	return text, err
+}
+
+// showAllConfigDiff prints the merged config diff of every system changed since base.
+func showAllConfigDiff(cmd *cobra.Command, root, base string, stat bool, pt color.P) error {
+	return withBase(root, base, func(baseRoot string) error {
+		systems, err := render.ChangedSystems(baseRoot, root)
+		if err != nil || len(systems) == 0 {
+			return err
+		}
+		was, now := map[string]string{}, map[string]string{}
+		for _, sys := range systems {
+			if now[sys], err = configText(root, sys, system.ShowFilter{}); err != nil {
+				return reportErr(cmd, err, sys)
+			}
+			if was[sys], err = configText(baseRoot, sys, system.ShowFilter{}); err != nil {
+				return reportErr(cmd, fmt.Errorf("base: %w", err), sys)
+			}
+		}
+		_, err = fmt.Fprint(cmd.OutOrStdout(), diffText(render.SelectedDiffs(was, now), "", stat, pt))
+		return err
+	})
 }
