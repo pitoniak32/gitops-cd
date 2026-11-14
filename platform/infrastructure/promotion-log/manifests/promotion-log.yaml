@@ -1,0 +1,45 @@
+# promotion-log (ADR 0032): one JSON log line per Kargo promotion, POSTed by the http step that ends every
+# shared ClusterPromotionTask. Reached from every cluster as http://promotions.localhost (CoreDNS rewrite to
+# the hub traefik, like otlp.localhost); Alloy ships the logs to Loki.
+# Image: ../Dockerfile (static Go binary on scratch); `gcd infra` builds it and loads it into the hub node.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promotion-log
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: promotion-log}}
+  template:
+    metadata:
+      labels: {app: promotion-log}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 65534}
+      containers:
+        - name: promotion-log
+          image: gitops-cd/promotion-log:e1f0bf14d3ec  # built + loaded by gcd infra; tag checked by gcd test
+          imagePullPolicy: Never  # only exists in the kind node
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {memory: 64Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: promotion-log
+spec:
+  selector: {app: promotion-log}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+# plain HTTP, unauthenticated: local only (ADR 0032)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: promotion-log
+spec:
+  entryPoints: [web]
+  routes:
+    - match: Host(`promotions.localhost`)
+      kind: Rule
+      services:
+        - {name: promotion-log, port: 80}
+      observability: {tracing: false, accessLogs: false}

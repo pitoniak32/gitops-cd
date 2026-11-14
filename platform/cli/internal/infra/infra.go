@@ -14,14 +14,14 @@ import (
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/dns"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kargo"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/kube"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/localimage"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/logx"
 	"github.com/pitoniak32/gitops-cd/platform/cli/internal/regions"
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/tokenminter"
 	"golang.org/x/sync/errgroup"
 )
 
 // HubWaitRest are the hub Applications waited for after kargo + creds, in order.
-var HubWaitRest = []string{"cert-manager", "argo-rollouts", "keycloak", "kargo-config", "break-glass", "observability", "alloy", "github-actions-token", "argocd"}
+var HubWaitRest = []string{"cert-manager", "argo-rollouts", "keycloak", "kargo-config", "break-glass", "observability", "alloy", "github-actions-token", "promotion-log", "argocd"}
 
 // Run bootstraps hub + regions. Regions need nothing from the hub to bootstrap their Argo CD (OIDC DNS only
 // needs the hub container IP), so they run in parallel with the hub add-ons; only kargo-shards needs both.
@@ -149,9 +149,9 @@ func bootstrapHub(ctx context.Context, root string, hub *kube.Clients, log io.Wr
 	if err := creds.Run(ctx, hub, creds.KeychainGetter(ctx), log); err != nil { // git creds for Kargo
 		return fmt.Errorf("creds: %w", err)
 	}
-	// local image (never pushed): the github-actions-token Deployment runs it with imagePullPolicy: Never
-	if err := tokenminter.Load(ctx, root, cluster.Hub, log); err != nil {
-		return fmt.Errorf("github-actions-token image: %w", err)
+	// local images (never pushed): github-actions-token + promotion-log run them with imagePullPolicy: Never
+	if err := localimage.Load(ctx, root, cluster.Hub, log); err != nil {
+		return fmt.Errorf("local images: %w", err)
 	}
 	for _, app := range HubWaitRest {
 		if err := argocd.WaitApp(ctx, hub, app, log); err != nil {

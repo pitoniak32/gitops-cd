@@ -1,4 +1,5 @@
-// Package dns wires keycloak.localhost (OIDC issuer) and otlp.localhost (telemetry ingest, ADR 0031) to the hub
+// Package dns wires keycloak.localhost (OIDC issuer), otlp.localhost (telemetry ingest, ADR 0031) and
+// promotions.localhost (promotion log, ADR 0032) to the hub
 // traefik inside each cluster via CoreDNS rewrites.
 package dns
 
@@ -27,7 +28,7 @@ const (
 )
 
 // inClusterHosts resolve to the hub traefik in every cluster.
-var inClusterHosts = []string{"keycloak.localhost", "otlp.localhost"}
+var inClusterHosts = []string{"keycloak.localhost", "otlp.localhost", "promotions.localhost"}
 
 var readyLine = regexp.MustCompile(`(?m)^([ \t]*)ready$`)
 

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pitoniak32/gitops-cd/platform/cli/internal/tokenminter"
+	"github.com/pitoniak32/gitops-cd/platform/cli/internal/localimage"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,7 @@ func init() {
 	register(func() *cobra.Command {
 		return &cobra.Command{
 			Use:   "test",
-			Short: "gofmt, go vet and go test for platform/cli and the github-actions-token minter (what CI runs); needs Go (.mise.toml)",
+			Short: "gofmt, go vet and go test for platform/cli and the local images (github-actions-token, promotion-log; what CI runs); needs Go (.mise.toml)",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				root, err := resolveRoot(cmd)
@@ -29,8 +29,13 @@ func init() {
 				if err := goChecks(cmd.Context(), filepath.Join(root, "platform/cli"), true, out, errOut); err != nil {
 					return err
 				}
-				// the token minter's own module (ADR 0020): built into its own image, so it isn't part of gcd
-				return goChecks(cmd.Context(), filepath.Join(root, tokenminter.Dir), false, out, errOut)
+				// each local image's own module (ADR 0020, 0032): built into its own image, so it isn't part of gcd
+				for _, img := range localimage.Images {
+					if err := goChecks(cmd.Context(), filepath.Join(root, img.Dir), false, out, errOut); err != nil {
+						return err
+					}
+				}
+				return nil
 			},
 		}
 	})

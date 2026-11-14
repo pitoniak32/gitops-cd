@@ -41,7 +41,7 @@ func TestEnsureRewriteRestartsOnlyWhenChanged(t *testing.T) {
 	defer func() { waitRollout = old }()
 	c := &kube.Clients{Ctx: "x", Core: cs}
 	for i := 0; i < 2; i++ {
-		if err := ensureRewrite(context.Background(), c, []string{"keycloak.localhost", "otlp.localhost"}, "t.svc", &bytes.Buffer{}); err != nil {
+		if err := ensureRewrite(context.Background(), c, inClusterHosts, "t.svc", &bytes.Buffer{}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -49,7 +49,7 @@ func TestEnsureRewriteRestartsOnlyWhenChanged(t *testing.T) {
 		t.Fatalf("waits = %d, want 1", waits)
 	}
 	cm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(context.Background(), "coredns", metav1.GetOptions{})
-	for _, h := range []string{"keycloak.localhost", "otlp.localhost"} {
+	for _, h := range []string{"keycloak.localhost", "otlp.localhost", "promotions.localhost"} {
 		if !strings.Contains(cm.Data["Corefile"], "rewrite name "+h+" t.svc") {
 			t.Fatalf("corefile lacks rewrite for %s", h)
 		}

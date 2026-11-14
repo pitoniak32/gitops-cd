@@ -1,7 +1,7 @@
-// Package tokenminter builds the github-actions-token minter image (ADR 0020) and loads it into the hub
-// kind cluster. The image is a static Go binary on scratch (platform/infrastructure/github-actions-token);
-// its tag is a hash of the sources, pinned in manifests/minter.yaml (TestManifestTag checks it).
-package tokenminter
+// Package localimage builds the platform's own images (static Go binaries on scratch, never pushed) and
+// loads them into the hub kind cluster: the github-actions-token minter (ADR 0020) and promotion-log
+// (ADR 0032). Each tag is a hash of its sources, pinned in its manifest (TestManifestTags checks it).
+package localimage
 
 import (
 	"bytes"
@@ -19,40 +19,59 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 )
 
-const (
-	// Dir holds the minter's Go module + Dockerfile, relative to the repo root.
-	Dir = "platform/infrastructure/github-actions-token"
+// Image is one locally built image.
+type Image struct {
+	// Dir holds the Go module + Dockerfile, relative to the repo root.
+	Dir string
 	// Repo is the image name; only ever loaded into kind, never pushed.
-	Repo = "gitops-cd/github-actions-token"
-)
+	Repo string
+	// Manifest pins the tag, relative to Dir.
+	Manifest string
+}
 
-// Sources are the files the image is built from (the build context minus .dockerignore), in hash order.
+// Images are every local image, built and loaded by `gcd infra`; `gcd test` runs each Dir's Go checks.
+var Images = []Image{
+	{Dir: "platform/infrastructure/github-actions-token", Repo: "gitops-cd/github-actions-token", Manifest: "manifests/minter.yaml"},
+	{Dir: "platform/infrastructure/promotion-log", Repo: "gitops-cd/promotion-log", Manifest: "manifests/promotion-log.yaml"},
+}
+
+// Sources are the files an image is built from (the build context minus .dockerignore), in hash order.
 var Sources = []string{".dockerignore", "Dockerfile", "go.mod", "main.go"}
 
 // Ref is the image reference for the current sources: Repo:<first 12 hex of their sha256>.
-func Ref(root string) (string, error) {
+func (i Image) Ref(root string) (string, error) {
 	h := sha256.New()
 	for _, f := range Sources {
-		b, err := os.ReadFile(filepath.Join(root, Dir, f))
+		b, err := os.ReadFile(filepath.Join(root, i.Dir, f))
 		if err != nil {
 			return "", err
 		}
 		fmt.Fprintf(h, "%s\x00%d\x00", f, len(b))
 		h.Write(b)
 	}
-	return Repo + ":" + hex.EncodeToString(h.Sum(nil))[:12], nil
+	return i.Repo + ":" + hex.EncodeToString(h.Sum(nil))[:12], nil
+}
+
+// Load builds and loads every image. Idempotent.
+func Load(ctx context.Context, root, cluster string, log io.Writer) error {
+	for _, i := range Images {
+		if err := i.Load(ctx, root, cluster, log); err != nil {
+			return fmt.Errorf("%s: %w", i.Repo, err)
+		}
+	}
+	return nil
 }
 
 // Load builds the image if docker doesn't have it yet and loads it into every node of the kind cluster
 // that doesn't have it yet. Idempotent.
-func Load(ctx context.Context, root, cluster string, log io.Writer) error {
-	ref, err := Ref(root)
+func (i Image) Load(ctx context.Context, root, cluster string, log io.Writer) error {
+	ref, err := i.Ref(root)
 	if err != nil {
 		return err
 	}
 	if _, err := docker(ctx, nil, "image", "inspect", ref); err != nil {
 		fmt.Fprintf(log, "building %s\n", ref)
-		if _, err := docker(ctx, nil, "build", "-q", "-t", ref, filepath.Join(root, Dir)); err != nil {
+		if _, err := docker(ctx, nil, "build", "-q", "-t", ref, filepath.Join(root, i.Dir)); err != nil {
 			return err
 		}
 	}
