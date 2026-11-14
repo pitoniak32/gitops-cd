@@ -127,62 +127,6 @@ alloy:
         }
       }
 
-      // ---- Kargo promotion events -> counter gitops_cd_promotion_events_total + Loki audit log (ADR 0031).
-      // Promotions and their events live on the hub (shard controllers write there too); regions drop everything.
-      // Kargo Stage name = target name <region>-<environmentType>-<k8s|tf|cr>[-<qualifier>] (lint-enforced, ADR 0025).
-      // Restart: the apiserver's ~1h of events is replayed into a fresh counter.
-      loki.source.kubernetes_events "kargo" {
-        log_format = "json"
-        forward_to = [loki.process.promotions.receiver]
-      }
-
-      loki.process "promotions" {
-        stage.match {
-          selector            = "{namespace!~\"kargo-.+\"}"
-          action              = "drop"
-          drop_counter_reason = "not_kargo_project"
-        }
-        stage.match {
-          selector            = "{namespace=~\"kargo-.+\"} !~ \"\\\"kind\\\":\\\"Promotion\\\"\""
-          action              = "drop"
-          drop_counter_reason = "not_promotion"
-        }
-        stage.json {
-          expressions = { reason = "", name = "", msg = "" }
-        }
-        // Promotion name = <Kargo Stage = target>.<ulid>.<freight>
-        stage.regex {
-          source     = "name"
-          expression = "^(?P<target>[^.]+)\\."
-        }
-        stage.regex {
-          source     = "target"
-          expression = "^(?P<region>.+)-(?P<environment_type>dev|npr|prd)-(?P<platform>k8s|tf|cr)(?:-[a-z0-9]+)?$"
-        }
-        // only PromotionCreated names who promoted: ... by "email:<who>"
-        stage.regex {
-          source     = "msg"
-          expression = "by \"(?P<actor>[^\"]+)\"$"
-        }
-        stage.labels {
-          values = { project = "namespace", reason = "", target = "", region = "", environment_type = "", platform = "", actor = "" }
-        }
-        stage.label_drop {
-          values = ["namespace", "job", "instance"]
-        }
-        stage.metrics {
-          metric.counter {
-            name              = "promotion_events_total"
-            prefix            = "gitops_cd_"
-            description       = "Kargo Promotion events (reason PromotionCreated/Succeeded/Failed/Errored/Aborted) by project, target, platform"
-            match_all         = true
-            action            = "inc"
-            max_idle_duration = "720h"
-          }
-        }
-        forward_to = [otelcol.receiver.loki.default.receiver]
-      }
-
       // ---- traces (and any OTLP): Argo CD, Traefik
       otelcol.receiver.otlp "default" {
         grpc {
