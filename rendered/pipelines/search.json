@@ -19,12 +19,30 @@
           }
         }
       },
-      "prod": {
+      "staging": {
         "dependsOn": [
           "dev"
         ],
         "autoPromote": false,
         "level": 1,
+        "targets": {
+          "us-east4-npr-k8s": {
+            "cluster": "us-east4",
+            "namespace": "search-us-staging",
+            "platform": "K8S",
+            "environment": "staging",
+            "environmentType": "npr",
+            "path": "apps/search/api/staging/us-east4-npr-k8s",
+            "deployWith": "argocd"
+          }
+        }
+      },
+      "prod": {
+        "dependsOn": [
+          "staging"
+        ],
+        "autoPromote": false,
+        "level": 2,
         "targets": {
           "us-east4-prd-k8s": {
             "cluster": "us-east4",
@@ -50,6 +68,87 @@
     "levels": [
       [
         "dev"
+      ],
+      [
+        "staging"
+      ],
+      [
+        "prod"
+      ]
+    ]
+  },
+  "frontend": {
+    "system": "search",
+    "app": "frontend",
+    "stages": {
+      "dev": {
+        "dependsOn": [],
+        "autoPromote": true,
+        "level": 0,
+        "targets": {
+          "us-east4-dev-k8s": {
+            "cluster": "us-east4",
+            "namespace": "search-us-dev",
+            "platform": "K8S",
+            "environment": "dev",
+            "environmentType": "dev",
+            "path": "apps/search/frontend/dev/us-east4-dev-k8s",
+            "deployWith": "argocd"
+          }
+        }
+      },
+      "staging": {
+        "dependsOn": [
+          "dev"
+        ],
+        "autoPromote": false,
+        "level": 1,
+        "targets": {
+          "us-east4-npr-k8s": {
+            "cluster": "us-east4",
+            "namespace": "search-us-staging",
+            "platform": "K8S",
+            "environment": "staging",
+            "environmentType": "npr",
+            "path": "apps/search/frontend/staging/us-east4-npr-k8s",
+            "deployWith": "argocd"
+          }
+        }
+      },
+      "prod": {
+        "dependsOn": [
+          "staging"
+        ],
+        "autoPromote": false,
+        "level": 2,
+        "targets": {
+          "us-east4-prd-k8s": {
+            "cluster": "us-east4",
+            "namespace": "search-us-prod",
+            "platform": "K8S",
+            "environment": "prod",
+            "environmentType": "prd",
+            "path": "apps/search/frontend/prod/us-east4-prd-k8s",
+            "deployWith": "argocd"
+          },
+          "dc1-prd-k8s": {
+            "cluster": "dc1",
+            "namespace": "search-onprem-prod",
+            "platform": "K8S",
+            "environment": "prod",
+            "environmentType": "prd",
+            "path": "apps/search/frontend/prod/dc1-prd-k8s",
+            "deployWith": "argocd"
+          }
+        }
+      }
+    },
+    "levels": [
+      [
+        "dev"
+      ],
+      [
+        "staging"
       ],
       [
         "prod"

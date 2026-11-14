@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: team2-staging@team2-staging.iam.gserviceaccount.com
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: frontend
+    example.com/system: search
+    example.com/stage: staging
+    example.com/target: us-east4-npr-k8s
+    example.com/environment: staging
+    example.com/environment-type: npr
+    example.com/billing: staging
+  name: frontend
+  namespace: search-us-staging
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: cue-platform
+    app.kubernetes.io/name: frontend
+    example.com/system: search
+    example.com/stage: staging
+    example.com/target: us-east4-npr-k8s
+    example.com/environment: staging
+    example.com/environment-type: npr
+    example.com/billing: staging
+  name: frontend
+  namespace: search-us-staging
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: frontend

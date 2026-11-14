@@ -1,0 +1,11 @@
+{
+  "appName": "search-api-us-east4-npr-k8s",
+  "system": "search",
+  "app": "api",
+  "stage": "staging",
+  "target": "us-east4-npr-k8s",
+  "namespace": "search-us-staging",
+  "branch": "env/search/api/us-east4-npr-k8s",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-search-api:us-east4-npr-k8s"
+}

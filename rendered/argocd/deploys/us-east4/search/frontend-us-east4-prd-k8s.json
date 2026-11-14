@@ -1,0 +1,11 @@
+{
+  "appName": "search-frontend-us-east4-prd-k8s",
+  "system": "search",
+  "app": "frontend",
+  "stage": "prod",
+  "target": "us-east4-prd-k8s",
+  "namespace": "search-us-prod",
+  "branch": "env/search/frontend/us-east4-prd-k8s",
+  "destination": "in-cluster",
+  "authorizedStage": "kargo-search-frontend:us-east4-prd-k8s"
+}

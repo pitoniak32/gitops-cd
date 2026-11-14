@@ -1,2 +1,3 @@
 /systems/search/ @acme/team2
 /systems/search/apps/api/ @acme/team2
+/systems/search/apps/frontend/ @acme/team2
