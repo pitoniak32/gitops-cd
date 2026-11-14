@@ -1,4 +1,4 @@
-// Package secrets reads and writes this repo's local secrets (GitHub App + PAT, `gcd creds`) as generic
+// Package secrets reads and writes this repo's local secrets (GitHub App, `gcd creds`) as generic
 // passwords in the macOS keychain, through /usr/bin/security (part of macOS: nothing to install).
 package secrets
 
@@ -17,7 +17,7 @@ import (
 const Service = "fnox-argo-kargo"
 
 // Names are the secrets gcd uses.
-var Names = []string{"GITHUB_APP_ID", "GITHUB_APP_INSTALLATION_ID", "GITHUB_APP_PRIVATE_KEY", "GITHUB_PAT"}
+var Names = []string{"GITHUB_APP_ID", "GITHUB_APP_INSTALLATION_ID", "GITHUB_APP_PRIVATE_KEY"}
 
 var ErrNotFound = errors.New("not in the keychain")
 

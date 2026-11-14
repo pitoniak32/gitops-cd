@@ -16,7 +16,7 @@ lists every command. App teams that only edit YAML need just Go and git or jj.
 | macOS | keychain secrets (`secret`, `creds`), trusting the local CA (`certs`), `open` | Linux works for lint, render, show and test only |
 | Docker (Docker Desktop or similar) | the kind clusters: `up`, `down`, `infra` | [docker.com](https://www.docker.com/products/docker-desktop/) |
 | [gh](https://cli.github.com), logged in | `kargo-restore`; `tf-module-push` (needs `write:packages`: `gh auth refresh -h github.com -s write:packages`) | `brew install gh` then `gh auth login` |
-| GitHub App + PAT, in the keychain | `up` / `creds`: Kargo pushes `env/*` branches and dispatches workflows | see Quickstart |
+| GitHub App, in the keychain | `up` / `creds`: Kargo pushes `env/*` branches and dispatches workflows | see Quickstart |
 | kubectl, k9s (optional) | looking at the clusters yourself; `eval "$(gcd env)"` points them at `.kubeconfig` | `brew install kubectl k9s` |
 | [Rex](https://www.superlogical.com/rex) (optional) | tab status and progress while long commands run | any terminal works without it |
 
@@ -27,9 +27,10 @@ mise install && mise run build   # Go, then gcd to .bin/gcd (on PATH while mise 
 # first time:
 #   - push this repo to github.com/pitoniak32/gitops-cd and wait for CI's first render: it creates branch
 #     rendered (rendered/ syncs from there); `up` times out without it
-#   - a GitHub App installed on that repo with Contents read/write (Kargo pushes
-#     env/<sys>/<app>/<target> branches) and a PAT (ADR 0020); store them in the macOS keychain:
-#     gcd secret set GITHUB_APP_ID   (also GITHUB_APP_INSTALLATION_ID, GITHUB_PAT;
+#   - a GitHub App installed on that repo (and every app sourceRepo) with Contents read/write (Kargo
+#     pushes env/<sys>/<app>/<target> branches) and Actions read/write (Kargo dispatches workflows as
+#     the App, ADR 0020); store it in the macOS keychain:
+#     gcd secret set GITHUB_APP_ID   (also GITHUB_APP_INSTALLATION_ID;
 #     gcd secret set GITHUB_APP_PRIVATE_KEY < key.pem)   gcd secret list checks them
 gcd up    # tear down + fresh hub + region clusters + infrastructure + bootstrap (~9 min)
             # long gcd commands (up, lint, render, …) report their phase to the terminal tab (OSC 7501, e.g. Rex); GCD_NO_STATUS=1 turns it off

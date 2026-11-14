@@ -1,0 +1,58 @@
+# GitHub Actions token minter (ADR 0020): keeps kargo-shared-resources/github-actions holding a fresh GitHub
+# App installation token, so Kargo-dispatched workflow runs show as the App's bot, not a user. Reads the App
+# key from kargo-shared-resources/github-gitops-cd (`gcd creds`). Ready once the first token is written.
+# Image: ../Dockerfile (static Go binary on scratch); `gcd infra` builds it and loads it into the hub node.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-actions-token
+  namespace: kargo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-token
+  namespace: kargo-shared-resources
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [github-gitops-cd]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [github-actions]
+    verbs: [get, patch]
+  # server-side apply creates github-actions when missing; create can't be limited by name
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-token
+  namespace: kargo-shared-resources
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: github-actions-token}
+subjects: [{kind: ServiceAccount, name: github-actions-token, namespace: kargo}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-actions-token
+  namespace: kargo
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: github-actions-token}}
+  template:
+    metadata:
+      labels: {app: github-actions-token}
+    spec:
+      serviceAccountName: github-actions-token
+      securityContext: {runAsNonRoot: true, runAsUser: 65534}
+      containers:
+        - name: minter
+          image: gitops-cd/github-actions-token:9a01fc1d3e91  # built + loaded by gcd infra; tag checked by gcd test
+          imagePullPolicy: Never  # only exists in the kind node
+          ports: [{containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /readyz, port: 8080}, periodSeconds: 5}
+          resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {memory: 32Mi}}

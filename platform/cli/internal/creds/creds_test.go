@@ -17,7 +17,6 @@ func TestCredsSecret(t *testing.T) {
 	vals := map[string]string{
 		"GITHUB_APP_ID": "sekret-id-1", "GITHUB_APP_INSTALLATION_ID": "sekret-inst-2",
 		"GITHUB_APP_PRIVATE_KEY": "-----BEGIN-----\nsekret-key-3\n-----END-----",
-		"GITHUB_PAT":             "sekret-pat-4",
 	}
 	cs := fake.NewSimpleClientset(
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "github-gitops-cd", Namespace: "kargo-shared-resources"},
@@ -46,16 +45,6 @@ func TestCredsSecret(t *testing.T) {
 	}
 	if string(s.Data["githubAppPrivateKey"]) != vals["GITHUB_APP_PRIVATE_KEY"] {
 		t.Error("private key altered")
-	}
-	gha, err := cs.CoreV1().Secrets("kargo-shared-resources").Get(context.Background(), "github-actions", metav1.GetOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if gha.Labels["kargo.akuity.io/cred-type"] != "generic" {
-		t.Errorf("github-actions labels = %v", gha.Labels)
-	}
-	if len(gha.Data) != 1 || string(gha.Data["token"]) != "sekret-pat-4" {
-		t.Errorf("github-actions data keys = %v", gha.Data)
 	}
 	if _, err := cs.CoreV1().Secrets("argocd").Get(context.Background(), "repo-gitops-cd", metav1.GetOptions{}); err == nil {
 		t.Error("repo-gitops-cd not deleted")
@@ -86,24 +75,20 @@ func TestCredsIdempotent(t *testing.T) {
 			t.Fatalf("run %d: %v", i, err)
 		}
 	}
-	s, err := cs.CoreV1().Secrets("kargo-shared-resources").Get(context.Background(), "github-actions", metav1.GetOptions{})
-	if err != nil {
+	if _, err := cs.CoreV1().Secrets("kargo-shared-resources").Get(context.Background(), "github-gitops-cd", metav1.GetOptions{}); err != nil {
 		t.Fatal(err)
-	}
-	if string(s.Data["token"]) != "v-GITHUB_PAT" {
-		t.Errorf("token = %q", s.Data["token"])
 	}
 }
 
-func TestCredsMissingPAT(t *testing.T) {
+func TestCredsMissingKey(t *testing.T) {
 	get := func(n string) (string, error) {
-		if n == "GITHUB_PAT" {
+		if n == "GITHUB_APP_PRIVATE_KEY" {
 			return "", nil
 		}
 		return "v", nil
 	}
 	err := Run(context.Background(), &kube.Clients{Core: fake.NewSimpleClientset()}, get, &bytes.Buffer{})
-	if err == nil || !strings.Contains(err.Error(), "GITHUB_PAT is empty in the keychain") {
+	if err == nil || !strings.Contains(err.Error(), "GITHUB_APP_PRIVATE_KEY is empty in the keychain") {
 		t.Fatalf("err = %v", err)
 	}
 }

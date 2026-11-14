@@ -31,7 +31,7 @@ TASK LANE (push: gcd infra / up, from your local checkout)
 |---|---|
 | `systems/**` (apps, stages, targets, `owners.yml`) | PR (owners change: commit `gcd codeowners` output) → merge → CI renders `rendered/` onto branch `rendered` → hub `rendered-kargo`, each region's `argocd-projects` and `workloads` AppSet pick it up. Workloads don't change until a promotion. |
 | Workload manifests | Kargo Warehouse discovers new `rendered/apps/<sys>/<app>/` commits and image tags → promoter assembles Freight → target-stage promotion (via control-flow Stages where needed) pushes `env/<sys>/<app>/<target>` → that target's Application syncs. |
-| A `deployWith: gha` target's workflow | Not rendered: GitHub reads `<repo>/.github/workflows/<file>` at `ref` when the Stage dispatches it. Push the workflow before promoting. Its token comes from `gcd creds` (`GITHUB_PAT`). |
+| A `deployWith: gha` target's workflow | Not rendered: GitHub reads `<repo>/.github/workflows/<file>` at `ref` when the Stage dispatches it. Push the workflow before promoting. Its token is a GitHub App installation token, minted every 30 min by the hub add-on `github-actions-token` from the App key `gcd creds` installs. |
 | `teams/` | Takes effect on the next render, for CODEOWNERS only. It has no cluster effect (ADR 0011). |
 | `platform/render/**` (renderer logic) | Same as systems: lands when CI renders on `main` after the merge. |
 | `platform/infrastructure/<addon>/values.yaml`, `manifests/**` | Push to `main`; the add-on's Application reads them through its AppSet (`$values` ref / kustomize path). |
@@ -50,6 +50,7 @@ TASK LANE (push: gcd infra / up, from your local checkout)
 | CoreDNS `keycloak.localhost` rewrite | Patched by the `infra` script. Argo CD doesn't manage `kube-system`. |
 | Kargo git creds (`gcd creds`) / TLS cert (`gcd certs`) | They come from the macOS keychain / the local CA and never touch git. `infra` runs both, or run them alone. |
 | Kargo shard token (`gcd kargo-shards`) | The hub SA token is copied into each region's `kargo-hub-kubeconfig` Secret (never in git). The hub and regional shard Applications themselves come from AppSets. `infra` runs it last. |
+| The token minter's source (`platform/infrastructure/github-actions-token/`) | Its image is local only: `gcd infra` builds it and loads it into the hub node. Accept the new tag (`UPDATE=1 go test ./internal/tokenminter` in `platform/cli`), push `minter.yaml`, run `gcd infra`. |
 | A new hub add-on's position in the bootstrap order | Add it to the hub wait list `infra.HubWaitRest` in `platform/cli/internal/infra`. |
 
 `infra` itself doesn't change anything Argo CD manages; it only installs Argo CD if missing, applies the root app and waits for the add-ons (regions bootstrap in parallel with the hub).

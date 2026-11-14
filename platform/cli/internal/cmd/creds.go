@@ -11,7 +11,7 @@ func init() {
 	register(func() *cobra.Command {
 		return &cobra.Command{
 			Use:   "creds",
-			Short: "Kargo git credentials (GitHub App) + GitHub Actions token (PAT) from the keychain, shared by all projects",
+			Short: "Kargo git credentials (GitHub App) from the keychain, shared by all projects",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				hub, err := kube.ForContext(dns.HubContext)

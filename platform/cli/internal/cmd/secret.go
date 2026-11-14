@@ -17,7 +17,7 @@ func init() {
 	register(func() *cobra.Command {
 		c := &cobra.Command{
 			Use:   "secret",
-			Short: "Local secrets in the macOS keychain (GitHub App, PAT) that gcd creds installs",
+			Short: "Local secrets in the macOS keychain (GitHub App) that gcd creds installs",
 		}
 		c.AddCommand(&cobra.Command{
 			Use:   "set NAME",

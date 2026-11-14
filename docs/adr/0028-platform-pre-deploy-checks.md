@@ -18,4 +18,4 @@ The platform team gates deploys on checks it owns (change management, freeze win
 - Checks run once per target Stage: N apps × M prd targets means N×M runs per check.
 - Every Promotion of a gated Stage runs them, including rollbacks and `kargo-restore`. A failing check blocks a rollback too.
 - A failed check fails the Promotion before `git-clone`: no branch commit, no sync, no deploy. A timed-out run keeps running on GitHub.
-- Each `sourceRepo` needs the check file on `ref`, with `workflow_dispatch` declaring all inputs. This isn't checked at render time. The shared PAT needs `Actions: read and write` on every `sourceRepo`.
+- Each `sourceRepo` needs the check file on `ref`, with `workflow_dispatch` declaring all inputs. This isn't checked at render time. The GitHub App (ADR 0020) needs `Actions: read and write` and an installation on every `sourceRepo`.

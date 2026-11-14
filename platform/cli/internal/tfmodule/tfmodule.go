@@ -77,8 +77,8 @@ func Push(ctx context.Context, dst Target, repo, tag, dir string, log io.Writer)
 	return nil
 }
 
-// Remote is repo on ghcr, authenticated with the gh CLI token. ghcr rejects fine-grained PATs, so the
-// GITHUB_PAT secret (ADR 0020) can't be used; the gh token needs write:packages
+// Remote is repo on ghcr, authenticated with the gh CLI token. ghcr needs a classic token, not the
+// GitHub App; the gh token needs write:packages
 // (`gh auth refresh -h github.com -s write:packages`).
 func Remote(ctx context.Context, repo string) (Target, error) {
 	r, err := remote.NewRepository(repo)
