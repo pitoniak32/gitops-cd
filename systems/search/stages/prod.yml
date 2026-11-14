@@ -1,1 +1,1 @@
-dependsOn: [dev]
+dependsOn: [staging]

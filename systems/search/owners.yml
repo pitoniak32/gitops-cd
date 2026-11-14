@@ -1,4 +1,5 @@
 codeOwners: [team2]
 promoters:
   dev: [alice@example.com]
+  staging: [alice@example.com]
   prod: [alice@example.com]
