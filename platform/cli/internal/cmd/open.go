@@ -15,7 +15,7 @@ func openURLs(rs []string) []string {
 	for _, r := range rs {
 		urls = append(urls, "https://argocd-"+r+".localhost/applications")
 	}
-	return append(urls, "http://keycloak.localhost/admin/master/console/")
+	return append(urls, "https://grafana.localhost", "http://keycloak.localhost/admin/master/console/")
 }
 
 func init() {

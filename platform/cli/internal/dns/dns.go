@@ -1,4 +1,5 @@
-// Package dns wires keycloak.localhost to the hub traefik inside each cluster via CoreDNS rewrites.
+// Package dns wires keycloak.localhost (OIDC issuer) and otlp.localhost (telemetry ingest, ADR 0031) to the hub
+// traefik inside each cluster via CoreDNS rewrites.
 package dns
 
 import (
@@ -16,7 +17,6 @@ import (
 )
 
 const (
-	keycloakHost  = "keycloak.localhost"
 	hubTarget     = "traefik.traefik.svc.cluster.local"
 	regionTarget  = "hub-traefik.kube-system.svc.cluster.local"
 	hubCtx        = "kind-kargo-demo"
@@ -25,6 +25,9 @@ const (
 	hubContainer  = "kargo-demo-control-plane"
 	hubInspectFmt = `{{(index .NetworkSettings.Networks "kargo-demo").IPAddress}}`
 )
+
+// inClusterHosts resolve to the hub traefik in every cluster.
+var inClusterHosts = []string{"keycloak.localhost", "otlp.localhost"}
 
 var readyLine = regexp.MustCompile(`(?m)^([ \t]*)ready$`)
 
@@ -66,16 +69,22 @@ var waitRollout = func(ctx context.Context, c *kube.Clients) error {
 	}
 }
 
-// ensureRewrite adds the rewrite to the coredns ConfigMap; restarts and waits only when it changed.
-func ensureRewrite(ctx context.Context, c *kube.Clients, host, target string, log io.Writer) error {
+// ensureRewrite adds a rewrite per host to the coredns ConfigMap; restarts and waits once, only when it changed.
+func ensureRewrite(ctx context.Context, c *kube.Clients, hosts []string, target string, log io.Writer) error {
 	cms := c.Core.CoreV1().ConfigMaps("kube-system")
 	cm, err := cms.Get(ctx, "coredns", metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("get coredns configmap in %s: %w", c.Ctx, err)
 	}
-	out, changed := RewriteCorefile(cm.Data["Corefile"], host, target)
-	if !changed {
-		fmt.Fprintf(log, "coredns in %s already rewrites %s\n", c.Ctx, host)
+	out, added := cm.Data["Corefile"], []string{}
+	for _, h := range hosts {
+		var changed bool
+		if out, changed = RewriteCorefile(out, h, target); changed {
+			added = append(added, h)
+		}
+	}
+	if len(added) == 0 {
+		fmt.Fprintf(log, "coredns in %s already rewrites %s\n", c.Ctx, strings.Join(hosts, ", "))
 		return nil
 	}
 	cm.Data["Corefile"] = out
@@ -94,13 +103,13 @@ func ensureRewrite(ctx context.Context, c *kube.Clients, host, target string, lo
 	if _, err := deps.Update(ctx, d, metav1.UpdateOptions{FieldManager: kube.FieldManager}); err != nil {
 		return fmt.Errorf("restart coredns in %s: %w", c.Ctx, err)
 	}
-	fmt.Fprintf(log, "coredns in %s: added rewrite %s -> %s, restarting\n", c.Ctx, host, target)
+	fmt.Fprintf(log, "coredns in %s: added rewrite %s -> %s, restarting\n", c.Ctx, strings.Join(added, ", "), target)
 	return waitRollout(ctx, c)
 }
 
-// Hub makes keycloak.localhost resolve to the hub traefik inside the hub cluster.
+// Hub makes inClusterHosts resolve to the hub traefik inside the hub cluster.
 func Hub(ctx context.Context, c *kube.Clients, log io.Writer) error {
-	return ensureRewrite(ctx, c, keycloakHost, hubTarget, log)
+	return ensureRewrite(ctx, c, inClusterHosts, hubTarget, log)
 }
 
 // hubIP resolves the hub container's docker-network IP (var for tests).
@@ -137,7 +146,7 @@ endpoints: [{addresses: ["%s"]}]
 `, ip)
 }
 
-// Regions points keycloak.localhost at the hub traefik (hub container IP:30080) in every region.
+// Regions points inClusterHosts at the hub traefik (hub container IP:30080) in every region.
 // The IP is re-resolved each run (it changes on docker restart).
 func Regions(ctx context.Context, root string, log io.Writer) error {
 	ip, err := hubIP(ctx)
@@ -156,7 +165,7 @@ func Regions(ctx context.Context, root string, log io.Writer) error {
 		if err := c.ApplyYAML(ctx, []byte(hubService(ip)), kube.FieldManager); err != nil {
 			return fmt.Errorf("apply hub-traefik in %s: %w", c.Ctx, err)
 		}
-		if err := ensureRewrite(ctx, c, keycloakHost, regionTarget, log); err != nil {
+		if err := ensureRewrite(ctx, c, inClusterHosts, regionTarget, log); err != nil {
 			return err
 		}
 	}

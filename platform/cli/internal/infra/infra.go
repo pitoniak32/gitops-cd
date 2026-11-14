@@ -21,7 +21,7 @@ import (
 )
 
 // HubWaitRest are the hub Applications waited for after kargo + creds, in order.
-var HubWaitRest = []string{"cert-manager", "argo-rollouts", "keycloak", "kargo-config", "break-glass", "github-actions-token", "argocd"}
+var HubWaitRest = []string{"cert-manager", "argo-rollouts", "keycloak", "kargo-config", "break-glass", "observability", "alloy", "github-actions-token", "argocd"}
 
 // Run bootstraps hub + regions. Regions need nothing from the hub to bootstrap their Argo CD (OIDC DNS only
 // needs the hub container IP), so they run in parallel with the hub add-ons; only kargo-shards needs both.

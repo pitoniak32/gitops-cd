@@ -86,7 +86,7 @@ func Run(ctx context.Context, root string, hub *kube.Clients, ca CA, log io.Writ
 		return err
 	}
 	// explicit names: browsers reject *.localhost wildcards
-	hosts := []string{"kargo.localhost", "argocd.localhost", "keycloak.localhost", "localhost"}
+	hosts := []string{"kargo.localhost", "argocd.localhost", "keycloak.localhost", "grafana.localhost", "localhost"}
 	for _, r := range rs {
 		hosts = append(hosts, "argocd-"+r+".localhost")
 	}

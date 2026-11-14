@@ -55,12 +55,12 @@ func TestRun(t *testing.T) {
 	pool := x509.NewCertPool()
 	caPEM, _ := os.ReadFile(caFile)
 	pool.AppendCertsFromPEM(caPEM)
-	for _, h := range []string{"kargo.localhost", "argocd.localhost", "keycloak.localhost", "localhost", "argocd-eu.localhost", "argocd-us.localhost"} {
+	for _, h := range []string{"kargo.localhost", "argocd.localhost", "keycloak.localhost", "grafana.localhost", "localhost", "argocd-eu.localhost", "argocd-us.localhost"} {
 		if _, err := leaf.Verify(x509.VerifyOptions{Roots: pool, DNSName: h}); err != nil {
 			t.Errorf("%s: %v", h, err)
 		}
 	}
-	if len(leaf.DNSNames) != 6 {
+	if len(leaf.DNSNames) != 7 {
 		t.Errorf("names %v", leaf.DNSNames)
 	}
 
