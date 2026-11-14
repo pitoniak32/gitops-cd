@@ -1,0 +1,81 @@
+# platform telemetry store + UI (ADR 0031): grafana/otel-lgtm = Grafana, Prometheus, Loki, Tempo behind an OTLP
+# collector, one container. emptyDir: data is lost on restart. Fed by the alloy add-on of every cluster.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lgtm
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: lgtm}
+  template:
+    metadata:
+      labels: {app: lgtm}
+    spec:
+      containers:
+        - name: lgtm
+          image: grafana/otel-lgtm:0.38.1
+          ports:
+            - {name: grafana, containerPort: 3000}
+            - {name: otlp-grpc, containerPort: 4317}
+            - {name: otlp-http, containerPort: 4318}
+          env:
+            - {name: GF_SERVER_ROOT_URL, value: https://grafana.localhost}
+            # the image defaults to anonymous Admin: off. Keycloak only, admins only (ADR 0009, 0011)
+            - {name: GF_AUTH_ANONYMOUS_ENABLED, value: "false"}
+            - {name: GF_AUTH_DISABLE_LOGIN_FORM, value: "true"}
+            - {name: GF_AUTH_GENERIC_OAUTH_ENABLED, value: "true"}
+            - {name: GF_AUTH_GENERIC_OAUTH_NAME, value: Keycloak}
+            - {name: GF_AUTH_GENERIC_OAUTH_AUTO_LOGIN, value: "true"}
+            # public client + PKCE, no secret (infrastructure/keycloak/manifests/kargo-realm.json)
+            - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID, value: grafana}
+            - {name: GF_AUTH_GENERIC_OAUTH_USE_PKCE, value: "true"}
+            - {name: GF_AUTH_GENERIC_OAUTH_SCOPES, value: openid profile email}
+            # same host for browser and pod: hub CoreDNS rewrites keycloak.localhost to traefik
+            - {name: GF_AUTH_GENERIC_OAUTH_AUTH_URL, value: http://keycloak.localhost/realms/kargo/protocol/openid-connect/auth}
+            - {name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL, value: http://keycloak.localhost/realms/kargo/protocol/openid-connect/token}
+            - {name: GF_AUTH_GENERIC_OAUTH_API_URL, value: http://keycloak.localhost/realms/kargo/protocol/openid-connect/userinfo}
+            - {name: GF_AUTH_SIGNOUT_REDIRECT_URL, value: "http://keycloak.localhost/realms/kargo/protocol/openid-connect/logout?client_id=grafana&post_logout_redirect_uri=https%3A%2F%2Fgrafana.localhost%2Flogin"}
+            # admin emails hardcoded like Argo CD/Kargo (ADR 0009); strict: anyone else is denied
+            - {name: GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH, value: "contains(['admin@example.com'], email) && 'Admin'"}
+            - {name: GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT, value: "true"}
+          readinessProbe:
+            httpGet: {path: /api/health, port: grafana}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {memory: 2Gi}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: dashboards, mountPath: /otel-lgtm/platform-dashboards}
+            - {name: dashboard-provider, mountPath: /otel-lgtm/grafana/conf/provisioning/dashboards/platform.yaml, subPath: platform.yaml}
+      volumes:
+        - {name: data, emptyDir: {}}
+        - {name: dashboards, configMap: {name: platform-dashboards}}
+        - {name: dashboard-provider, configMap: {name: platform-dashboard-provider}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lgtm
+spec:
+  selector: {app: lgtm}
+  ports:
+    - {name: grafana, port: 3000, targetPort: grafana}
+    - {name: otlp-grpc, port: 4317, targetPort: otlp-grpc}
+    - {name: otlp-http, port: 4318, targetPort: otlp-http}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-dashboard-provider
+data:
+  platform.yaml: |
+    apiVersion: 1
+    providers:
+      - name: platform
+        folder: Platform
+        type: file
+        options:
+          path: /otel-lgtm/platform-dashboards

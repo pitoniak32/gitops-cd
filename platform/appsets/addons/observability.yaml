@@ -1,0 +1,40 @@
+# hub add-on observability (ADR 0031): grafana/otel-lgtm store + https://grafana.localhost + otlp.localhost ingest
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: observability
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # deleting this AppSet must not take the add-on with it
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            example.com/role: hub
+  template:
+    metadata:
+      name: observability
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+        - repoURL: https://github.com/pitoniak32/gitops-cd
+          targetRevision: main
+          path: platform/infrastructure/observability/manifests
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: observability
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
+        retry:
+          limit: -1  # unlimited: add-ons start together, deps (CRDs, webhooks) may take a while
+          backoff: {duration: 5s, factor: 2, maxDuration: 1m}

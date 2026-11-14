@@ -41,6 +41,23 @@
       }
     },
     {
+      "clientId": "grafana",
+      "name": "Grafana",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://grafana.localhost/login/generic_oauth"
+      ],
+      "webOrigins": [
+        "https://grafana.localhost"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://grafana.localhost/*"
+      }
+    },
+    {
       "clientId": "argocd-dc1",
       "name": "Argo CD (dc1)",
       "publicClient": true,

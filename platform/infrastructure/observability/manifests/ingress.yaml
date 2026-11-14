@@ -1,0 +1,26 @@
+# UI: https://grafana.localhost (cert: gcd certs)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`grafana.localhost`)
+      kind: Rule
+      services:
+        - {name: lgtm, port: 3000}
+---
+# OTLP/HTTP ingest from every cluster's alloy: otlp.localhost -> hub traefik via CoreDNS rewrite (gcd dns, ADR 0031).
+# Plain HTTP, unauthenticated: local only
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: otlp
+spec:
+  entryPoints: [web]
+  routes:
+    - match: Host(`otlp.localhost`)
+      kind: Rule
+      services:
+        - {name: lgtm, port: 4318}
