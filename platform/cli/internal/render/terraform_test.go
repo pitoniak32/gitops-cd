@@ -59,7 +59,7 @@ func TestTerraformKargo(t *testing.T) {
 	if st(t, kargoApp(t, "my-app"), "us-east4-dev-k8s", `metadata.labels."example.com/platform"`) != "k8s" {
 		t.Error("k8s platform label")
 	}
-	if strings.Join(stepUses(t, k, inf), ",") != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" {
+	if strings.Join(stepUses(t, k, inf), ",") != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http,http" {
 		t.Error("infra-us-east4-dev-tf steps")
 	}
 	if varValue(k, inf, "pinFile")+" "+varValue(k, inf, "pinKey")+" "+varValue(k, inf, "artifactKey") != "./out/terraform.yaml module module" {

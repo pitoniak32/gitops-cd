@@ -90,6 +90,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:

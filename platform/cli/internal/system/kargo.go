@@ -144,6 +144,7 @@ func (m *model) kargoCore(a *appDef) []Map {
 			v("image", a.artifactRepo()),
 			v("system", m.sys), v("app", an), v("stage", sn), v("target", tn),
 			v("pinFile", P.pinFile), v("pinKey", P.pinKey), v("artifactKey", d.artifact),
+			v("platform", P.label), // promotion-log record (ADR 0032)
 		}
 		if d.deployWith == "gha" {
 			vars = append(vars, v("workflowRepo", d.wfRepo), v("workflowFile", d.wfFile), v("workflowRef", d.wfRef))

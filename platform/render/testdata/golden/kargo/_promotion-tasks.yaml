@@ -17,6 +17,7 @@ spec:
     - name: pinFile
     - name: pinKey
     - name: artifactKey
+    - name: platform
   steps:
     - uses: git-clone
       config:
@@ -56,6 +57,21 @@ spec:
             sources:
               - repoURL: ${{ vars.repo }}
                 desiredRevision: ${{ task.outputs.commit.commit }}
+    - uses: http
+      as: record
+      if: ${{ always() }}
+      continueOnError: true
+      retry:
+        timeout: 30s
+      config:
+        method: POST
+        url: http://promotions.localhost/promotions
+        headers:
+          - name: Content-Type
+            value: application/json
+        body: '${{ quote({''promotion'': ctx.promotion, ''project'': ctx.project, ''system'': vars.system, ''app'': vars.app, ''stage'': vars.stage, ''target'': vars.target, ''platform'': vars.platform, ''deployWith'': ''argocd'', ''freight'': ctx.targetFreight.name, ''freightAlias'': ctx.targetFreight.alias, ''warehouse'': ctx.targetFreight.origin.name, ''artifact'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest, ''commit'': task.outputs.commit?.commit ?? '''', ''actor'': ctx.meta.promotion.actor, ''automatic'': ctx.meta.promotion.actor startsWith ''kubernetes:system:serviceaccount:kargo:kargo-controller'', ''rollback'': ctx.meta.promotion.rollback, ''result'': success() ? ''Succeeded'' : ''Failed'', ''ghaRunURL'': '''', ''uiURL'': ctx.uiBaseUrl + ''/project/'' + ctx.project + ''/stage/'' + ctx.stage}) }}'
+        successExpression: response.status == 204
+        failureExpression: response.status >= 400 && response.status < 500
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: ClusterPromotionTask
@@ -76,6 +92,7 @@ spec:
     - name: pinFile
     - name: pinKey
     - name: artifactKey
+    - name: platform
     - name: workflowRepo
     - name: workflowFile
     - name: workflowRef
@@ -150,6 +167,21 @@ spec:
         successExpression: response.status == 200 && response.body.status == 'completed' && response.body.conclusion == 'success'
         failureExpression: (response.status != 200 && response.status != 404) || (response.status == 200 && response.body.status == 'completed' && response.body.conclusion != 'success')
         errorExpression: 'response.status != 200 ? response.body.message : ''run '' + string(response.body.id) + '' '' + response.body.conclusion + '': '' + response.body.html_url'
+    - uses: http
+      as: record
+      if: ${{ always() }}
+      continueOnError: true
+      retry:
+        timeout: 30s
+      config:
+        method: POST
+        url: http://promotions.localhost/promotions
+        headers:
+          - name: Content-Type
+            value: application/json
+        body: '${{ quote({''promotion'': ctx.promotion, ''project'': ctx.project, ''system'': vars.system, ''app'': vars.app, ''stage'': vars.stage, ''target'': vars.target, ''platform'': vars.platform, ''deployWith'': ''gha'', ''freight'': ctx.targetFreight.name, ''freightAlias'': ctx.targetFreight.alias, ''warehouse'': ctx.targetFreight.origin.name, ''artifact'': vars.image + '':'' + imageFrom(vars.image).Tag + ''@'' + imageFrom(vars.image).Digest, ''commit'': task.outputs.commit?.commit ?? '''', ''actor'': ctx.meta.promotion.actor, ''automatic'': ctx.meta.promotion.actor startsWith ''kubernetes:system:serviceaccount:kargo:kargo-controller'', ''rollback'': ctx.meta.promotion.rollback, ''result'': success() ? ''Succeeded'' : ''Failed'', ''ghaRunURL'': task.outputs.dispatch?.runURL ?? '''', ''uiURL'': ctx.uiBaseUrl + ''/project/'' + ctx.project + ''/stage/'' + ctx.stage}) }}'
+        successExpression: response.status == 204
+        failureExpression: response.status >= 400 && response.status < 500
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: ClusterPromotionTask

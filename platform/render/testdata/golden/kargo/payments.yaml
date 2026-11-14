@@ -90,6 +90,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
         - name: workflowRepo
           value: pitoniak32/deploys
         - name: workflowFile
@@ -286,6 +288,8 @@ spec:
           value: module
         - name: artifactKey
           value: module
+        - name: platform
+          value: terraform
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
@@ -348,6 +352,8 @@ spec:
           value: module
         - name: artifactKey
           value: module
+        - name: platform
+          value: terraform
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
@@ -729,6 +735,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:
@@ -785,6 +793,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:
@@ -841,6 +851,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:
@@ -897,6 +909,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
         - name: workflowRepo
           value: acme/deploys
         - name: workflowFile
@@ -959,6 +973,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:
@@ -1016,6 +1032,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: image-signature-check
           task:
@@ -1086,6 +1104,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: image-signature-check
           task:
@@ -1486,6 +1506,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:
@@ -1542,6 +1564,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:
@@ -1599,6 +1623,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: image-signature-check
           task:
@@ -1928,6 +1954,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:
@@ -1983,6 +2011,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: cloudrun
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
@@ -2239,6 +2269,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
@@ -2301,6 +2333,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: promote
           task:
@@ -2358,6 +2392,8 @@ spec:
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
+        - name: platform
+          value: k8s
       steps:
         - as: image-signature-check
           task:

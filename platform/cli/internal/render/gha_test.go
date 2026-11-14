@@ -134,7 +134,7 @@ func stepUsing(t *testing.T, ds []map[string]any, name, uses string) map[string]
 }
 
 const (
-	commonVars = "repo,src,branch,image,system,app,stage,target,pinFile,pinKey,artifactKey"
+	commonVars = "repo,src,branch,image,system,app,stage,target,pinFile,pinKey,artifactKey,platform"
 	ghaVars    = commonVars + ",workflowRepo,workflowFile,workflowRef"
 )
 
@@ -183,10 +183,10 @@ func TestGhaTargets(t *testing.T) {
 	t.Parallel()
 	k := kargoApp(t, "worker")
 	const w = "us-east4-dev-k8s"
-	if got := strings.Join(stepUses(t, k, w), ","); got != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http" {
+	if got := strings.Join(stepUses(t, k, w), ","); got != "git-clone,git-clear,copy,yaml-update,git-commit,git-push,http,http,http" {
 		t.Error("worker us-east4-dev-k8s steps")
 	}
-	if u := stepUses(t, k, "us-east4-npr-k8s"); u[len(u)-1] != "argocd-update" {
+	if u := stepUses(t, k, "us-east4-npr-k8s"); u[len(u)-2] != "argocd-update" { // last: promotion-log record
 		t.Error("worker us-east4-npr-k8s must stay argocd")
 	}
 	if st(t, k, w, `metadata.labels."example.com/deploy-with"`)+" "+st(t, k, "us-east4-npr-k8s", `metadata.labels."example.com/deploy-with"`) != "gha argocd" {
