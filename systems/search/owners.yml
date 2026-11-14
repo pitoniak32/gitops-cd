@@ -3,3 +3,6 @@ promoters:
   dev: [alice@example.com]
   staging: [alice@example.com]
   prod: [alice@example.com]
+apps:
+  frontend:
+    viewers: [bob@example.com]
