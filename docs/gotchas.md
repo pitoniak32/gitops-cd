@@ -5,7 +5,7 @@ Non-obvious failures hit while building this, with the fix in place. Check here 
 ## Networking
 
 - **Tailscale holds `*:443` on the host.** kind binding `0.0.0.0:443` fails with "address already in use". Fix: `platform/cluster/kind.yaml` binds `127.0.0.1` and `::1` only.
-- **`::1` broken on kind's default network.** The `kind` docker network is dual-stack, so Docker Desktop forwards `::1` to the node's IPv6, where the IPv4-only cluster has no NodePort. Browsers resolve `*.localhost` to `::1` first. Fix: `gcd up` creates an IPv4-only `kargo-demo` network (`KIND_EXPERIMENTAL_DOCKER_NETWORK`).
+- **`::1` broken on kind's default network.** The `kind` docker network is dual-stack, so Docker Desktop forwards `::1` to the node's IPv6, where the IPv4-only cluster has no NodePort. Browsers resolve `*.localhost` to `::1` first. Fix: `gcd up` creates an IPv4-only `gitops-cd` network (`KIND_EXPERIMENTAL_DOCKER_NETWORK`).
 - **`keycloak.localhost` inside the cluster.** The issuer must be the same URL for the browser and in-cluster clients (kargo-api, argocd-server). A CoreDNS `rewrite` (`dns.Hub` in `platform/cli/internal/dns`) points it at the Traefik service.
 - **curl in pods ignores that rewrite**: curl resolves `*.localhost` to loopback itself. Test in-cluster DNS with `busybox` `nslookup`/`wget`.
 
@@ -73,7 +73,7 @@ Non-obvious failures hit while building this, with the fix in place. Check here 
 - **Stage shard is `spec.shard`, not the label.** `kargo.akuity.io/shard` is derived from `spec.shard` by a webhook; setting only the label does nothing (the hub controller or nobody picks the Stage up).
 - **Hub shard release needs `dataPlane.install: false`.** `kargo-ctrl-<shard>` (second chart release in ns `kargo`) otherwise renders the shared Roles/CRDs again and collides with the main `kargo` release. It must be installed after `kargo` (it binds that release's ClusterRoles/Role).
 - **Regional controller needs events RBAC in `argocd`.** `argocd-update` records events on the Application; the chart's Argo CD RBAC lacks them (`events is forbidden`). Added as `extraObjects` in the `valuesObject` of `platform/appsets/addons/kargo-shard.yaml`.
-- **Token handoff is host-side.** `gcd kargo-shards` copies hub Secret `kargo/kargo-controller-<shard>-token` into a kubeconfig in region Secret `kargo/kargo-hub-kubeconfig` (server `https://kargo-demo-control-plane:6443`, docker network). Token change restarts the regional controller; the hub never holds region creds.
+- **Token handoff is host-side.** `gcd kargo-shards` copies hub Secret `kargo/kargo-controller-<shard>-token` into a kubeconfig in region Secret `kargo/kargo-hub-kubeconfig` (server `https://gitops-cd-control-plane:6443`, docker network). Token change restarts the regional controller; the hub never holds region creds.
 
 - **`argocd-update` `desiredRevision` must be a commit SHA, not a branch.** Argo CD's sync result records the commit, so `desiredRevision: main` never matches and the Promotion stays `Running` forever (log: `sync result revision does not match desired revision`). Use `${{ commitFrom("<repoURL>").ID }}` (argument is the repo URL, not the Warehouse).
 

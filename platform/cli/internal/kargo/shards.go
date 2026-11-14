@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	hubServer = "https://kargo-demo-control-plane:6443" // hub apiserver on docker network kargo-demo
+	hubServer = "https://gitops-cd-control-plane:6443" // hub apiserver on docker network gitops-cd
 	ns        = "kargo"
 	restarted = "kubectl.kubernetes.io/restartedAt"
 )

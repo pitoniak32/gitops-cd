@@ -21,7 +21,7 @@ func TestHubKubeconfig(t *testing.T) {
 		t.Fatalf("%v\n%s", err, b)
 	}
 	cl := cfg.Clusters["hub"]
-	if cl.Server != "https://kargo-demo-control-plane:6443" || string(cl.CertificateAuthorityData) != "CA" {
+	if cl.Server != "https://gitops-cd-control-plane:6443" || string(cl.CertificateAuthorityData) != "CA" {
 		t.Errorf("cluster %+v", cl)
 	}
 	if cfg.AuthInfos["kargo-controller-us"].Token != "tok123" {

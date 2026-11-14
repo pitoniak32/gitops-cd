@@ -86,7 +86,7 @@ _Avoid_: cluster roles (Kubernetes RBAC term)
 A Kubernetes cluster from the platform-owned registry, accepting a fixed set of environment types. Each belongs to one region.
 
 **Hub**:
-The kind cluster `kargo-demo` running the Kargo control plane, Keycloak, Traefik and the platform Argo CD. It runs no workloads and holds no credentials to regions (ADR 0015).
+The kind cluster `gitops-cd` running the Kargo control plane, Keycloak, Traefik and the platform Argo CD. It runs no workloads and holds no credentials to regions (ADR 0015).
 _Avoid_: management cluster, control cluster
 
 **Region**:

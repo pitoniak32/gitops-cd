@@ -1,4 +1,4 @@
-// Package cluster creates and deletes the kind clusters (hub kargo-demo + region-<r>) on the kargo-demo
+// Package cluster creates and deletes the kind clusters (hub gitops-cd + region-<r>) on the gitops-cd
 // docker network.
 package cluster
 
@@ -27,18 +27,18 @@ import (
 )
 
 const (
-	// Hub is the hub kind cluster name (context kind-kargo-demo).
-	Hub = "kargo-demo"
+	// Hub is the hub kind cluster name (context kind-gitops-cd).
+	Hub = "gitops-cd"
 	// Network is the v4-only docker network shared by all clusters. The default `kind` network is
 	// dual-stack, so docker desktop forwards ::1 to container v6 where the v4-only cluster has no NodePort
 	// (broken https://kargo.localhost).
-	Network = "kargo-demo"
+	Network = "gitops-cd"
 	// ReadyTimeout bounds node readiness per cluster.
 	ReadyTimeout = 120 * time.Second
 )
 
 // Up deletes existing clusters, creates the network, the hub, then the regions in parallel (same network,
-// no host ports), waits for nodes Ready and sets current context kind-kargo-demo.
+// no host ports), waits for nodes Ready and sets current context kind-gitops-cd.
 func Up(ctx context.Context, root string, regions []string, log io.Writer) error {
 	if err := Down(ctx, root, regions, log); err != nil {
 		return err

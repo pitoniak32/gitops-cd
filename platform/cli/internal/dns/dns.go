@@ -19,11 +19,11 @@ import (
 const (
 	hubTarget     = "traefik.traefik.svc.cluster.local"
 	regionTarget  = "hub-traefik.kube-system.svc.cluster.local"
-	hubCtx        = "kind-kargo-demo"
+	hubCtx        = "kind-gitops-cd"
 	rolloutWait   = 120 * time.Second
 	restartedAt   = "kubectl.kubernetes.io/restartedAt"
-	hubContainer  = "kargo-demo-control-plane"
-	hubInspectFmt = `{{(index .NetworkSettings.Networks "kargo-demo").IPAddress}}`
+	hubContainer  = "gitops-cd-control-plane"
+	hubInspectFmt = `{{(index .NetworkSettings.Networks "gitops-cd").IPAddress}}`
 )
 
 // inClusterHosts resolve to the hub traefik in every cluster.

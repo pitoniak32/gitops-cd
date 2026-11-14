@@ -56,12 +56,12 @@ func TestMergeKubeconfig(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, src := range []string{kindKubeconfig(t, dir, "kargo-demo", "https://hub"), kindKubeconfig(t, dir, "region-us", "https://new")} {
+	for _, src := range []string{kindKubeconfig(t, dir, "gitops-cd", "https://hub"), kindKubeconfig(t, dir, "region-us", "https://new")} {
 		if err := mergeKubeconfig(dst, src); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := useContext(dst, "kind-kargo-demo"); err != nil {
+	if err := useContext(dst, "kind-gitops-cd"); err != nil {
 		t.Fatal(err)
 	}
 	got, err := clientcmd.LoadFromFile(dst)
@@ -77,10 +77,10 @@ func TestMergeKubeconfig(t *testing.T) {
 	if got.AuthInfos["kind-region-us"].Token != "t-https://new" {
 		t.Fatal("region-us user not replaced")
 	}
-	if got.Clusters["kind-other"] == nil || got.Clusters["kind-kargo-demo"].Server != "https://hub" {
+	if got.Clusters["kind-other"] == nil || got.Clusters["kind-gitops-cd"].Server != "https://hub" {
 		t.Fatal("other/hub missing")
 	}
-	if got.CurrentContext != "kind-kargo-demo" {
+	if got.CurrentContext != "kind-gitops-cd" {
 		t.Fatalf("current-context = %s", got.CurrentContext)
 	}
 }

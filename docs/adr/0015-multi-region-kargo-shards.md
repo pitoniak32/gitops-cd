@@ -2,16 +2,16 @@
 
 The demo mirrors the target setup: one Kargo instance and one Argo CD per region. Each region runs a Kargo controller (a **shard**) next to its Argo CD, and it connects back to the central Kargo control plane. The control plane has no privileged access to the region clusters ([Kargo: distributed configuration](https://docs.kargo.io/operator-guide/architecture#distributed-configuration)).
 
-Locally, these are kind clusters on the docker network `kargo-demo`:
+Locally, these are kind clusters on the docker network `gitops-cd`:
 
-- **Hub** `kargo-demo`: the Kargo control plane (API, management controller, webhooks, and the default controller, which runs Warehouses, control-flow Stages and non-K8s target Stages), Keycloak, Traefik (the only cluster bound to host 80/443), cert-manager and break-glass. Its Argo CD manages hub add-ons only, no workloads.
+- **Hub** `gitops-cd`: the Kargo control plane (API, management controller, webhooks, and the default controller, which runs Warehouses, control-flow Stages and non-K8s target Stages), Keycloak, Traefik (the only cluster bound to host 80/443), cert-manager and break-glass. Its Argo CD manages hub add-ons only, no workloads.
 - **Regions** `region-<r>` (`us-east4`, `dc1`; from the cluster registry in `system/config.go`): their own self-managed Argo CD, a Kargo controller with `shardName: <r>`, and the workloads.
 
 How it fits together (deploy wiring: ADR 0017):
 
 - **Renderer**: each cluster has a `region`. K8S target Stages get `spec.shard: <region>`. Argo CD params and AppProjects go under `rendered/argocd/{deploys,projects}/<region>/`.
 - **Shard identity**: on the hub, a second Kargo chart release per region (`dataPlane.install: false`, or it re-renders the main release's Roles) creates only that controller's ServiceAccount, RBAC and token Secret. In the region, a controller-only release reads the hub through `kubeconfigSecrets.kargo`. It also needs a Role for `events` in `argocd`, which the chart doesn't grant.
-- **Token handoff**: `gcd kargo-shards` runs on the host with every kube context and copies the hub token into the region's `kargo/kargo-hub-kubeconfig` (server `https://kargo-demo-control-plane:6443`). The hub never holds region credentials.
+- **Token handoff**: `gcd kargo-shards` runs on the host with every kube context and copies the hub token into the region's `kargo/kargo-hub-kubeconfig` (server `https://gitops-cd-control-plane:6443`). The hub never holds region credentials.
 - **UIs**: each regional Argo CD is at `https://argocd-<r>.localhost`, through hub Traefik to an ExternalName Service `region-<r>-control-plane:30081` (plain HTTP proxying, no credentials). Login goes through Keycloak with a public PKCE client `argocd-<r>`. Regions reach the issuer `http://keycloak.localhost` through a CoreDNS rewrite (`gcd region-dns`, re-run by every `infra`). Kargo `api.argocd.urls` maps each shard to its regional UI.
 
 ## Considered Options
