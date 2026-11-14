@@ -105,7 +105,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase=\"Succeeded\"}[$__range])) or vector(0)",
+          "expr": "sum(clamp_min(kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase=\"Succeeded\"} - (kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase=\"Succeeded\"} offset $__range * 1 or kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase=\"Succeeded\"} * 0), 0)) or vector(0)",
           "refId": "A",
           "legendFormat": "__auto",
           "format": "time_series",
@@ -158,7 +158,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase!=\"Succeeded\"}[$__range])) or vector(0)",
+          "expr": "sum(clamp_min(kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase!=\"Succeeded\"} - (kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase!=\"Succeeded\"} offset $__range * 1 or kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase!=\"Succeeded\"} * 0), 0)) or vector(0)",
           "refId": "A",
           "legendFormat": "__auto",
           "format": "time_series",
@@ -223,7 +223,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase=\"Succeeded\"}[$__range])) / sum(increase(kargo_promotions_completed_total{project=\"kargo-$system-$app\"}[$__range]))",
+          "expr": "sum(clamp_min(kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase=\"Succeeded\"} - (kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase=\"Succeeded\"} offset $__range * 1 or kargo_promotions_completed_total{project=\"kargo-$system-$app\", phase=\"Succeeded\"} * 0), 0)) / sum(clamp_min(kargo_promotions_completed_total{project=\"kargo-$system-$app\"} - (kargo_promotions_completed_total{project=\"kargo-$system-$app\"} offset $__range * 1 or kargo_promotions_completed_total{project=\"kargo-$system-$app\"} * 0), 0))",
           "refId": "A",
           "legendFormat": "__auto",
           "format": "time_series",
@@ -294,7 +294,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.5, sum by (le) (increase(kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\", phase=\"Succeeded\"}[$__range])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (clamp_min(kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\", phase=\"Succeeded\"} - (kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\", phase=\"Succeeded\"} offset $__range * 1 or kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\", phase=\"Succeeded\"} * 0), 0)))",
           "refId": "A",
           "legendFormat": "__auto",
           "format": "time_series",
@@ -394,7 +394,7 @@
     {
       "type": "stat",
       "title": "Targets not healthy",
-      "description": "Argo CD Applications of this app (one per K8S target) whose health is not Healthy.",
+      "description": "Argo CD Applications of this app whose health is not Healthy (GitHub Actions targets not included).",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -458,7 +458,7 @@
     },
     {
       "type": "row",
-      "title": "Targets (Argo CD, K8S targets)",
+      "title": "Targets deployed by Argo CD",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -472,7 +472,7 @@
     {
       "type": "table",
       "title": "Target status",
-      "description": "Current health and sync of every K8S target of this app. TERRAFORM / CLOUD_RUN targets deploy via GitHub Actions and are not here.",
+      "description": "Health and sync of this app's targets that Argo CD deploys. Targets with deployWith: gha (and every TERRAFORM / CLOUD_RUN target) deploy via GitHub Actions and are not listed. Shows what runs in the cluster: after a cluster rebuild a target can be Healthy here while Kargo shows no Freight until `gcd kargo-restore`.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -711,7 +711,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (label_example_com_target, phase) (increase(argocd_app_sync_total{dry_run=\"false\"}[$__rate_interval]) * on (name, k8s_cluster_name) group_left(label_example_com_stage, label_example_com_target) argocd_app_labels{label_example_com_system=\"$system\", label_example_com_app=\"$app\"})",
+          "expr": "sum by (label_example_com_target, phase) (clamp_min(argocd_app_sync_total{dry_run=\"false\"} - (argocd_app_sync_total{dry_run=\"false\"} offset $__interval * 1 or argocd_app_sync_total{dry_run=\"false\"} * 0), 0) * on (name, k8s_cluster_name) group_left(label_example_com_stage, label_example_com_target) argocd_app_labels{label_example_com_system=\"$system\", label_example_com_app=\"$app\"})",
           "refId": "A",
           "legendFormat": "{{label_example_com_target}} {{phase}}",
           "format": "time_series"
@@ -774,7 +774,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (phase) (increase(kargo_promotions_completed_total{project=\"kargo-$system-$app\"}[$__rate_interval]))",
+          "expr": "sum by (phase) (clamp_min(kargo_promotions_completed_total{project=\"kargo-$system-$app\"} - (kargo_promotions_completed_total{project=\"kargo-$system-$app\"} offset $__interval * 1 or kargo_promotions_completed_total{project=\"kargo-$system-$app\"} * 0), 0))",
           "refId": "A",
           "legendFormat": "{{phase}}",
           "format": "time_series"
@@ -870,7 +870,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.5, sum by (le) (rate(kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (clamp_min(kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\"} - (kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\"} offset $__rate_interval * 1 or kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\"} * 0), 0)))",
           "refId": "A",
           "legendFormat": "p50",
           "format": "time_series"
@@ -880,7 +880,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (clamp_min(kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\"} - (kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\"} offset $__rate_interval * 1 or kargo_promotion_duration_seconds_bucket{project=\"kargo-$system-$app\"} * 0), 0)))",
           "refId": "B",
           "legendFormat": "p95",
           "format": "time_series"
@@ -926,7 +926,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le, stepKind) (increase(kargo_promotion_step_duration_seconds_bucket{project=\"kargo-$system-$app\"}[$__range])))",
+          "expr": "histogram_quantile(0.95, sum by (le, stepKind) (clamp_min(kargo_promotion_step_duration_seconds_bucket{project=\"kargo-$system-$app\"} - (kargo_promotion_step_duration_seconds_bucket{project=\"kargo-$system-$app\"} offset $__range * 1 or kargo_promotion_step_duration_seconds_bucket{project=\"kargo-$system-$app\"} * 0), 0)))",
           "refId": "A",
           "legendFormat": "{{stepKind}}",
           "format": "time_series",
@@ -977,7 +977,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (stepKind, terminalStatus) (increase(kargo_promotion_step_duration_seconds_count{project=\"kargo-$system-$app\"}[$__range])) > 0",
+          "expr": "sum by (stepKind, terminalStatus) (clamp_min(kargo_promotion_step_duration_seconds_count{project=\"kargo-$system-$app\"} - (kargo_promotion_step_duration_seconds_count{project=\"kargo-$system-$app\"} offset $__range * 1 or kargo_promotion_step_duration_seconds_count{project=\"kargo-$system-$app\"} * 0), 0)) > 0",
           "refId": "A",
           "legendFormat": "__auto",
           "format": "table",
