@@ -127,7 +127,7 @@ func TestWriteSynthetic(t *testing.T) {
 	for _, c := range m.Clients {
 		ids = append(ids, c.ClientID)
 	}
-	if strings.Join(ids, ",") != "kargo,argocd,argocd-a" {
+	if strings.Join(ids, ",") != "kargo,argocd,grafana,argocd-a" {
 		t.Fatalf("clients order: %v", ids)
 	}
 	if !strings.Contains(string(realm), "\"z\": 1,\n      \"b\": 2") {
