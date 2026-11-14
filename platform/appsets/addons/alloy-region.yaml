@@ -1,0 +1,56 @@
+# REGION add-on alloy (ADR 0031): telemetry collector in each region, CLUSTER=<region>, pushes to the hub via
+# otlp.localhost. Hub: alloy.yaml. Pin shared with it
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: alloy-region
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true  # deleting this AppSet must not take the add-on with it
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            example.com/role: region
+          matchExpressions:  # no label = no match (never an empty region)
+            - {key: example.com/region, operator: Exists}
+        values:
+          region: '{{index .metadata.labels "example.com/region"}}'
+  template:
+    metadata:
+      name: alloy
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+        - repoURL: https://grafana.github.io/helm-charts
+          chart: alloy
+          targetRevision: 1.15.0
+          helm:
+            releaseName: alloy
+            valueFiles:
+              - $values/platform/infrastructure/alloy/values.yaml
+            valuesObject:
+              alloy:
+                extraEnv:
+                  - {name: CLUSTER, value: "{{.values.region}}"}
+        - repoURL: https://github.com/pitoniak32/gitops-cd
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: alloy
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true  # CRDs/webhooks from other add-ons may not exist yet
+        retry:
+          limit: -1  # unlimited: add-ons start together, deps (CRDs, webhooks) may take a while
+          backoff: {duration: 5s, factor: 2, maxDuration: 1m}

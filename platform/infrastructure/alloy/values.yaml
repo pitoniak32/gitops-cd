@@ -1,0 +1,179 @@
+# Grafana Alloy on every cluster (ADR 0031): AppSets alloy (hub) + alloy-region (regions) set env CLUSTER.
+# Scrapes pod ports named metrics/http-metrics + kubelet cAdvisor, tails pod logs, receives OTLP (alloy.alloy.svc
+# :4317 grpc / :4318 http), tags everything k8s.cluster.name=$CLUSTER and pushes OTLP/HTTP to the hub store via
+# http://otlp.localhost (CoreDNS rewrite to hub traefik; the hub never holds region creds, ADR 0015).
+controller:
+  type: deployment  # one pod: logs and cAdvisor are read through the API/kubelet, a DaemonSet would duplicate them
+  replicas: 1
+alloy:
+  enableReporting: false
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 512Mi}
+  extraPorts:
+    - {name: otlp-grpc, port: 4317, targetPort: 4317, protocol: TCP}
+    - {name: otlp-http, port: 4318, targetPort: 4318, protocol: TCP}
+  configMap:
+    content: |
+      logging {
+        level = "warn"
+      }
+
+      // ---- metrics: pod ports named metrics / http-metrics (Argo CD, Kargo, Traefik, cert-manager, Rollouts)
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "pod_metrics" {
+        targets = discovery.kubernetes.pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_port_name"]
+          regex         = "(http-)?metrics"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_phase"]
+          regex         = "Running"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+          separator     = "/"
+          target_label  = "job"
+        }
+      }
+
+      prometheus.scrape "pods" {
+        targets         = discovery.relabel.pod_metrics.output
+        scrape_interval = "30s"
+        forward_to      = [otelcol.receiver.prometheus.default.receiver]
+      }
+
+      // ---- metrics: kubelet cAdvisor on each node (chart RBAC grants nodes/metrics)
+      discovery.kubernetes "nodes" {
+        role = "node"
+      }
+
+      discovery.relabel "cadvisor" {
+        targets = discovery.kubernetes.nodes.targets
+        rule {
+          target_label = "__metrics_path__"
+          replacement  = "/metrics/cadvisor"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "cadvisor"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          target_label  = "node"
+        }
+      }
+
+      prometheus.scrape "cadvisor" {
+        targets           = discovery.relabel.cadvisor.output
+        scheme            = "https"
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        tls_config {
+          insecure_skip_verify = true
+        }
+        scrape_interval = "30s"
+        forward_to      = [otelcol.receiver.prometheus.default.receiver]
+      }
+
+      otelcol.receiver.prometheus "default" {
+        output {
+          metrics = [otelcol.processor.transform.cluster.input]
+        }
+      }
+
+      // ---- logs: every container, through the API (namespace/pod/container: structured metadata in Loki)
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [otelcol.receiver.loki.default.receiver]
+      }
+
+      otelcol.receiver.loki "default" {
+        output {
+          logs = [otelcol.processor.transform.cluster.input]
+        }
+      }
+
+      // ---- traces (and any OTLP): Argo CD, Traefik
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        output {
+          metrics = [otelcol.processor.transform.cluster.input]
+          logs    = [otelcol.processor.transform.cluster.input]
+          traces  = [otelcol.processor.transform.cluster.input]
+        }
+      }
+
+      // ---- k8s.cluster.name on every signal (Prometheus promotes it to k8s_cluster_name; Loki indexes it)
+      otelcol.processor.transform "cluster" {
+        error_mode = "ignore"
+        metric_statements {
+          context    = "resource"
+          statements = [`set(attributes["k8s.cluster.name"], "` + sys.env("CLUSTER") + `")`]
+        }
+        log_statements {
+          context    = "resource"
+          statements = [`set(attributes["k8s.cluster.name"], "` + sys.env("CLUSTER") + `")`]
+        }
+        trace_statements {
+          context    = "resource"
+          statements = [`set(attributes["k8s.cluster.name"], "` + sys.env("CLUSTER") + `")`]
+        }
+        output {
+          metrics = [otelcol.processor.batch.default.input]
+          logs    = [otelcol.processor.batch.default.input]
+          traces  = [otelcol.processor.batch.default.input]
+        }
+      }
+
+      otelcol.processor.batch "default" {
+        output {
+          metrics = [otelcol.exporter.otlphttp.hub.input]
+          logs    = [otelcol.exporter.otlphttp.hub.input]
+          traces  = [otelcol.exporter.otlphttp.hub.input]
+        }
+      }
+
+      otelcol.exporter.otlphttp "hub" {
+        client {
+          endpoint = "http://otlp.localhost"
+        }
+      }
