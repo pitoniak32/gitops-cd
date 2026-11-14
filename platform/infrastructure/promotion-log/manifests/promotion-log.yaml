@@ -16,10 +16,12 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 65534}
       containers:
         - name: promotion-log
-          image: gitops-cd/promotion-log:e1f0bf14d3ec  # built + loaded by gcd infra; tag checked by gcd test
+          image: gitops-cd/promotion-log:f56addfb3a6e  # built + loaded by gcd infra; tag checked by gcd test
           imagePullPolicy: Never  # only exists in the kind node
           ports: [{name: http, containerPort: 8080}]
           readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 20}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {memory: 64Mi}}
 ---
 apiVersion: v1

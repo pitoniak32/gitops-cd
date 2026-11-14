@@ -20,6 +20,8 @@ func TestPromotionRecordStep(t *testing.T) {
 		last := steps[len(steps)-1].(map[string]any)
 		for path, want := range map[string]string{
 			"uses": "http", "as": "record", "if": "${{ always() }}", "continueOnError": "true", "retry.timeout": "30s",
+			// a dial error is an Errored attempt: retried up to the threshold, not just once (Kargo default 1)
+			"retry.errorThreshold": "5", "config.pollInterval": "5s",
 			"config.method": "POST", "config.url": "http://promotions.localhost/promotions",
 			"config.successExpression": "response.status == 204",
 			"config.failureExpression": "response.status >= 400 && response.status < 500",
@@ -39,11 +41,14 @@ func TestPromotionRecordStep(t *testing.T) {
 			// skipped after a failed pre-deploy check: no outputs, so never a bare reference
 			"'commit': task.outputs.commit?.commit ?? ''",
 			"'actor': ctx.meta.promotion.actor",
-			"'automatic': ctx.meta.promotion.actor startsWith 'kubernetes:system:serviceaccount:kargo:kargo-controller'",
+			// ctx actor = create-actor annotation after its first ':' (admin@example.com; a controller:
+			// system:serviceaccount:kargo:kargo-controller-<shard>); control-plane auto-promotions may have none
+			"'automatic': ctx.meta.promotion.actor == '' || ctx.meta.promotion.actor startsWith 'system:serviceaccount:kargo:kargo-controller'",
 			"'rollback': ctx.meta.promotion.rollback",
 			"'result': success() ? 'Succeeded' : 'Failed'",
 			"'ghaRunURL': " + c.runURL,
-			"'uiURL': ctx.uiBaseUrl + '/project/' + ctx.project + '/stage/' + ctx.stage",
+			// absolute: ctx.uiBaseUrl is empty in region shards (their Kargo API is disabled)
+			"'uiURL': 'https://kargo.localhost/project/' + ctx.project + '/promotion/' + ctx.promotion",
 		} {
 			if !strings.Contains(body, f) {
 				t.Errorf("%s record body missing %s", c.task, f)

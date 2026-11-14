@@ -887,7 +887,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (target, actor, automatic) (count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=\"$system\" | app=\"$app\" [$__range]))",
+          "expr": "sum by (target, actor) (count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=\"$system\" | app=\"$app\" | label_format actor=`{{ if eq .automatic \"true\" }}automatic{{ else }}{{ .actor }}{{ end }}` [$__range]))",
           "refId": "A",
           "legendFormat": "",
           "queryType": "instant",
@@ -909,23 +909,12 @@
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "regex",
+                    "type": "value",
                     "options": {
-                      "pattern": "^email:(.*)$",
-                      "result": {
-                        "text": "$1",
-                        "index": 0
-                      }
-                    }
-                  },
-                  {
-                    "type": "regex",
-                    "options": {
-                      "pattern": "^kubernetes:system:serviceaccount:kargo:kargo-controller.*$",
-                      "result": {
+                      "automatic": {
                         "text": "automatic (auto-promotion)",
                         "color": "blue",
-                        "index": 1
+                        "index": 0
                       }
                     }
                   }
@@ -961,8 +950,7 @@
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Time": true,
-              "automatic": true
+              "Time": true
             },
             "renameByName": {
               "target": "Target",
@@ -1048,17 +1036,18 @@
                   {
                     "type": "regex",
                     "options": {
-                      "pattern": "^email:(.*)$",
+                      "pattern": "^system:serviceaccount:kargo:kargo-controller.*$",
                       "result": {
-                        "text": "$1",
+                        "text": "automatic",
+                        "color": "blue",
                         "index": 0
                       }
                     }
                   },
                   {
-                    "type": "regex",
+                    "type": "special",
                     "options": {
-                      "pattern": "^kubernetes:system:serviceaccount:kargo:kargo-controller.*$",
+                      "match": "empty",
                       "result": {
                         "text": "automatic",
                         "color": "blue",

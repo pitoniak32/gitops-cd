@@ -24,7 +24,7 @@ func serve(t *testing.T, method, path, body string) (*httptest.ResponseRecorder,
 const valid = `{"promotion":"us-east4-dev-k8s.01abc.74a416b","project":"kargo-payments-worker","system":"payments",
 "app":"worker","stage":"dev","target":"us-east4-dev-k8s","platform":"k8s","deployWith":"gha",
 "freight":"74a416bbfa","freightAlias":"torrid-dog","warehouse":"worker",
-"artifact":"ghcr.io/pitoniak32/nginx:1.1.0@sha256:c8fa","commit":"0a455a6","actor":"email:admin@example.com",
+"artifact":"ghcr.io/pitoniak32/nginx:1.1.0@sha256:c8fa","commit":"0a455a6","actor":"admin@example.com",
 "automatic":false,"rollback":false,"result":"Succeeded","ghaRunURL":"https://github.com/x/runs/1",
 "uiURL":"https://kargo.localhost/project/kargo-payments-worker/stage/us-east4-dev-k8s","extra":"ignored"}`
 
@@ -45,7 +45,7 @@ func TestValidRecordLoggedAsOneLine(t *testing.T) {
 		"promotion": "us-east4-dev-k8s.01abc.74a416b", "project": "kargo-payments-worker", "system": "payments",
 		"app": "worker", "stage": "dev", "target": "us-east4-dev-k8s", "platform": "k8s", "deployWith": "gha",
 		"freight": "74a416bbfa", "freightAlias": "torrid-dog", "warehouse": "worker",
-		"artifact": "ghcr.io/pitoniak32/nginx:1.1.0@sha256:c8fa", "commit": "0a455a6", "actor": "email:admin@example.com",
+		"artifact": "ghcr.io/pitoniak32/nginx:1.1.0@sha256:c8fa", "commit": "0a455a6", "actor": "admin@example.com",
 		"automatic": false, "rollback": false, "result": "Succeeded", "ghaRunURL": "https://github.com/x/runs/1",
 		"uiURL": "https://kargo.localhost/project/kargo-payments-worker/stage/us-east4-dev-k8s",
 	}
@@ -64,14 +64,17 @@ func TestValidRecordLoggedAsOneLine(t *testing.T) {
 
 func TestInvalidRecordRejected(t *testing.T) {
 	cases := map[string]string{
-		"not json":      `{`,
-		"no target":     strings.Replace(valid, `"target":"us-east4-dev-k8s",`, ``, 1),
-		"no promotion":  strings.Replace(valid, `"promotion":"us-east4-dev-k8s.01abc.74a416b",`, ``, 1),
-		"no project":    strings.Replace(valid, `"project":"kargo-payments-worker",`, ``, 1),
-		"bad result":    strings.Replace(valid, `"result":"Succeeded"`, `"result":"Maybe"`, 1),
-		"trailing data": valid + `{}`,
-		"wrong type":    strings.Replace(valid, `"automatic":false`, `"automatic":"no"`, 1),
-		"too big":       `{"promotion":"` + strings.Repeat("x", maxBody) + `"}`,
+		"not json":       `{`,
+		"no target":      strings.Replace(valid, `"target":"us-east4-dev-k8s",`, ``, 1),
+		"no promotion":   strings.Replace(valid, `"promotion":"us-east4-dev-k8s.01abc.74a416b",`, ``, 1),
+		"no project":     strings.Replace(valid, `"project":"kargo-payments-worker",`, ``, 1),
+		"bad result":     strings.Replace(valid, `"result":"Succeeded"`, `"result":"Maybe"`, 1),
+		"trailing data":  valid + `{}`,
+		"trailing brace": valid + `}`,
+		"no system":      strings.Replace(valid, `"system":"payments",`, ``, 1),
+		"no app":         strings.Replace(valid, `"app":"worker",`, ``, 1),
+		"wrong type":     strings.Replace(valid, `"automatic":false`, `"automatic":"no"`, 1),
+		"too big":        `{"promotion":"` + strings.Repeat("x", maxBody) + `"}`,
 	}
 	for name, body := range cases {
 		t.Run(name, func(t *testing.T) {

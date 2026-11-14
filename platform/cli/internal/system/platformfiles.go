@@ -119,20 +119,29 @@ func ghaWait(timeout, failure, errorPrefix string) Map {
 		"errorExpression", "response.status != 200 ? response.body.message : "+errorPrefix+"'run ' + string(response.body.id) + ' ' + response.body.conclusion + ': ' + response.body.html_url"))
 }
 
-// promotionLogURL is the promotion-log add-on (ADR 0032), reached from every cluster's Kargo controller via
-// the hub traefik (CoreDNS rewrite, gcd dns).
-const promotionLogURL = "http://promotions.localhost/promotions"
+const (
+	// promotionLogURL is the promotion-log add-on (ADR 0032), reached from every cluster's Kargo controller
+	// via the hub traefik (CoreDNS rewrite, gcd dns).
+	promotionLogURL = "http://promotions.localhost/promotions"
+	// kargoUIURL links records to their Promotion: ctx.uiBaseUrl is empty in region shards (Kargo API off)
+	kargoUIURL = "https://kargo.localhost"
+)
 
 // recordStep ends every deploying task (ADR 0032): one JSON record per Promotion to promotion-log. always():
-// it runs after a failed step too (result Failed); continueOnError + a 30s retry: an unreachable endpoint
-// never fails or blocks a deploy. Outputs are optional (?.): a failed pre-deploy check skips the task's
-// steps. 5xx and connection errors are retried until the timeout; 4xx (bad record) fails at once.
+// it runs after a failed step too (result Failed); continueOnError: an unreachable endpoint never fails the
+// Promotion. Outputs are optional (?.): a failed pre-deploy check skips the task's steps. Retries, within
+// 30s: a connection error counts as an Errored attempt (up to 5, Kargo's default is 1); a 5xx matches no
+// expression and is re-polled every 5s; a 4xx (bad record) fails at once.
+// ctx.meta.promotion.actor is the create-actor annotation after its first ':' (admin@example.com, or
+// system:serviceaccount:kargo:kargo-controller-<shard> for an auto-promotion; control-plane ones may have
+// none).
 func recordStep(deployWith, runURL string) Map {
 	return M("uses", "http", "as", "record", "if", "${{ always() }}", "continueOnError", true,
-		"retry", M("timeout", "30s"),
+		"retry", M("timeout", "30s", "errorThreshold", 5),
 		"config", M(
 			"method", "POST",
 			"url", promotionLogURL,
+			"pollInterval", "5s",
 			"headers", List{M("name", "Content-Type", "value", "application/json")},
 			// "}) }}": Kargo ends an expression at the first "}}"
 			"body", "${{ quote({'promotion': ctx.promotion, 'project': ctx.project, 'system': vars.system, 'app': vars.app, "+
@@ -140,9 +149,9 @@ func recordStep(deployWith, runURL string) Map {
 				"'freight': ctx.targetFreight.name, 'freightAlias': ctx.targetFreight.alias, 'warehouse': ctx.targetFreight.origin.name, "+
 				"'artifact': vars.image + ':' + imageFrom(vars.image).Tag + '@' + imageFrom(vars.image).Digest, "+
 				"'commit': task.outputs.commit?.commit ?? '', 'actor': ctx.meta.promotion.actor, "+
-				"'automatic': ctx.meta.promotion.actor startsWith 'kubernetes:system:serviceaccount:kargo:kargo-controller', "+
+				"'automatic': ctx.meta.promotion.actor == '' || ctx.meta.promotion.actor startsWith 'system:serviceaccount:kargo:kargo-controller', "+
 				"'rollback': ctx.meta.promotion.rollback, 'result': success() ? 'Succeeded' : 'Failed', "+
-				"'ghaRunURL': "+runURL+", 'uiURL': ctx.uiBaseUrl + '/project/' + ctx.project + '/stage/' + ctx.stage}) }}",
+				"'ghaRunURL': "+runURL+", 'uiURL': '"+kargoUIURL+"/project/' + ctx.project + '/promotion/' + ctx.promotion}) }}",
 			"successExpression", "response.status == 204",
 			"failureExpression", "response.status >= 400 && response.status < 500"))
 }

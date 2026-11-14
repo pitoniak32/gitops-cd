@@ -54,6 +54,10 @@ func (r record) validate() error {
 		return errors.New("promotion is required")
 	case r.Project == "":
 		return errors.New("project is required")
+	case r.System == "":
+		return errors.New("system is required")
+	case r.App == "":
+		return errors.New("app is required")
 	case r.Target == "":
 		return errors.New("target is required")
 	case r.Result != "Succeeded" && r.Result != "Failed":
@@ -79,7 +83,7 @@ func newHandler(out io.Writer, now func() time.Time) http.Handler {
 			http.Error(w, "invalid record: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		if dec.More() {
+		if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 			http.Error(w, "invalid record: trailing data", http.StatusBadRequest)
 			return
 		}
@@ -105,6 +109,8 @@ func main() {
 		Handler:           newHandler(os.Stdout, time.Now),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	log.SetOutput(os.Stderr)
 	log.Printf("promotion-log listening on %s", srv.Addr)

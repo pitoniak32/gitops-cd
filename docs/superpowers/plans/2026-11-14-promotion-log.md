@@ -23,7 +23,7 @@
 
 1. Endpoint down / slow → promotion still Succeeded, step marked errored but ignored.
 2. Promotion fails mid-way (e.g. git-push or GHA run fails) → record with `result: Failed`, `commit`/`ghaRunURL` possibly empty, no expression error (use `?? ''`).
-3. Automatic promotion (dev auto-promotion) → `automatic: true`, actor = controller SA.
+3. Automatic promotion (dev auto-promotion) → `automatic: true`, actor = `system:serviceaccount:kargo:kargo-controller-<shard>` or empty.
 4. Malformed / oversized body → 400, nothing logged; body limit 64 KiB.
 5. Record reaches Loki from a region-run promotion (us-east4 shard) via `promotions.localhost`.
 
