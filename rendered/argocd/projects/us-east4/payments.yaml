@@ -32,7 +32,7 @@ spec:
       groups:
         - bob@example.com
         - doug@example.com
-        - oncall@example.com
+        - grace@example.com
     - name: viewer-worker
       description: read-only view of payments/worker for its promoters and viewers
       policies:
@@ -40,4 +40,4 @@ spec:
       groups:
         - bob@example.com
         - doug@example.com
-        - oncall@example.com
+        - grace@example.com
