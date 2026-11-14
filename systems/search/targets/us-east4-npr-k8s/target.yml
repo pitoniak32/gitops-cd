@@ -1,0 +1,9 @@
+config:
+  cluster: us-east4
+  namespace: search-us-staging
+  environment: staging
+  environmentType: npr
+  auth:
+    wifEmail: team2-staging@team2-staging.iam.gserviceaccount.com
+  billing: staging
+  platform: K8S

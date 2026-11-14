@@ -1,0 +1,18 @@
+image: ghcr.io/pitoniak32/nginx
+sourceRepo: pitoniak32/gitops-cd
+port: 80
+stages:
+  dev:
+    replicas: 1
+    targets:
+      us-east4-dev-k8s: {}
+  staging:
+    replicas: 1
+    targets:
+      us-east4-npr-k8s:
+        envFrom: [feature-flags]
+  prod:
+    replicas: 3
+    targets:
+      us-east4-prd-k8s: {}
+      dc1-prd-k8s: {}
