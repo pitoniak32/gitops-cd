@@ -15,3 +15,11 @@ providers:
   kubernetesCRD:
     # regional Argo CD UIs are ExternalName services to the region containers (../argocd-region-hub/)
     allowExternalNameServices: true
+# traces -> the hub's alloy (ADR 0031); metrics: pod port `metrics` (9100) scraped by alloy
+tracing:
+  otlp:
+    enabled: true
+    grpc:
+      enabled: true
+      endpoint: alloy.alloy.svc.cluster.local:4317
+      insecure: true

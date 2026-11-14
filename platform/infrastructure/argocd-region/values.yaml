@@ -5,6 +5,9 @@
 configs:
   params:
     server.insecure: true  # tls terminated by the hub traefik, which proxies here (appsets/addons/argocd-region-hub.yaml)
+    # traces -> this cluster's alloy (ADR 0031)
+    otlp.address: alloy.alloy.svc.cluster.local:4317
+    otlp.insecure: true
   cm:
     admin.enabled: false  # keycloak only; break-glass = kubectl (cluster admin)
   rbac:

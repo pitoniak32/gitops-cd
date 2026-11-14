@@ -24,3 +24,5 @@ spec:
       kind: Rule
       services:
         - {name: lgtm, port: 4318}
+      # no traces/access logs for ingest itself (each export would produce more telemetry)
+      observability: {tracing: false, accessLogs: false}

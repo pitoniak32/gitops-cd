@@ -5,6 +5,9 @@ global:
 configs:
   params:
     server.insecure: true  # tls terminated by traefik
+    # traces -> this cluster's alloy (ADR 0031)
+    otlp.address: alloy.alloy.svc.cluster.local:4317
+    otlp.insecure: true
   repositories:
     kargo-charts:
       type: helm

@@ -30,3 +30,5 @@ api:
     urls:
       dc1: https://argocd-dc1.localhost
       us-east4: https://argocd-us-east4.localhost
+controller:
+  metrics: {enabled: true}  # port http-metrics, scraped by alloy (ADR 0031)

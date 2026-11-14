@@ -15,3 +15,4 @@ kubeconfigSecrets:
   kargo: kargo-hub-kubeconfig  # written by `gcd kargo-shards`
 controller:
   rollouts: {integrationEnabled: false}
+  metrics: {enabled: true}  # port http-metrics, scraped by alloy (ADR 0031)
