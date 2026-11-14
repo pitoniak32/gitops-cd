@@ -9,6 +9,7 @@ Decision:
 - **Push, not pull**: `otlp.localhost` resolves to the hub Traefik in every cluster (CoreDNS rewrite, same path as `keycloak.localhost`), and an IngressRoute on the `web` entrypoint forwards to the store. The hub never holds region credentials (ADR 0015). Ingest is plain HTTP without authentication: local only.
 - **Login**: `https://grafana.localhost`, Keycloak public client `grafana` (PKCE). Anonymous access and the login form are off. Only the hardcoded admin emails (ADR 0009) get in, as Admin; everyone else is denied. The data spans every system, and access is per system (ADR 0011), so there are no global viewers.
 - **Traces**: Argo CD (hub + regions) and Traefik export OTLP to their cluster's Alloy.
+- **CD pipeline dashboard** (per system/app): Kargo promotion metrics (labelled only by `project` = app, not stage) joined with Argo CD target health; regional Argo CDs export `argocd_app_labels` with the Application's `example.com/{system,app,stage,target}` labels for the join. K8S targets only (TERRAFORM/CLOUD_RUN deploy via GitHub Actions).
 - **Labels**: query by `k8s_cluster_name` (Prometheus promotes `k8s.cluster.name`; Loki indexes it).
 - Pins: `grafana/otel-lgtm:0.38.1`, Alloy chart `1.15.0`.
 

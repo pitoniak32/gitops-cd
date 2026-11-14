@@ -8,3 +8,4 @@ configMapGenerator:
     files:
       - dashboards/argocd.json
       - dashboards/traefik.json
+      - dashboards/cd-pipeline.json  # ours: one app's Kargo promotions + Argo CD targets

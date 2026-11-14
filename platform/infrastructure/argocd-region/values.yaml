@@ -26,3 +26,9 @@ notifications:
   enabled: false
 applicationSet:
   replicas: 1  # runs the root app's ApplicationSets (cluster generator, ADR 0017)
+controller:
+  metrics:
+    # argocd_app_labels{label_example_com_<x>}: the CD pipeline dashboard joins it to argocd_app_info (ADR 0031)
+    applicationLabels:
+      enabled: true
+      labels: [example.com/system, example.com/app, example.com/stage, example.com/target]
