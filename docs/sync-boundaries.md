@@ -47,10 +47,10 @@ TASK LANE (push: gcd infra / up, from your local checkout)
 | You change | Why a task is needed |
 |---|---|
 | `platform/bootstrap/root.yaml` | Applied by `kubectl` to every Argo CD, not synced. |
-| CoreDNS `keycloak.localhost` + `otlp.localhost` rewrites | Patched by `gcd infra` (regions: `gcd region-dns`). Argo CD doesn't manage `kube-system`. |
+| CoreDNS `keycloak.localhost`, `otlp.localhost`, `promotions.localhost` rewrites | Patched by `gcd infra` (regions: `gcd region-dns`). Argo CD doesn't manage `kube-system`. |
 | Kargo git creds (`gcd creds`) / TLS cert (`gcd certs`) | They come from the macOS keychain / the local CA and never touch git. `infra` runs both, or run them alone. |
 | Kargo shard token (`gcd kargo-shards`) | The hub SA token is copied into each region's `kargo-hub-kubeconfig` Secret (never in git). The hub and regional shard Applications themselves come from AppSets. `infra` runs it last. |
-| The token minter's source (`platform/infrastructure/github-actions-token/`) | Its image is local only: `gcd infra` builds it and loads it into the hub node. Accept the new tag (`UPDATE=1 go test ./internal/tokenminter` in `platform/cli`), push `minter.yaml`, run `gcd infra`. |
+| A local image's source (`platform/infrastructure/{github-actions-token,promotion-log}/`) | Its image is local only: `gcd infra` builds it and loads it into the hub node. Accept the new tag (`UPDATE=1 go test ./internal/localimage` in `platform/cli`), push the manifest, run `gcd infra`. |
 | A new hub add-on's position in the bootstrap order | Add it to the hub wait list `infra.HubWaitRest` in `platform/cli/internal/infra`. |
 
 `infra` itself doesn't change anything Argo CD manages; it only installs Argo CD if missing, applies the root app and waits for the add-ons (regions bootstrap in parallel with the hub).
