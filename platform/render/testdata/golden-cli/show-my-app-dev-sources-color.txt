@@ -4,7 +4,7 @@
     [34mpromoters[0m:
       [34mdev[0m: [doug@example.com]                                    [2m# owners.yml:3[0m
     [34mviewers[0m: [bob@example.com]                                   [2m# owners.yml:7[0m
-    [34mbreakGlass[0m: [grace@example.com]                             [2m# owners.yml:8[0m
+    [34mbreakGlass[0m: [grace@example.com]                              [2m# owners.yml:8[0m
   [34mdev[0m:
     [34mdc1-dev-k8s[0m:
       [34mimage[0m: ghcr.io/pitoniak32/nginx                            [2m# apps/my-app/app.yml:1[0m
