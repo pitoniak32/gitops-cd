@@ -148,7 +148,7 @@ spec:
         - name: artifactKey
           value: image
       steps:
-        - as: pre-1
+        - as: image-signature-check
           task:
             kind: ClusterPromotionTask
             name: gha-check
@@ -218,7 +218,7 @@ spec:
         - name: artifactKey
           value: image
       steps:
-        - as: pre-1
+        - as: image-signature-check
           task:
             kind: ClusterPromotionTask
             name: gha-check
