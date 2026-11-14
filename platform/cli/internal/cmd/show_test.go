@@ -35,7 +35,7 @@ func TestShowGolden(t *testing.T) {
 		"show-target.yaml":            {"payments", "--target", "dc1-dev-k8s"},
 		"show-my-app.json":            {"payments/my-app", "--json"},
 		"show-rendered.yaml":          {"payments/my-app", "--stage", "dev", "--rendered"},
-		"show-rendered-platform.yaml": {"payments/my-app", "--stage", "dev", "--target", "dc1-dev-k8s", "--rendered", "--include-platform"},
+		"show-rendered-platform.yaml": {"payments/my-app", "--stage", "dev", "--target", "dc1-dev-k8s", "--rendered", "--files", "all"},
 	} {
 		got, _, err := runShow(t, root, args...)
 		if err != nil {
@@ -131,9 +131,10 @@ func TestShowFlagConflicts(t *testing.T) {
 	for _, args := range [][]string{
 		{"payments", "--rendered", "--json"},
 		{"payments", "--diff", "--sources"},
-		{"payments", "--diff", "--include-platform"},
+		{"payments", "--diff", "--files", "all"},
+		{"payments", "--rendered", "--files", "nope"},
 		{"payments", "--diff", "--json"},
-		{"payments", "--include-platform"},
+		{"payments", "--files", "all"},
 		{"payments", "--stat"},
 		{"payments", "--base", "main"},
 		{"--diff", "--stage", "dev"},
@@ -384,7 +385,7 @@ func TestShowDiffAgainst(t *testing.T) {
 // A rev without rendered/ is empty: everything is added.
 func TestShowDiffAgainstNoRendered(t *testing.T) {
 	root := vcsRepo(t, "git")
-	out, _, err := runShow(t, root, "--diff", "--rendered", "--against", "HEAD", "--stat")
+	out, _, err := runShow(t, root, "--diff", "--rendered", "--against", "HEAD", "--stat", "--files", "all")
 	if err != nil || !strings.Contains(out, "README.md | +") || !strings.Contains(out, "apps/payments/my-app/") {
 		t.Errorf("%v\n%s", err, out)
 	}
@@ -462,5 +463,33 @@ func TestShowConfigDiffNewApp(t *testing.T) {
 	out, errOut, err := runShow(t, root, "payments/my-new-app", "--diff")
 	if err != nil || !strings.Contains(out, "--- /dev/null\n+++ b/payments/my-new-app") {
 		t.Errorf("%v %s\n%s", err, errOut, out)
+	}
+}
+
+// --files splits the rendered diff: app = apps/** only (default), platform = everything else, all = both.
+func TestShowDiffFiles(t *testing.T) {
+	root := vcsRepo(t, "git")
+	stat := func(args ...string) string {
+		t.Helper()
+		out, errOut, err := runShow(t, root, append([]string{"--diff", "--rendered", "--against", "HEAD", "--stat"}, args...)...)
+		if err != nil {
+			t.Fatalf("%v: %v\n%s", args, err, errOut)
+		}
+		return out
+	}
+	app, platform, all := stat(), stat("--files", "platform"), stat("--files", "all")
+	if !strings.Contains(app, "apps/payments/") || strings.Contains(app, "README.md") || strings.Contains(app, "kargo/") {
+		t.Errorf("app:\n%s", app)
+	}
+	if strings.Contains(platform, "apps/") || !strings.Contains(platform, "README.md") || !strings.Contains(platform, "kargo/payments.yaml") {
+		t.Errorf("platform:\n%s", platform)
+	}
+	if !strings.Contains(all, "apps/payments/") || !strings.Contains(all, "README.md") {
+		t.Errorf("all:\n%s", all)
+	}
+	// with a system: platform = the deploy's Argo CD params and Kargo Stage only
+	out, _, err := runShow(t, root, "payments/my-app", "--stage", "dev", "--target", "dc1-dev-k8s", "--rendered", "--files", "platform")
+	if err != nil || strings.Contains(out, "# rendered/apps/") || !strings.Contains(out, "# rendered/argocd/deploys/") || !strings.Contains(out, "# rendered/kargo/payments.yaml#Stage/") {
+		t.Errorf("sys platform: %v\n%s", err, out)
 	}
 }

@@ -77,14 +77,24 @@ jobs:
           git -C "$rb" diff --cached --stat
           # gcd runs in the checkout (plain git, no .jj), where FETCH_HEAD is the fetched rendered branch.
           # No rendered branch yet (first render): there is no rev to compare with, so just say so.
-          # The diff is capped at 55000 chars, under GitHub's 65536-char comment limit with the stat block.
+          # App files (apps/**) show in full; platform files (Argo CD, Kargo, pipelines, ...) go in a collapsed
+          # <details>. Diffs are capped at 40000 + 15000 chars, under GitHub's 65536-char comment limit with the stats.
+          gd() { .bin/gcd show --diff --rendered --against "$against" --color never "$@"; }
+          section() { # $1 = --files value, $2 = diff char cap
+            if [[ -z "$(gd --files "$1" --stat)" ]]; then echo '_no changes_'; return; fi
+            echo '```text'; gd --files "$1" --stat; echo '```'
+            echo '```diff'; gd --files "$1" | head -c "$2"; echo; echo '```'
+          }
           { echo 'body<<EOF'
             echo '### Rendered manifest diff (vs the rendered branch)'
             if [[ -z "$against" ]]; then echo '_first render_'
-            elif [[ -z "$(.bin/gcd show --diff --rendered --against "$against" --stat --color never)" ]]; then echo '_no changes_'
             else
-              echo '```text'; .bin/gcd show --diff --rendered --against "$against" --stat --color never; echo '```'
-              echo '```diff'; .bin/gcd show --diff --rendered --against "$against" --color never | head -c 55000; echo; echo '```'
+              section app 40000
+              if [[ -n "$(gd --files platform --stat)" ]]; then
+                echo; echo '<details><summary>Platform files (Argo CD, Kargo, pipelines; platform team only)</summary>'; echo
+                section platform 15000
+                echo; echo '</details>'
+              fi
             fi
             echo EOF; } >> "$GITHUB_OUTPUT"
 

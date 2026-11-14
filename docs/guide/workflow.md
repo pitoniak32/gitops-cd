@@ -88,8 +88,8 @@ An empty diff means your change has no effect, which usually means a narrower la
 - If you changed `owners.yml` or `teams/`, run `gcd codeowners` and commit the regenerated
   `.github/CODEOWNERS`. Say in the PR description that it needs platform approval.
 - CI (`config.yaml`) lints the systems your PR can affect and annotates errors on the changed lines,
-  checks CODEOWNERS is up to date, renders, and comments the rendered diff on the PR (`_no changes_` if
-  there is none).
+  checks CODEOWNERS is up to date, renders, and comments the rendered diff of your app manifests on the PR
+  (`_no changes_` if there is none); platform files (Argo CD, Kargo) sit in a collapsed section you can skip.
 - Your system's `codeOwners` approve. On merge, CI writes the rendered manifests to the branch
   `rendered`; nothing deploys until someone promotes ([promote and access](promote-access.md)).
 
