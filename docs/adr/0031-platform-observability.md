@@ -26,4 +26,5 @@ Decision:
 - One Grafana for the whole platform; regions show up as `k8s_cluster_name` values.
 - Data is ephemeral, and only admins see it.
 - No kube-state-metrics (no object-state dashboards) and no apiserver/kubelet traces yet.
+- Per-promotion records (who, which target, how it went, any deploy method): ADR 0032.
 - A new region needs nothing extra: `alloy-region` follows the cluster labels and `gcd region-dns` adds the rewrite.
