@@ -2,7 +2,7 @@ namespace: observability
 resources:
   - lgtm.yaml
   - ingress.yaml
-# vendored: argocd.json = argo-cd v3.6.1 examples/dashboard.json; traefik.json = grafana.com 17346 (${DS_PROMETHEUS} -> prometheus)
+# vendored: argocd.json = argo-cd v3.6.1 examples/dashboard.json (job="argocd-<x>-metrics" -> alloy job "argocd/<x>"); traefik.json = grafana.com 17346 (${DS_PROMETHEUS} -> prometheus)
 configMapGenerator:
   - name: platform-dashboards
     files:

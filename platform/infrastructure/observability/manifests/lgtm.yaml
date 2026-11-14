@@ -25,6 +25,9 @@ spec:
             # the image defaults to anonymous Admin: off. Keycloak only, admins only (ADR 0009, 0011)
             - {name: GF_AUTH_ANONYMOUS_ENABLED, value: "false"}
             - {name: GF_AUTH_DISABLE_LOGIN_FORM, value: "true"}
+            # the form being hidden doesn't stop basic auth with the built-in admin/admin: no basic auth, no built-in admin
+            - {name: GF_AUTH_BASIC_ENABLED, value: "false"}
+            - {name: GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION, value: "true"}
             - {name: GF_AUTH_GENERIC_OAUTH_ENABLED, value: "true"}
             - {name: GF_AUTH_GENERIC_OAUTH_NAME, value: Keycloak}
             - {name: GF_AUTH_GENERIC_OAUTH_AUTO_LOGIN, value: "true"}
