@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# verify-gcd: drive the gcd CLI against a disposable sandbox repo and keep evidence.
+# Usage: see .claude/skills/verify-gcd/SKILL.md
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+VERIFY_DIR="$REPO/.verify"          # gitignored; evidence lives here
+GCD="$REPO/.bin/gcd"
+
+die() { echo "verify-gcd: $*" >&2; exit 1; }
+
+run_dir() {
+  [[ -n "${VERIFY_RUN:-}" ]] || die "VERIFY_RUN unset; run: eval \"\$($0 launch)\""
+  [[ -d "$VERIFY_DIR/$VERIFY_RUN" ]] || die "no run $VERIFY_RUN under $VERIFY_DIR"
+  echo "$VERIFY_DIR/$VERIFY_RUN"
+}
+
+cmd_launch() {
+  local src="repo"
+  [[ "${1:-}" == "--fixture" ]] && src="fixture"
+  (cd "$REPO" && mise run build >&2)
+  [[ -x "$GCD" ]] || die "build produced no $GCD"
+  local id; id="$(date +%Y%m%d-%H%M%S)-$$"
+  local d="$VERIFY_DIR/$id"; local sb="$d/sandbox"
+  mkdir -p "$sb" "$d/evidence"
+  if [[ "$src" == "fixture" ]]; then
+    cp -R "$REPO/platform/render/testdata/root/." "$sb/"
+  else
+    cp -R "$REPO/systems" "$REPO/teams" "$sb/"
+    mkdir -p "$sb/.github"; cp "$REPO/.github/CODEOWNERS.tmpl" "$sb/.github/"
+  fi
+  # baseline: inputs + their rendered/ tree, committed, so --base @- and --against @- work
+  "$GCD" --root "$sb" render --no-progress --color never --out "$sb/rendered" >"$d/evidence/00-baseline-render.txt" 2>&1 \
+    || die "baseline render failed: $d/evidence/00-baseline-render.txt"
+  (cd "$sb" && jj git init >/dev/null 2>&1 && jj describe -m "verify baseline ($src)" >/dev/null 2>&1 && jj new >/dev/null 2>&1) \
+    || die "jj init of sandbox failed"
+  echo "$src" >"$d/source"
+  echo "export VERIFY_RUN=$id"
+  echo "# sandbox: $sb" >&2
+  echo "# evidence: $d/evidence" >&2
+}
+
+cmd_doctor() {
+  local ok=1
+  check() { if eval "$2" >/dev/null 2>&1; then echo "ok   $1"; else echo "FAIL $1"; ok=0; fi; }
+  check "gcd built at .bin/gcd" "[[ -x '$GCD' ]]"
+  check "gcd up to date with platform/cli sources" \
+    "[[ -z \"\$(find '$REPO/platform/cli' \( -name '*.go' -o -name go.mod -o -name go.sum \) -newer '$GCD' -print -quit)\" ]]"
+  check "jj on PATH" "command -v jj"
+  if [[ -n "${VERIFY_RUN:-}" ]]; then
+    local d="$VERIFY_DIR/$VERIFY_RUN" sb="$VERIFY_DIR/$VERIFY_RUN/sandbox"
+    check "run dir $d exists" "[[ -d '$sb/systems' && -d '$d/evidence' ]]"
+    check "sandbox is a jj repo with baseline @-" "(cd '$sb' && jj log -r @- --no-graph -T description | grep -q 'verify baseline')"
+    check "sandbox is outside the real repo's systems/ (not driving real inputs)" "[[ '$sb' != '$REPO' ]]"
+    echo "info source=$(cat "$d/source" 2>/dev/null) sandbox=$sb"
+    echo "info sandbox changes vs baseline:"; (cd "$sb" && jj diff --summary -r @ | sed 's/^/       /')
+  else
+    echo "info VERIFY_RUN unset (no sandbox yet)"
+  fi
+  [[ $ok == 1 ]] || exit 1
+}
+
+# run <label> <gcd args...>: gcd --root <sandbox> --color never <args>, captured to evidence/<label>.*
+cmd_run() {
+  local label="${1:?label}"; shift
+  local d; d="$(run_dir)"; local e="$d/evidence/$label"
+  local rc=0
+  printf 'gcd --root <sandbox> --color never %s\n' "$*" >"$e.cmd"
+  (cd "$d/sandbox" && "$GCD" --root "$d/sandbox" --color never "$@" >"$e.stdout" 2>"$e.stderr") || rc=$?
+  echo "$rc" >"$e.exit"
+  echo "== $label exit=$rc ($e.{cmd,stdout,stderr,exit})"
+  head -c 4000 "$e.stdout"; [[ -s "$e.stderr" ]] && { echo "-- stderr:"; head -c 2000 "$e.stderr"; }
+  return 0
+}
+
+# edit <label> <file relative to sandbox> <sed expression>: edit a sandbox input, record the diff
+cmd_edit() {
+  local label="${1:?label}" f="${2:?file}" expr="${3:?sed expr}"
+  local d; d="$(run_dir)"
+  [[ -f "$d/sandbox/$f" ]] || die "no $f in sandbox"
+  sed -i '' -e "$expr" "$d/sandbox/$f"
+  (cd "$d/sandbox" && jj diff --git -- "$f") >"$d/evidence/$label.diff"
+  echo "== $label edit ($d/evidence/$label.diff)"; cat "$d/evidence/$label.diff"
+}
+
+# sh <label> <shell command>: run a command inside the sandbox, captured like run
+cmd_sh() {
+  local label="${1:?label}"; shift
+  local d; d="$(run_dir)"; local e="$d/evidence/$label"; local rc=0
+  printf '%s\n' "$*" >"$e.cmd"
+  (cd "$d/sandbox" && PATH="$REPO/.bin:$PATH" bash -c "$*" >"$e.stdout" 2>"$e.stderr") || rc=$?
+  echo "$rc" >"$e.exit"
+  echo "== $label exit=$rc"; head -c 4000 "$e.stdout"; [[ -s "$e.stderr" ]] && { echo "-- stderr:"; head -c 2000 "$e.stderr"; }
+  return 0
+}
+
+# reset: discard sandbox edits back to baseline
+cmd_reset() { local d; d="$(run_dir)"; (cd "$d/sandbox" && jj restore >/dev/null 2>&1); echo "sandbox restored to baseline"; }
+
+# cleanup: delete the sandbox only; evidence stays
+cmd_cleanup() {
+  local d; d="$(run_dir)"
+  rm -rf "$d/sandbox"
+  echo "removed $d/sandbox; evidence kept at $d/evidence"
+}
+
+case "${1:-}" in
+  launch) shift; cmd_launch "$@" ;;
+  doctor) cmd_doctor ;;
+  run) shift; cmd_run "$@" ;;
+  edit) shift; cmd_edit "$@" ;;
+  sh) shift; cmd_sh "$@" ;;
+  reset) cmd_reset ;;
+  cleanup) cmd_cleanup ;;
+  *) sed -n '2,3p' "$0"; echo "commands: launch [--fixture] | doctor | run <label> <gcd args> | edit <label> <file> <sed> | sh <label> <cmd> | reset | cleanup"; exit 2 ;;
+esac

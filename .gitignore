@@ -5,3 +5,5 @@
 
 # generated; lives on the rendered branch (ADR 0002). `gcd render` writes it locally.
 /rendered/
+# verify-gcd skill evidence + sandboxes
+/.verify/
