@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -165,6 +166,7 @@ func TestEmbedHunksAdjacentAndSingle(t *testing.T) {
 
 func TestEmbedHunkErrors(t *testing.T) {
 	const p = "<!-- embed path=systems/payments/apps/my-app/app.yml lines="
+	n := strings.Count(fixtureFile(t, "systems/payments/apps/my-app/app.yml"), "\n")
 	for _, tc := range []struct{ lines, msg string }{
 		{`"(9-10;'x')"`, "hunk options are key='value': (9-10;'x')"},
 		{`"(9-10;foo='x')"`, `unknown hunk option "foo"`},
@@ -172,7 +174,7 @@ func TestEmbedHunkErrors(t *testing.T) {
 		{`"9-10,1-2"`, "hunks must be in order without overlap: 9-10,1-2"},
 		{`"(9-10;text='x)"`, "unterminated quote"},
 		{`"(9-10"`, "unbalanced parentheses"},
-		{`"1-2,,3"`, "lines must be A-B with 1 <= A <= B <= 44"},
+		{`"1-2,,3"`, fmt.Sprintf("lines must be A-B with 1 <= A <= B <= %d", n)},
 		{`"1-2`, "unterminated quote"},
 	} {
 		page := p + tc.lines + " -->\nkeep\n<!-- /embed -->\n"
