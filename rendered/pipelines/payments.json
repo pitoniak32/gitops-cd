@@ -61,7 +61,7 @@
             "environment": "dev",
             "environmentType": "dev",
             "path": "apps/payments/my-app/dev/us-east4-dev-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           },
           "dc1-dev-k8s": {
             "cluster": "dc1",
@@ -70,7 +70,7 @@
             "environment": "dev",
             "environmentType": "dev",
             "path": "apps/payments/my-app/dev/dc1-dev-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
@@ -88,7 +88,7 @@
             "environment": "staging",
             "environmentType": "npr",
             "path": "apps/payments/my-app/staging/us-east4-npr-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           },
           "dc1-npr-k8s": {
             "cluster": "dc1",
@@ -97,7 +97,7 @@
             "environment": "staging",
             "environmentType": "npr",
             "path": "apps/payments/my-app/staging/dc1-npr-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
@@ -115,7 +115,7 @@
             "environment": "perf",
             "environmentType": "npr",
             "path": "apps/payments/my-app/perf/us-east4-npr-k8s-perf",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
@@ -134,7 +134,7 @@
             "environment": "prod",
             "environmentType": "prd",
             "path": "apps/payments/my-app/prod/us-east4-prd-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           },
           "dc1-prd-k8s": {
             "cluster": "dc1",
@@ -143,7 +143,7 @@
             "environment": "prod",
             "environmentType": "prd",
             "path": "apps/payments/my-app/prod/dc1-prd-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       }
@@ -177,7 +177,7 @@
             "environment": "dev",
             "environmentType": "dev",
             "path": "apps/payments/worker/dev/us-east4-dev-k8s",
-            "deployWith": "gha"
+            "deployWith": "argocd"
           }
         }
       },

@@ -52,7 +52,7 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: us-east4-dev-k8s
-    example.com/deploy-with: argocd
+    example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
@@ -92,11 +92,17 @@ spec:
           value: image
         - name: platform
           value: k8s
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - as: promote
           task:
             kind: ClusterPromotionTask
-            name: promote-argocd
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -109,7 +115,7 @@ metadata:
     example.com/kind: target
     example.com/stage: staging
     example.com/target: us-east4-npr-k8s
-    example.com/deploy-with: argocd
+    example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
@@ -150,11 +156,17 @@ spec:
           value: image
         - name: platform
           value: k8s
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - as: promote
           task:
             kind: ClusterPromotionTask
-            name: promote-argocd
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -167,7 +179,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: us-east4-prd-k8s
-    example.com/deploy-with: argocd
+    example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
@@ -209,6 +221,12 @@ spec:
           value: image
         - name: platform
           value: k8s
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - as: image-signature-check
           task:
@@ -226,7 +244,7 @@ spec:
         - as: promote
           task:
             kind: ClusterPromotionTask
-            name: promote-argocd
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -239,7 +257,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: dc1-prd-k8s
-    example.com/deploy-with: argocd
+    example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
@@ -281,6 +299,12 @@ spec:
           value: image
         - name: platform
           value: k8s
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - as: image-signature-check
           task:
@@ -298,7 +322,7 @@ spec:
         - as: promote
           task:
             kind: ClusterPromotionTask
-            name: promote-argocd
+            name: promote-gha
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -573,7 +597,7 @@ metadata:
     example.com/kind: target
     example.com/stage: dev
     example.com/target: us-east4-dev-k8s
-    example.com/deploy-with: argocd
+    example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
@@ -613,11 +637,17 @@ spec:
           value: image
         - name: platform
           value: k8s
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - as: promote
           task:
             kind: ClusterPromotionTask
-            name: promote-argocd
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -630,7 +660,7 @@ metadata:
     example.com/kind: target
     example.com/stage: staging
     example.com/target: us-east4-npr-k8s
-    example.com/deploy-with: argocd
+    example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
@@ -671,11 +701,17 @@ spec:
           value: image
         - name: platform
           value: k8s
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - as: promote
           task:
             kind: ClusterPromotionTask
-            name: promote-argocd
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -688,7 +724,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: us-east4-prd-k8s
-    example.com/deploy-with: argocd
+    example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
@@ -730,6 +766,12 @@ spec:
           value: image
         - name: platform
           value: k8s
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - as: image-signature-check
           task:
@@ -747,7 +789,7 @@ spec:
         - as: promote
           task:
             kind: ClusterPromotionTask
-            name: promote-argocd
+            name: promote-gha
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -760,7 +802,7 @@ metadata:
     example.com/kind: target
     example.com/stage: prod
     example.com/target: dc1-prd-k8s
-    example.com/deploy-with: argocd
+    example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
     example.com/break-glass: '[]'
@@ -802,6 +844,12 @@ spec:
           value: image
         - name: platform
           value: k8s
+        - name: workflowRepo
+          value: pitoniak32/gitops-cd
+        - name: workflowFile
+          value: deploy.yaml
+        - name: workflowRef
+          value: main
       steps:
         - as: image-signature-check
           task:
@@ -819,7 +867,7 @@ spec:
         - as: promote
           task:
             kind: ClusterPromotionTask
-            name: promote-argocd
+            name: promote-gha
 ---
 apiVersion: v1
 kind: ServiceAccount

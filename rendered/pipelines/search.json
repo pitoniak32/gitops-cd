@@ -15,7 +15,7 @@
             "environment": "dev",
             "environmentType": "dev",
             "path": "apps/search/api/dev/us-east4-dev-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
@@ -33,7 +33,7 @@
             "environment": "staging",
             "environmentType": "npr",
             "path": "apps/search/api/staging/us-east4-npr-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
@@ -51,7 +51,7 @@
             "environment": "prod",
             "environmentType": "prd",
             "path": "apps/search/api/prod/us-east4-prd-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           },
           "dc1-prd-k8s": {
             "cluster": "dc1",
@@ -60,7 +60,7 @@
             "environment": "prod",
             "environmentType": "prd",
             "path": "apps/search/api/prod/dc1-prd-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       }
@@ -93,7 +93,7 @@
             "environment": "dev",
             "environmentType": "dev",
             "path": "apps/search/frontend/dev/us-east4-dev-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
@@ -111,7 +111,7 @@
             "environment": "staging",
             "environmentType": "npr",
             "path": "apps/search/frontend/staging/us-east4-npr-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       },
@@ -129,7 +129,7 @@
             "environment": "prod",
             "environmentType": "prd",
             "path": "apps/search/frontend/prod/us-east4-prd-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           },
           "dc1-prd-k8s": {
             "cluster": "dc1",
@@ -138,7 +138,7 @@
             "environment": "prod",
             "environmentType": "prd",
             "path": "apps/search/frontend/prod/dc1-prd-k8s",
-            "deployWith": "argocd"
+            "deployWith": "gha"
           }
         }
       }

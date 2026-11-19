@@ -10,11 +10,7 @@ spec:
     - name: in-cluster
       namespace: payments-us-dev
     - name: in-cluster
-      namespace: payments-us-perf
-    - name: in-cluster
       namespace: payments-us-prod
-    - name: in-cluster
-      namespace: payments-us-stg
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace
@@ -22,20 +18,10 @@ spec:
     - group: '*'
       kind: '*'
   roles:
-    - name: viewer-my-app
-      description: read-only view of payments/my-app for its promoters and viewers
-      policies:
-        - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-us-east4-dev-k8s, allow
-        - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-us-east4-npr-k8s, allow
-        - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-us-east4-npr-k8s-perf, allow
-        - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-us-east4-prd-k8s, allow
-      groups:
-        - bob@example.com
-        - doug@example.com
-        - grace@example.com
     - name: viewer-worker
       description: read-only view of payments/worker for its promoters and viewers
       policies:
+        - p, proj:payments:viewer-worker, applications, get, payments/payments-worker-us-east4-dev-k8s, allow
         - p, proj:payments:viewer-worker, applications, get, payments/payments-worker-us-east4-prd-k8s, allow
       groups:
         - bob@example.com
