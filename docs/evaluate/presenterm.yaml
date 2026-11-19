@@ -1,0 +1,7 @@
+# presenterm config for slides.md: presenterm -c docs/evaluate/presenterm.yaml docs/evaluate/slides.md
+# Fixed 26x100 slide area, centered in the terminal; slides.md new_lines pads assume max_rows: 26.
+defaults:
+  max_rows: 26
+  max_rows_alignment: center
+  max_columns: 100
+  max_columns_alignment: center

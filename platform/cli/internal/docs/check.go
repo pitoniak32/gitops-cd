@@ -32,6 +32,9 @@ var (
 	fragRx   = regexp.MustCompile(`(?:^|\s)fragment(?:\s|$)`)
 )
 
+// Decks are presenterm slide decks, skipped by Check: presenterm rejects fence annotations.
+var Decks = map[string]bool{EvaluateDir + "/slides.md": true}
+
 type block struct {
 	page     string // docs/guide/<page>.md
 	line     int    // the opening fence
@@ -84,6 +87,9 @@ func Check(root string) ([]system.Diag, error) {
 			return nil, err
 		}
 		for _, p := range pages {
+			if Decks[dir+"/"+filepath.Base(p)] {
+				continue
+			}
 			b, err := os.ReadFile(p)
 			if err != nil {
 				return nil, err
