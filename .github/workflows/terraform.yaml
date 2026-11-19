@@ -41,7 +41,11 @@ jobs:
         with:
           ref: ${{ inputs.commit }}
           path: target
-      # yq is on GitHub's ubuntu runners; real terraform steps (below): hashicorp/setup-terraform
+      # yq is on GitHub's ubuntu runners; terraform + oras are not
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.7
+          terraform_wrapper: false
       - uses: oras-project/setup-oras@v1
         with:
           version: 1.3.0
