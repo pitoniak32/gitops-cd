@@ -9,7 +9,7 @@ You own a system under `systems/` and want to deploy, change config, or promote.
 1. [Concepts](guide/concepts.md): system, app, stage, target, Freight, and how a YAML change reaches a cluster.
 2. [Onboard a system](guide/onboard.md): team file, `owners.yml`, first stage, target and app.
 3. [Configure apps](guide/apps.md): image or module, layered overrides, env, secrets, resources.
-4. [Targets and stages](guide/targets-stages.md): naming, platforms (K8S, TERRAFORM, CLOUD_RUN), `deployWith: gha`, pre-deploy checks.
+4. [Targets and stages](guide/targets-stages.md): naming, platforms (K8S, TERRAFORM, CLOUD_RUN), `deployWith` (gha default, argocd), pre-deploy checks.
 5. [Promote and access](guide/promote-access.md): promoters, viewers, break-glass, what you see in Kargo and Argo CD.
 6. [Working loop](guide/workflow.md): `gcd schema`, `gcd show`, `gcd lint`, the PR diff comment.
 7. [Troubleshooting](guide/troubleshooting.md): common lint errors and "merged but not deployed".

@@ -203,7 +203,7 @@ func platformNames(artifact string) []string {
 }
 
 // the last layer, under the platform's
-var defaults = layer{replicas: intp(2), cpu: "100m", memory: "128Mi", deployWith: "argocd", note: "global default"}
+var defaults = layer{replicas: intp(2), cpu: "100m", memory: "128Mi", deployWith: "gha", note: "global default"}
 
 // What an app ships (exactly one of app.yml image / module); the name is also the Freight artifact's
 // name in dispatch inputs and commit messages. A terraform app is always applied by a workflow.

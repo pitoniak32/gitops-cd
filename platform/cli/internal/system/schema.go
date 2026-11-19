@@ -189,8 +189,8 @@ var (
 			{name: "cpu", desc: "CPU, whole cores or millicores (100m)", s: strRe(`^[0-9]+m?$`, "")},
 			{name: "memory", desc: "memory in Mi or Gi (128Mi)", s: strRe(`^[0-9]+(Mi|Gi)$`, "")},
 		}}},
-		// argocd (default) syncs the target's Argo CD app; gha dispatches `workflow` (ADR 0020)
-		{name: "deployWith", desc: "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow", s: &schema{kind: "str", enum: []string{"argocd", "gha"}, msg: "expected argocd or gha"}},
+		// gha (default) dispatches `workflow`; argocd syncs the target's Argo CD app (ADR 0020)
+		{name: "deployWith", desc: "gha (default) dispatches a GitHub Actions workflow; argocd syncs the target's Argo CD app", s: &schema{kind: "str", enum: []string{"argocd", "gha"}, msg: "expected argocd or gha"}},
 		{name: "workflow", desc: "GitHub Actions workflow dispatched when deployWith is gha", s: &schema{kind: "map", fields: []field{
 			{name: "repo", desc: "workflow repository, <owner>/<name>", s: strRe(ghRepoRx, "expected <owner>/<name>")},
 			{name: "file", desc: "workflow file name, .yml or .yaml", s: strRe(`^[A-Za-z0-9_.-]+\.ya?ml$`, "expected a .yml or .yaml file name")},

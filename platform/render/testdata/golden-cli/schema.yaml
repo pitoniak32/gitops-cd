@@ -33,7 +33,7 @@ envFrom:                        # names of the target's environment-variables fi
 resources:                      # container resource requests
   cpu: <str>                    # /^[0-9]+m?$/ — CPU, whole cores or millicores (100m)
   memory: <str>                 # /^[0-9]+(Mi|Gi)$/ — memory in Mi or Gi (128Mi)
-deployWith: argocd|gha          # argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow
+deployWith: argocd|gha          # gha (default) dispatches a GitHub Actions workflow; argocd syncs the target's Argo CD app
 workflow:                       # GitHub Actions workflow dispatched when deployWith is gha
   repo: <str>                   # /^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$/ — workflow repository, <owner>/<name>
   file: <str>                   # /^[A-Za-z0-9_.-]+\.ya?ml$/ — workflow file name, .yml or .yaml
@@ -54,7 +54,7 @@ stages:                         # stages the app deploys through, by stage name,
     resources:                  # container resource requests
       cpu: <str>                # /^[0-9]+m?$/ — CPU, whole cores or millicores (100m)
       memory: <str>             # /^[0-9]+(Mi|Gi)$/ — memory in Mi or Gi (128Mi)
-    deployWith: argocd|gha      # argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow
+    deployWith: argocd|gha      # gha (default) dispatches a GitHub Actions workflow; argocd syncs the target's Argo CD app
     workflow:                   # GitHub Actions workflow dispatched when deployWith is gha
       repo: <str>               # /^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$/ — workflow repository, <owner>/<name>
       file: <str>               # /^[A-Za-z0-9_.-]+\.ya?ml$/ — workflow file name, .yml or .yaml
@@ -70,7 +70,7 @@ stages:                         # stages the app deploys through, by stage name,
         resources:              # container resource requests
           cpu: <str>            # /^[0-9]+m?$/ — CPU, whole cores or millicores (100m)
           memory: <str>         # /^[0-9]+(Mi|Gi)$/ — memory in Mi or Gi (128Mi)
-        deployWith: argocd|gha  # argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow
+        deployWith: argocd|gha  # gha (default) dispatches a GitHub Actions workflow; argocd syncs the target's Argo CD app
         workflow:               # GitHub Actions workflow dispatched when deployWith is gha
           repo: <str>           # /^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$/ — workflow repository, <owner>/<name>
           file: <str>           # /^[A-Za-z0-9_.-]+\.ya?ml$/ — workflow file name, .yml or .yaml

@@ -21,7 +21,7 @@
       [34mresources[0m:
         [34mcpu[0m: 250m                                                [2m# apps/my-app/app.yml:22[0m
         [34mmemory[0m: 256Mi                                            [2m# apps/my-app/app.yml:23[0m
-      [34mdeployWith[0m: argocd                                         [2m# global default[0m
+      [34mdeployWith[0m: argocd                                         [2m# apps/my-app/app.yml:45[0m
       [34mautoPromote[0m: true                                          [2m# stages/dev.yml:2[0m
       [34menvFrom[0m:
         - launchdarkly                                           [2m# apps/my-app/app.yml:11[0m
@@ -46,7 +46,7 @@
       [34mresources[0m:
         [34mcpu[0m: 100m                                                [2m# global default[0m
         [34mmemory[0m: 128Mi                                            [2m# global default[0m
-      [34mdeployWith[0m: argocd                                         [2m# global default[0m
+      [34mdeployWith[0m: argocd                                         [2m# apps/my-app/app.yml:45[0m
       [34mautoPromote[0m: true                                          [2m# stages/dev.yml:2[0m
       [34menvFrom[0m:
         - launchdarkly                                           [2m# apps/my-app/app.yml:11[0m

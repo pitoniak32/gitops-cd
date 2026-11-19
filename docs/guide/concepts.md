@@ -42,8 +42,8 @@ flowchart LR
   wh -->|promoter assembles| fr["Freight"]
   fr -->|promote| st["Kargo Stage per target"]
   st -->|copy + pin digest| tb["branch env/sys/app/target"]
-  tb --> argo["Argo CD sync"]
-  st -->|deployWith: gha| gha["GitHub Actions workflow"]
+  tb -->|deployWith: argocd| argo["Argo CD sync"]
+  st -->|default| gha["GitHub Actions workflow"]
 ```
 
 1. **PR**: CI lints your YAML, renders it, and comments the rendered diff on the PR.
@@ -55,8 +55,8 @@ flowchart LR
    pinned by digest, is a Freight ([ADR 0016](../adr/0016-image-discovery-freight-assembly.md)).
 5. **Promote**: each target is a Kargo Stage ([ADR 0012](../adr/0012-kargo-stage-per-target.md)).
    Promoting copies the target's manifests onto its own branch `env/<sys>/<app>/<target>` and pins the
-   digest; that target's Argo CD app syncs it. Targets with `deployWith: gha` dispatch a GitHub Actions
-   workflow instead.
+   digest; then Kargo dispatches a GitHub Actions workflow and waits for it. K8S targets with
+   `deployWith: argocd` are synced by their Argo CD app instead.
 
 Freight then moves down your stage graph: once it's verified in `dev`, it can be promoted to stages that
 depend on `dev`, by the people allowed to promote there ([promote and access](promote-access.md)).

@@ -115,7 +115,7 @@ gcd show payments/my-app --stage dev --target dc1-dev-k8s -s
       resources:
         cpu: 250m                                                # apps/my-app/app.yml:22
         memory: 256Mi                                            # apps/my-app/app.yml:23
-      deployWith: argocd                                         # global default
+      deployWith: argocd                                         # apps/my-app/app.yml:45
       envFrom:
         - launchdarkly                                           # apps/my-app/app.yml:11
       env:
@@ -157,6 +157,7 @@ Fields: [reference/env-vars.md](../reference/env-vars.md).
 
 ## Deploying with GitHub Actions
 
-`deployWith: gha` plus `workflow` (`repo`, `file`, `ref`) makes Kargo dispatch a workflow instead of syncing
-Argo CD. It's a layer field, so it can apply to just one target, as `dc1-npr-k8s` does above. Details:
+`deployWith` defaults to `gha`: Kargo dispatches `workflow` (`repo`, `file`, `ref`) and waits for the run.
+`deployWith: argocd` syncs the target's Argo CD app instead. It's a layer field: my-app sets `argocd` at the
+app level and `dc1-npr-k8s` switches back to `gha`. Details:
 [targets and stages](targets-stages.md#deploy-with-github-actions).

@@ -55,6 +55,7 @@ stages:
     targets:
       us-east4-prd-k8s: {}
       dc1-prd-k8s: {}
+deployWith: argocd  # default is gha
 ```
 
 Source: [`payments/apps/my-app/app.yml`](../../platform/render/testdata/root/systems/payments/apps/my-app/app.yml)
@@ -223,8 +224,8 @@ CLOUD_RUN defaults `resources` to 1 CPU and `512Mi`. Resources are requests.
 
 ## Deploying with GitHub Actions
 
-`deployWith` picks how a K8S target is deployed: `argocd` (default) syncs the target's Argo CD
-application; `gha` makes the Kargo Stage dispatch a GitHub Actions workflow and wait for its run
+`deployWith` picks how a K8S target is deployed: `gha` (default) makes the Kargo Stage dispatch a GitHub
+Actions workflow and wait for its run; `argocd` syncs the target's Argo CD application
 ([ADR 0020](../adr/0020-github-actions-deploy.md)). CLOUD_RUN and TERRAFORM targets always use GitHub
 Actions.
 

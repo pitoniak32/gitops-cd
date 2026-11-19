@@ -109,7 +109,7 @@ The fully merged configuration of one app on one target.
 _Avoid_: instance, release
 
 **Deploy with**:
-How promotion applies a deploy: `argocd` (sync its Argo CD Application, default) or `gha` (dispatch a GitHub Actions `workflow` and wait for the run). A layer field, so it can differ per stage or target (ADR 0020).
+How promotion applies a deploy: `gha` (dispatch a GitHub Actions `workflow` and wait for the run, default) or `argocd` (sync its Argo CD Application, K8S only). A layer field, so it can differ per stage or target (ADR 0020).
 _Avoid_: deployer (a person who ships is a promoter), runner
 
 **Pipeline**:

@@ -42,3 +42,4 @@ stages:
     targets:
       us-east4-prd-k8s: {}
       dc1-prd-k8s: {}
+deployWith: argocd  # default is gha

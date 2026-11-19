@@ -216,7 +216,7 @@
           "argocd",
           "gha"
         ],
-        "desc": "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow",
+        "desc": "gha (default) dispatches a GitHub Actions workflow; argocd syncs the target's Argo CD app",
         "example": "platform/render/testdata/root/systems/payments/apps/flagged/app.yml:8"
       },
       {
@@ -355,7 +355,7 @@
                 "argocd",
                 "gha"
               ],
-              "desc": "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow",
+              "desc": "gha (default) dispatches a GitHub Actions workflow; argocd syncs the target's Argo CD app",
               "example": "platform/render/testdata/root/systems/payments/apps/worker/app.yml:9"
             },
             {
@@ -458,7 +458,7 @@
                       "argocd",
                       "gha"
                     ],
-                    "desc": "argocd (default) syncs the target's Argo CD app; gha dispatches a GitHub Actions workflow",
+                    "desc": "gha (default) dispatches a GitHub Actions workflow; argocd syncs the target's Argo CD app",
                     "example": "platform/render/testdata/root/systems/payments/apps/my-app/app.yml:30"
                   },
                   {

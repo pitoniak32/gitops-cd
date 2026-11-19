@@ -88,7 +88,12 @@ func TestShowYAMLParses(t *testing.T) {
 	}
 	// the source of a target-layer value is the target file, relative to the system
 	out, _, _ := runShow(t, root, "payments/my-app", "--stage", "dev", "--target", "dc1-dev-k8s", "-s")
-	if !strings.Contains(out, "# targets/dc1-dev-k8s/target.yml:3") || !strings.Contains(out, "# global default") {
+	if !strings.Contains(out, "# targets/dc1-dev-k8s/target.yml:3") {
+		t.Errorf("sources:\n%s", out)
+	}
+	// a value no layer sets: resources on us-east4-dev-k8s
+	out, _, _ = runShow(t, root, "payments/my-app", "--stage", "dev", "--target", "us-east4-dev-k8s", "-s")
+	if !strings.Contains(out, "# global default") {
 		t.Errorf("sources:\n%s", out)
 	}
 }

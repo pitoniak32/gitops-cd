@@ -81,7 +81,8 @@
         {
           "path": "deployWith",
           "value": "argocd",
-          "note": "global default"
+          "file": "systems/payments/apps/my-app/app.yml",
+          "line": 45
         },
         {
           "path": "autoPromote",
@@ -206,7 +207,8 @@
         {
           "path": "deployWith",
           "value": "argocd",
-          "note": "global default"
+          "file": "systems/payments/apps/my-app/app.yml",
+          "line": 45
         },
         {
           "path": "autoPromote",
@@ -450,7 +452,8 @@
         {
           "path": "deployWith",
           "value": "argocd",
-          "note": "global default"
+          "file": "systems/payments/apps/my-app/app.yml",
+          "line": 45
         },
         {
           "path": "autoPromote",
@@ -550,7 +553,8 @@
         {
           "path": "deployWith",
           "value": "argocd",
-          "note": "global default"
+          "file": "systems/payments/apps/my-app/app.yml",
+          "line": 45
         },
         {
           "path": "autoPromote",
@@ -652,7 +656,8 @@
         {
           "path": "deployWith",
           "value": "argocd",
-          "note": "global default"
+          "file": "systems/payments/apps/my-app/app.yml",
+          "line": 45
         },
         {
           "path": "autoPromote",
@@ -754,7 +759,8 @@
         {
           "path": "deployWith",
           "value": "argocd",
-          "note": "global default"
+          "file": "systems/payments/apps/my-app/app.yml",
+          "line": 45
         },
         {
           "path": "autoPromote",

@@ -92,8 +92,8 @@ Here `environmentType: npr` means lint wants the directory to be named `us-east4
 
 `platform` decides what the target needs and what apps can deploy there.
 
-**K8S** (default): a cluster from the platform registry plus a namespace. Image apps. Deploys with Argo CD
-unless `deployWith: gha`.
+**K8S** (default): a cluster from the platform registry plus a namespace. Image apps. Deploys with GitHub Actions
+unless `deployWith: argocd`.
 
 <!-- embed path=systems/payments/targets/us-east4-prd-k8s/target.yml -->
 ```yaml
@@ -158,17 +158,17 @@ Lint rejects fields that don't belong to the target's platform, and apps whose a
 
 ## Deploy with GitHub Actions
 
-By default a K8S deploy syncs the target's Argo CD application. `deployWith: gha` makes the Kargo Stage
-dispatch a GitHub Actions workflow and wait for its run instead
-([ADR 0020](../adr/0020-github-actions-deploy.md)). Set it in `app.yml` at any layer, together with
-`workflow`:
+By default the Kargo Stage dispatches a GitHub Actions workflow and waits for its run
+([ADR 0020](../adr/0020-github-actions-deploy.md)). `deployWith: argocd` makes a K8S target sync its
+Argo CD application instead. Set it in `app.yml` at any layer; `workflow` picks the workflow for `gha`:
 
 ```yaml fragment
+deployWith: argocd       # every K8S target of this app syncs with Argo CD
 stages:
   staging:
     targets:
       dc1-npr-k8s:
-        deployWith: gha
+        deployWith: gha  # except this one
         workflow:
           repo: acme/deploys   # default: this repo
           file: onprem.yml     # default: the platform's (deploy.yaml for K8S)

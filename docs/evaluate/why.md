@@ -154,7 +154,7 @@ Deploy methods are chosen per target, and every one promotes the same way:
 
 | Target | Deploys with |
 |---|---|
-| K8S | Argo CD sync (default), or `deployWith: gha` for a team's own workflow ([ADR 0020](../adr/0020-github-actions-deploy.md)) |
+| K8S | a GitHub Actions workflow (default), or `deployWith: argocd` for an Argo CD sync ([ADR 0020](../adr/0020-github-actions-deploy.md)) |
 | CLOUD_RUN | the platform's `cloud-run.yaml` workflow ([ADR 0024](../adr/0024-cloud-run-targets.md)) |
 | TERRAFORM | the platform's `terraform.yaml` workflow, plan then apply ([ADR 0021](../adr/0021-terraform-apps.md)) |
 

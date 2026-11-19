@@ -12,3 +12,4 @@ stages:
     replicas: 3
     targets:
       us-east4-prd-k8s: {}
+deployWith: argocd  # default is gha

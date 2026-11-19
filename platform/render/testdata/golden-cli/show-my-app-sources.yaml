@@ -24,7 +24,7 @@ my-app:
       resources:
         cpu: 250m                                                      # apps/my-app/app.yml:22
         memory: 256Mi                                                  # apps/my-app/app.yml:23
-      deployWith: argocd                                               # global default
+      deployWith: argocd                                               # apps/my-app/app.yml:45
       autoPromote: true                                                # stages/dev.yml:2
       envFrom:
         - launchdarkly                                                 # apps/my-app/app.yml:11
@@ -49,7 +49,7 @@ my-app:
       resources:
         cpu: 100m                                                      # global default
         memory: 128Mi                                                  # global default
-      deployWith: argocd                                               # global default
+      deployWith: argocd                                               # apps/my-app/app.yml:45
       autoPromote: true                                                # stages/dev.yml:2
       envFrom:
         - launchdarkly                                                 # apps/my-app/app.yml:11
@@ -99,7 +99,7 @@ my-app:
       resources:
         cpu: 100m                                                      # global default
         memory: 128Mi                                                  # global default
-      deployWith: argocd                                               # global default
+      deployWith: argocd                                               # apps/my-app/app.yml:45
       autoPromote: false                                               # default: manual
       env:
         APP_ENV: "true"                                                # apps/my-app/app.yml:7
@@ -120,7 +120,7 @@ my-app:
       resources:
         cpu: 100m                                                      # global default
         memory: 128Mi                                                  # global default
-      deployWith: argocd                                               # global default
+      deployWith: argocd                                               # apps/my-app/app.yml:45
       autoPromote: false                                               # default: manual
       env:
         APP_ENV: "true"                                                # apps/my-app/app.yml:7
@@ -141,7 +141,7 @@ my-app:
       resources:
         cpu: 500m                                                      # apps/my-app/app.yml:40
         memory: 512Mi                                                  # apps/my-app/app.yml:41
-      deployWith: argocd                                               # global default
+      deployWith: argocd                                               # apps/my-app/app.yml:45
       autoPromote: false                                               # default: manual
       env:
         APP_ENV: "true"                                                # apps/my-app/app.yml:7
@@ -161,7 +161,7 @@ my-app:
       resources:
         cpu: 500m                                                      # apps/my-app/app.yml:40
         memory: 512Mi                                                  # apps/my-app/app.yml:41
-      deployWith: argocd                                               # global default
+      deployWith: argocd                                               # apps/my-app/app.yml:45
       autoPromote: false                                               # default: manual
       env:
         APP_ENV: "true"                                                # apps/my-app/app.yml:7

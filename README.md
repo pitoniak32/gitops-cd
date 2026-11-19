@@ -130,8 +130,8 @@ from `.github/CODEOWNERS.tmpl` + `owners.yml` by `gcd codeowners`; commit it wit
    Nothing is promoted automatically from it: a promoter opens the Warehouse in the Kargo UI and
    **assembles Freight** = a config commit + an image tag (ADR 0016). There's one Kargo Stage per target
    (`<target>`, in the app's project `kargo-<sys>-<app>`, ADR 0029); promoting a target copies its folder to branch `env/<sys>/<app>/<target>`, pins
-   the image digest in its `deployment.yaml`, and Argo CD syncs it from there (ADR 0012), or, for
-   `deployWith: gha` targets, Kargo dispatches a GitHub Actions workflow and waits for it (ADR 0020). Terraform
+   the image digest in its `deployment.yaml`, then Kargo dispatches a GitHub Actions workflow and waits for
+   it (default, ADR 0020), or, for `deployWith: argocd` targets, Argo CD syncs it from there (ADR 0012). Terraform
    apps (`module:` instead of `image:`, TERRAFORM targets) render `terraform.yaml`, pin the module digest in it
    and always dispatch `.github/workflows/terraform.yaml` (plan + apply; ADR 0021). Image apps may also
    have CLOUD_RUN targets: they render a Knative `service.yaml`, pin the image digest in it and always dispatch

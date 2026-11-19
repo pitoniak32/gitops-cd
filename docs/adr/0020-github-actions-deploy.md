@@ -1,8 +1,8 @@
 # GitHub Actions as a deploy method
 
-Some teams deploy with GitHub Actions rather than Argo CD, one target at a time (dev before prod). So each deploy chooses how it is applied. Argo CD stays the default.
+Some teams deploy with GitHub Actions rather than Argo CD, one target at a time (dev before prod). So each deploy chooses how it is applied. GitHub Actions is the default; K8S targets opt into Argo CD with `deployWith: argocd`.
 
-- **`app.yml`**: `deployWith: argocd | gha` and `workflow: {repo, file, ref}` (defaults: this repo, the platform's workflow file, `main`) are layered fields (ADR 0004). TERRAFORM and CLOUD_RUN targets are always `gha` (ADR 0021, 0024).
+- **`app.yml`**: `deployWith: gha | argocd` (default `gha`) and `workflow: {repo, file, ref}` (defaults: this repo, the platform's workflow file, `main`) are layered fields (ADR 0004). TERRAFORM and CLOUD_RUN targets are always `gha` (ADR 0021, 0024).
 - **Rendering**: the target folder is rendered as usual. A `gha` deploy gets no Argo CD params (so no Application) and no AppProject destination. Its target Stage carries `example.com/deploy-with`.
 - **Promotion** (ClusterPromotionTask `promote-gha`, ADR 0027): the same steps through `git-push` (the target branch still records what was deployed), then two Kargo `http` steps:
   - `dispatch`: `POST /repos/<repo>/actions/workflows/<file>/dispatches` with `return_run_details: true` and inputs `system, app, stage, target, commit` (the pushed target-branch commit) plus `image` or `module`. Any non-200 fails the Promotion with GitHub's message.
@@ -12,6 +12,7 @@ Some teams deploy with GitHub Actions rather than Argo CD, one target at a time 
 
 ## Considered Options
 
+- **Argo CD as the default** (the first version): most deploy targets aren't Argo CD (Cloud Run, Terraform, teams' own workflows), so Argo CD is the opt-in.
 - **A per-app switch only**: a team couldn't move dev without prod.
 - **Kargo `gha-dispatch-workflow` / `gha-wait-for-workflow`**: Kargo Enterprise only.
 - **Dispatch without `return_run_details`, then find the run by a correlation input**: more requests and races.
@@ -22,6 +23,7 @@ Some teams deploy with GitHub Actions rather than Argo CD, one target at a time 
 
 ## Consequences
 
+- Locally, only `deployWith: argocd` targets actually run on kind: the example workflows deploy nothing (only `payments/worker` opts in).
 - Switching a target from `argocd` to `gha` deletes its Application, but the workload is orphaned, not removed (ADR 0017). Switching back recreates the Application, which tracks the current target branch.
 - `gcd kargo-restore` re-promotes `gha` targets, which re-dispatches their workflow.
 - The workflow is read from GitHub at dispatch. A missing file, or one without `workflow_dispatch`, fails at `dispatch` (404/422). GitHub.com only: GHES returns 204 without run details.

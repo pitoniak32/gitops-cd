@@ -88,6 +88,7 @@ stages:
   dev:
     targets:
       us-east4-dev-k8s: {}
+deployWith: argocd  # default is gha
 ```
 
 Source: [`search/apps/api/app.yml`](../../platform/render/testdata/root/systems/search/apps/api/app.yml)
