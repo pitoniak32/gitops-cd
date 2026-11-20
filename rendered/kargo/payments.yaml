@@ -355,7 +355,7 @@ spec:
         name: staging
       autoPromotionEnabled: true
     - stageSelector:
-        name: us-east4-dev-cr
+        name: us-east4-dev-k8s
       autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -399,7 +399,7 @@ spec:
         availabilityStrategy: All
         stages:
           - dc1-dev-k8s
-          - us-east4-dev-cr
+          - us-east4-dev-k8s
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
@@ -472,20 +472,21 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
-  name: us-east4-dev-cr
+  name: us-east4-dev-k8s
   namespace: kargo-payments-my-app
   labels:
     example.com/system: payments
     example.com/app: my-app
     example.com/kind: target
     example.com/stage: dev
-    example.com/target: us-east4-dev-cr
+    example.com/target: us-east4-dev-k8s
     example.com/deploy-with: gha
-    example.com/platform: cloudrun
+    example.com/platform: k8s
   annotations:
     example.com/break-glass: '["grace@example.com"]'
     kargo.akuity.io/color: blue
 spec:
+  shard: us-east4
   requestedFreight:
     - origin:
         kind: Warehouse
@@ -499,9 +500,9 @@ spec:
         - name: repo
           value: https://github.com/pitoniak32/gitops-cd
         - name: src
-          value: ./src/rendered/apps/payments/my-app/dev/us-east4-dev-cr/
+          value: ./src/rendered/apps/payments/my-app/dev/us-east4-dev-k8s/
         - name: branch
-          value: env/payments/my-app/us-east4-dev-cr
+          value: env/payments/my-app/us-east4-dev-k8s
         - name: image
           value: ghcr.io/pitoniak32/nginx
         - name: system
@@ -511,19 +512,19 @@ spec:
         - name: stage
           value: dev
         - name: target
-          value: us-east4-dev-cr
+          value: us-east4-dev-k8s
         - name: pinFile
-          value: ./out/service.yaml
+          value: ./out/deployment.yaml
         - name: pinKey
           value: spec.template.spec.containers.0.image
         - name: artifactKey
           value: image
         - name: platform
-          value: cloudrun
+          value: k8s
         - name: workflowRepo
           value: pitoniak32/gitops-cd
         - name: workflowFile
-          value: cloud-run.yaml
+          value: deploy.yaml
         - name: workflowRef
           value: main
       steps:
@@ -972,7 +973,7 @@ rules:
     resourceNames:
       - dc1-dev-k8s
       - dev
-      - us-east4-dev-cr
+      - us-east4-dev-k8s
     verbs:
       - promote
   - apiGroups:
