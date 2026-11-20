@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <!-- Platform team (kangaroo) builds the slide; app team (octo-cat) rides it. Flat style, catppuccin frappe. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#292c3c"/>
+      <stop offset="1" stop-color="#3b3f54"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#8caaee" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#8caaee" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="chute" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e78284"/>
+      <stop offset="1" stop-color="#ef9f76"/>
+    </linearGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a6d189"/>
+      <stop offset="1" stop-color="#81b06b"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <circle cx="610" cy="150" r="230" fill="url(#glow)"/>
+
+  <!-- ground -->
+  <path d="M0 392 C180 376 360 388 520 384 C640 381 730 378 800 382 V450 H0Z" fill="url(#hill)"/>
+  <ellipse cx="600" cy="392" rx="90" ry="6" fill="#000" opacity="0.12"/>
+  <ellipse cx="250" cy="393" rx="150" ry="6" fill="#000" opacity="0.10"/>
+
+  <!-- tower -->
+  <g filter="url(#shadow)">
+    <rect x="552" y="160" width="12" height="232" rx="6" fill="#8caaee"/>
+    <rect x="636" y="160" width="12" height="232" rx="6" fill="#8caaee"/>
+    <g fill="#99d1db">
+      <rect x="560" y="205" width="80" height="7" rx="3.5"/>
+      <rect x="560" y="250" width="80" height="7" rx="3.5"/>
+      <rect x="560" y="295" width="80" height="7" rx="3.5"/>
+      <rect x="560" y="340" width="80" height="7" rx="3.5"/>
+    </g>
+    <rect x="536" y="146" width="128" height="18" rx="9" fill="#babbf1"/>
+  </g>
+  <text x="600" y="159" font-family="Inter, Helvetica, Arial, sans-serif" font-size="11" font-weight="600"
+        letter-spacing="0.5" fill="#303446" text-anchor="middle">gitops-cd</text>
+
+  <!-- chute -->
+  <g filter="url(#shadow)">
+    <path d="M542 156 C468 166 432 232 366 298 C316 348 236 370 140 372
+             Q128 373 128 384 Q128 394 140 394
+             C246 392 334 368 390 316 C456 256 492 190 548 178 Z"
+          fill="url(#chute)"/>
+  </g>
+  <path d="M542 156 C468 166 432 232 366 298 C316 348 236 370 140 372" fill="none"
+        stroke="#f2d5cf" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+  <rect x="296" y="346" width="9" height="46" rx="4.5" fill="#8caaee"/>
+  <!-- bolts -->
+  <g fill="#f2d5cf">
+    <circle cx="526" cy="167" r="4"/><circle cx="470" cy="206" r="4"/>
+  </g>
+
+  <!-- KANGAROO (platform team) -->
+  <g transform="translate(604 146)">
+    <!-- tail -->
+    <path d="M18 -14 C48 -12 72 -6 84 2 C88 5 84 9 79 8 C64 4 44 2 20 2 Z" fill="#a8734d"/>
+    <!-- foot -->
+    <path d="M-30 0 C-30 -8 -8 -10 12 -8 C20 -7 22 0 14 0 Z" fill="#8f603f"/>
+    <!-- body -->
+    <path d="M-20 -6 C-30 -40 -22 -76 2 -84 C26 -90 38 -60 32 -30 C28 -12 16 -2 -2 -2 C-10 -2 -16 -3 -20 -6 Z" fill="#c68b5f"/>
+    <!-- belly -->
+    <path d="M-12 -12 C-18 -36 -12 -62 2 -66 C14 -68 18 -46 14 -26 C12 -16 4 -10 -4 -10 Z" fill="#ecd2b2"/>
+    <!-- tool belt -->
+    <path d="M-22 -36 Q6 -30 32 -38 L32 -30 Q6 -22 -22 -28 Z" fill="#626880"/>
+    <rect x="0" y="-37" width="9" height="9" rx="2" fill="#e5c890"/>
+    <!-- arm + wrench toward the top bolt -->
+    <path d="M-6 -64 C-26 -58 -50 -40 -70 -24" fill="none" stroke="#c68b5f" stroke-width="9" stroke-linecap="round"/>
+    <g transform="translate(-74 -20) rotate(38)">
+      <rect x="-2" y="-2.5" width="22" height="5" rx="2.5" fill="#c6d0f5"/>
+      <circle cx="-4" cy="0" r="6" fill="#c6d0f5"/>
+      <circle cx="-7" cy="0" r="3" fill="#3b3f54"/>
+    </g>
+    <!-- head -->
+    <path d="M-8 -84 C-20 -86 -34 -92 -40 -98 C-44 -102 -40 -108 -34 -108 C-22 -112 -6 -112 6 -104 C14 -98 10 -84 -8 -84 Z" fill="#c68b5f"/>
+    <circle cx="-40" cy="-102" r="3" fill="#3b3f54"/>
+    <!-- ears -->
+    <path d="M0 -106 C-2 -122 2 -134 8 -138 C12 -130 12 -116 6 -104 Z" fill="#c68b5f"/>
+    <path d="M8 -104 C10 -118 18 -128 24 -130 C26 -120 20 -108 12 -100 Z" fill="#a8734d"/>
+    <!-- eye -->
+    <circle cx="-14" cy="-99" r="3.6" fill="#303446"/>
+    <circle cx="-13" cy="-100" r="1.2" fill="#fff"/>
+    <!-- hard hat -->
+    <path d="M-22 -108 C-22 -122 8 -126 10 -110 Z" fill="#e5c890"/>
+    <rect x="-26" y="-111" width="40" height="5" rx="2.5" fill="#e5c890"/>
+    <!-- smile -->
+    <path d="M-34 -94 Q-28 -90 -22 -93" fill="none" stroke="#5c3d28" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
+
+  <!-- OCTO-CAT (app team) riding down -->
+  <g transform="translate(414 226) rotate(-16)">
+    <!-- tentacles streaming uphill -->
+    <g fill="none" stroke="#ca9ee6" stroke-width="8" stroke-linecap="round">
+      <path d="M18 12 C38 6 54 -6 72 -8"/>
+      <path d="M18 18 C40 18 58 10 78 10"/>
+      <path d="M12 23 C34 30 54 28 72 32"/>
+      <path d="M4 26 C22 40 42 44 58 50"/>
+    </g>
+    <!-- arms up -->
+    <path d="M-20 -8 C-34 -20 -40 -34 -38 -48" fill="none" stroke="#ca9ee6" stroke-width="8" stroke-linecap="round"/>
+    <path d="M14 -12 C20 -28 18 -42 10 -52" fill="none" stroke="#ca9ee6" stroke-width="8" stroke-linecap="round"/>
+    <!-- head -->
+    <path d="M-24 -10 L-24 -34 L-6 -22 Z" fill="#ca9ee6" stroke="#ca9ee6" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M24 -10 L24 -34 L6 -22 Z" fill="#ca9ee6" stroke="#ca9ee6" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M-20 -14 L-20 -27 L-11 -20 Z" fill="#f4b8e4"/>
+    <path d="M20 -14 L20 -27 L11 -20 Z" fill="#f4b8e4"/>
+    <circle cx="0" cy="0" r="27" fill="#ca9ee6"/>
+    <ellipse cx="0" cy="6" rx="19" ry="14" fill="#f2d5cf"/>
+    <circle cx="-7" cy="2" r="3.6" fill="#303446"/><circle cx="7" cy="2" r="3.6" fill="#303446"/>
+    <circle cx="-6" cy="1" r="1.2" fill="#fff"/><circle cx="8" cy="1" r="1.2" fill="#fff"/>
+    <ellipse cx="0" cy="13" rx="4.5" ry="3.6" fill="#e78284"/>
+  </g>
+  <!-- motion lines -->
+  <g stroke="#f2d5cf" stroke-width="2.5" stroke-linecap="round" opacity="0.55">
+    <line x1="452" y1="172" x2="474" y2="157"/><line x1="466" y1="186" x2="494" y2="167"/>
+  </g>
+
+  <!-- speech -->
+  <g font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" text-anchor="middle">
+    <g filter="url(#shadow)">
+      <rect x="250" y="120" width="112" height="38" rx="19" fill="#f2d5cf"/>
+      <path d="M330 156 L352 178 L316 157 Z" fill="#f2d5cf"/>
+    </g>
+    <text x="306" y="145" font-size="17" fill="#303446">wheee!</text>
+    <g filter="url(#shadow)">
+      <rect x="652" y="40" width="128" height="50" rx="16" fill="#f2d5cf"/>
+      <path d="M670 88 L648 104 L686 89 Z" fill="#f2d5cf"/>
+    </g>
+    <text x="716" y="61" font-size="13" fill="#303446">guardrails</text>
+    <text x="716" y="78" font-size="13" fill="#303446">bolted on ✓</text>
+  </g>
+
+  <!-- captions -->
+  <g font-family="Inter, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" letter-spacing="0.3">
+    <rect x="672" y="330" width="108" height="26" rx="13" fill="#8caaee" opacity="0.95"/>
+    <text x="726" y="347.5" fill="#303446">platform team</text>
+    <rect x="56" y="314" width="88" height="26" rx="13" fill="#ca9ee6" opacity="0.95"/>
+    <text x="100" y="331.5" fill="#303446">app team</text>
+  </g>
+</svg>

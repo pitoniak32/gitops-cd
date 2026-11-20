@@ -219,3 +219,17 @@ func TestCheckIndentedEmbedFenceExempt(t *testing.T) {
 	page := "- item\n\n  <!-- embed path=systems/payments/stages/dev.yml -->\n  ```yaml\n  a: 1\n  ```\n  <!-- /embed -->\n"
 	want(t, check(t, page))
 }
+
+func TestCheckSkipsDecks(t *testing.T) {
+	root := guideRoot(t, "")
+	ev := filepath.Join(root, "docs", "evaluate")
+	if err := os.MkdirAll(ev, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ev, "slides.md"), []byte("```yaml\nbogus: 1\n```\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if d, err := Check(root); err != nil || len(d) != 0 {
+		t.Errorf("got %v %v", d, err)
+	}
+}
