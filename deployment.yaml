@@ -37,7 +37,7 @@ spec:
               value: "true"
             - name: NEW_VARIABLE
               value: testing
-          image: ghcr.io/pitoniak32/nginx:1.1.0@sha256:c8fa106acc6d713fc0cf8c00906b1d54157ff9cb77f6aa3f65ba1c27348e4ce6
+          image: ghcr.io/pitoniak32/nginx:1.0.1@sha256:f92fe65923f6b01f1c896b9b1d2c66f94da32084b46bc8654bafea504a53486f
           name: my-app
           ports:
             - containerPort: 80
