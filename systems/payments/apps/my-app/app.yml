@@ -15,9 +15,7 @@ stages:
       STAGE_ENV: 'false'
     replicas: 1
     targets:
-      us-east4-dev-cr:
-        resources:
-          cpu: 100m
+      us-east4-dev-k8s: {}
       dc1-dev-k8s:
         envFrom: [sdk-config]
         env:
