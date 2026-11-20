@@ -54,13 +54,13 @@
         "autoPromote": true,
         "level": 0,
         "targets": {
-          "us-east4-dev-k8s": {
-            "cluster": "us-east4",
-            "namespace": "payments-us-dev",
-            "platform": "K8S",
+          "us-east4-dev-cr": {
+            "gcpProject": "team1-stg",
+            "region": "us-east4",
+            "platform": "CLOUD_RUN",
             "environment": "dev",
             "environmentType": "dev",
-            "path": "apps/payments/my-app/dev/us-east4-dev-k8s",
+            "path": "apps/payments/my-app/dev/us-east4-dev-cr",
             "deployWith": "gha"
           },
           "dc1-dev-k8s": {
