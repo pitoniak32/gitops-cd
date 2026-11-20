@@ -13,6 +13,7 @@ stages:
     envFrom: [launchdarkly]
     env:
       STAGE_ENV: 'false'
+      NEW_DEV_VAR: 'value'
     replicas: 1
     targets:
       us-east4-dev-k8s: {}
