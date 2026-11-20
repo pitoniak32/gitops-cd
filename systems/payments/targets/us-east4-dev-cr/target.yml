@@ -1,0 +1,9 @@
+config:
+  platform: CLOUD_RUN
+  region: us-east4
+  environment: dev
+  environmentType: dev
+  auth:
+    wifEmail: team1-dev@team1-dev.iam.gserviceaccount.com
+  billing: dev
+  gcpProject: team1-stg
