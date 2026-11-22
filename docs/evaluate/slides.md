@@ -2,6 +2,8 @@
 theme:
   name: catppuccin-macchiato
   override:
+    footer:
+      style: empty
     default:
       alignment: center
     code:

@@ -13,6 +13,7 @@ stages:
     envFrom: [launchdarkly]
     env:
       STAGE_ENV: 'false'
+      GREETING: 'Hi, Mom!'
     replicas: 1
     targets:
       us-east4-dev-k8s: {}
