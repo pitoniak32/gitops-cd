@@ -6,6 +6,7 @@ deployWith: argocd  # K8S targets sync via Argo CD; staging on Cloud Run is alwa
 # Cloud Run deploy (not set now: it would add K8s Services to dev/prod)
 stages:
   dev:
+    autoPromote: true # this app only; payments stages are manual by default (stages/dev.yml)
     targets:
       us-east4-dev-k8s: {}
   staging:

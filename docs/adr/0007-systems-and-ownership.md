@@ -8,7 +8,7 @@ promoters:                          # stage → emails (ADR 0011)
   dev: [doug@example.com, amy@example.com]
   prod: [lead@example.com]
 viewers: [bob@example.com]
-breakGlass: [grace@example.com]    # system-wide only (ADR 0013)
+breakGlass: [amelia@example.com]    # system-wide only (ADR 0013)
 apps:
   checkout:                         # must be an app in apps/
     codeOwners: [team2]             # replaces the list

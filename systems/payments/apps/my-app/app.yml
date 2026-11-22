@@ -1,3 +1,4 @@
+# Please add a new env var to the dev targets for payments my-app. The var should be GREETING: "Hi, Mom!"
 image: ghcr.io/pitoniak32/nginx
 sourceRepo: pitoniak32/gitops-cd
 imageConstraint: ^1
@@ -9,11 +10,9 @@ env:
   NEW_VARIABLE: 'testing'
 stages:
   dev:
-    autoPromote: true  # this app only; payments stages are manual by default (stages/dev.yml)
     envFrom: [launchdarkly]
     env:
       STAGE_ENV: 'false'
-      NEW_DEV_VAR: 'value'
     replicas: 1
     targets:
       us-east4-dev-k8s: {}

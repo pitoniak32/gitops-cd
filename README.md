@@ -60,7 +60,7 @@ Users (password = username):
 | `doug` | payments `promoters` | view `kargo-payments-<app>`; assemble Freight, promote verified Freight | view `payments` apps |
 | `alice` | search `promoters` | view `kargo-search-<app>`; assemble Freight, promote verified Freight | view `search` apps |
 | `bob` | payments `viewers` | view `kargo-payments-<app>` | view `payments` apps |
-| `grace` | payments `breakGlass` | view `kargo-payments-<app>`; promote, and approve unverified Freight (break-glass, ADR 0013) | view `payments` apps |
+| `amelia` | payments `breakGlass` | view `kargo-payments-<app>`; promote, and approve unverified Freight (break-glass, ADR 0013) | view `payments` apps |
 | `admin` | infra values (ADR 0009) | admin: view/promote/approve all projects (edits still gitops-only) | admin: everything, incl. infrastructure apps |
 
 Nobody can create, edit or delete resources through the Kargo or Argo CD UIs; changes go through git.

@@ -8,7 +8,7 @@ Keep these in mind while recording. Details in `docs/gotchas.md`.
 - [ ] `gcd creds`: refresh the GitHub App key + GHA PAT. Pre-deploy checks and the GHA, Terraform and Cloud Run targets call GitHub for real; an expired token fails live.
 - [ ] `gcd kargo-restore`: Stages are empty after `up` (history lives only in hub etcd).
 - [ ] Dry run: assemble Freight once, promote dev → prod for one app. Catches stuck Stages (failed auto-promotions aren't retried).
-- [ ] Logins ready (password = username): `doug` (payments promoter), `bob` (viewer), `grace` (break-glass), `alice` (search), `admin`.
+- [ ] Logins ready (password = username): `doug` (payments promoter), `bob` (viewer), `amelia` (break-glass), `alice` (search), `admin`.
 - [ ] Browser trusts the local CA (`gcd certs`) (no TLS warning on `*.localhost`; restart the browser if an old tab warns).
 
 ## Gaps: say them before someone asks
@@ -27,7 +27,7 @@ Keep these in mind while recording. Details in `docs/gotchas.md`.
 - **Old Freight can't be promoted** (pre-ADR 0016: no image, old layout). Assemble fresh Freight on camera: newest commit + image tag.
 - **No auto-promotion until Freight exists.** Nothing reaches dev until someone assembles Freight, even with `autoPromote`.
 - **"Auto-promotion paused"** after a manual rollback to older Freight. Intended: show it on purpose. "Resume auto-promotion" in the UI releases it.
-- **Approve endpoint only for break-glass + admins**: if `grace` can't approve, the Stage lacks the `example.com/break-glass` annotation (render not on branch `rendered` yet).
+- **Approve endpoint only for break-glass + admins**: if `amelia` can't approve, the Stage lacks the `example.com/break-glass` annotation (render not on branch `rendered` yet).
 - **Config changes need a merge + CI render** before Kargo sees them: allow ~1-2 min after merge for the `render: <sha>` commit on branch `rendered`, then the Warehouse picks it up.
 
 ## Auto-promotion (manual by default)
@@ -44,6 +44,6 @@ Keep these in mind while recording. Details in `docs/gotchas.md`.
 3. `gcd show payments/my-app -s`: merged config with sources.
 4. Kargo as `doug`: assemble Freight → my-app dev auto-promotes, worker dev waits for a click.
 5. Prod: pre-deploy check runs, then deploys; Argo CD regional UI shows it.
-6. Break-glass as `grace`: approve Freight that skipped a stage.
+6. Break-glass as `amelia`: approve Freight that skipped a stage.
 7. `bob`: read-only in Kargo + Argo CD; nobody can edit in the UIs.
 8. Rollback → "Auto-promotion paused".

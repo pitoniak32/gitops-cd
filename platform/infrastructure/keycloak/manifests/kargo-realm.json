@@ -170,16 +170,16 @@
       ]
     },
     {
-      "username": "grace",
-      "email": "grace@example.com",
-      "firstName": "Grace",
+      "username": "amelia",
+      "email": "amelia@example.com",
+      "firstName": "Amelia",
       "lastName": "Lin",
       "emailVerified": true,
       "enabled": true,
       "credentials": [
         {
           "type": "password",
-          "value": "grace",
+          "value": "amelia",
           "temporary": false
         }
       ],

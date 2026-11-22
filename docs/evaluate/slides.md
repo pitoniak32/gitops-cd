@@ -1,7 +1,6 @@
 ---
 theme:
-  light: catppuccin-latte
-  dark: catppuccin-frappe
+  name: catppuccin-macchiato
   override:
     default:
       alignment: center
@@ -36,21 +35,29 @@ _One config model, one promotion flow, every platform_
 The Problem
 ===
 
-<!-- new_lines: 5 -->
+<!-- alignment: left -->
 
-Teams wiring GHA / Kargo directly, each their own way:
+<!-- new_lines: 1 -->
 
-- **Pipelines drift**: every team hand-builds its own
-- **Access sprawls**: Kargo RBAC, repo perms, set per tool
-- **Policy is optional**: teams can edit or skip checks
-- **Errors land late**: at deploy time, not in review
-- **One toolchain per platform**: K8S, Cloud Run, Terraform
-- **Hard to support**: every setup is a one-off
+<span style="color: #8aadf4"></span>
+
+<!-- new_lines: 1 -->
+
+- `Pipeline Drift`
+  - each team hand-builds their own CD pipelines
+  - every setup is a one-off, making debugging by the platform team very difficult
+  - when an improvement / patch is discovered, every team has to update their own pipeline
+- `Access Sprawl`
+  - every team owning all aspects of their CD pipeline makes enforcing access controls very difficult
+- `Policy Enforcement`
+  - teams can edit or skip checks
 
 <!-- end_slide -->
 
 What is **gitops-cd**?
 ===
+
+<!-- alignment: left -->
 
 <!--
 speaker_note: |
@@ -61,10 +68,12 @@ speaker_note: |
   Toolchains converge so its easier for the platform team to support application teams.
 -->
 
+**`TLDR; its the glue between CI, and applying your manifests.`**
+
 - Teams (or agents!) write YAML.
 - a platform-owned scaffolder lints and renders it.
-- Kargo promotes.
-- GHA (***Your tool of choice here***) deploys.
+- Kargo enabled fearless promotions.
+- GHA (***Your tool of choice here***) applys the manifests (deploys).
 
 ```mermaid +render
 %%{init: {'theme': 'dark'}}%%
@@ -80,23 +89,24 @@ flowchart LR
 Compared
 ===
 
-<!-- new_lines: 4 -->
+<!-- new_lines: 5 -->
 
 | | gitops-cd | Kargo alone | GHA alone |
 |---|---|---|---|
-| Governance | ✓ | ~ | ~ |
-| One access file | ✓ | ✗ | ~ |
-| Guardrails | ✓ | ✗ | ~ |
-| Consistency | ✓ | ✗ | ✗ |
-| Full picture | ✓ | ✓ | ✗ |
-| Flexibility | ✓ | ~ | ✓ |
+| Governance | <span style="color: #40a02b">✓</span> | <span style="color: #df8e1d">~</span> | <span style="color: #df8e1d">~</span> |
+| Enforcement | <span style="color: #40a02b">✓</span> | <span style="color: #d20f39">✗</span> | <span style="color: #df8e1d">~</span> |
+| Guardrails | <span style="color: #40a02b">✓</span> | <span style="color: #d20f39">✗</span> | <span style="color: #df8e1d">~</span> |
+| Consistency | <span style="color: #40a02b">✓</span> | <span style="color: #d20f39">✗</span> | <span style="color: #d20f39">✗</span> |
+| Flexibility | <span style="color: #40a02b">✓</span> | <span style="color: #40a02b">✓</span> | <span style="color: #40a02b">✓</span> |
 
-✓ built in · ~ partly · ✗ no
+<span style="color: #40a02b">✓</span> built in · <span style="color: #df8e1d">~</span> partly · <span style="color: #d20f39">✗</span> no
 
 <!-- end_slide -->
 
 Governance + Access
 ===
+
+<!-- alignment: left -->
 
 <!-- new_lines: 2 -->
 
@@ -105,7 +115,7 @@ Governance + Access
 # owners.yaml (excerpt)
 codeOwners: [team1]
 promoters: {prod: [doug@example.com]}
-breakGlass: [grace@example.com]
+breakGlass: [amelia@example.com]
 ```
 
 Generates CODEOWNERS + Kargo access, matched on **email**.
@@ -121,6 +131,8 @@ Generates CODEOWNERS + Kargo access, matched on **email**.
 
 Learn with guardrails
 ===
+
+<!-- alignment: left -->
 
 Scaffolder CLI: errors say what and where, before review.
 
@@ -207,9 +219,8 @@ Trade-offs and future
 
 **Trade-offs**
 
-- New field = platform change
-- Scaffolder is owned code
-- One repo, CODEOWNERS split
+- New field = change by platform
+- Scaffold is owned code
 - Rendered manifests artifact
 
 <!-- column: 1 -->

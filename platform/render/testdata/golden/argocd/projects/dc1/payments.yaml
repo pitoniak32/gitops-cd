@@ -24,6 +24,6 @@ spec:
         - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-dc1-dev-k8s, allow
         - p, proj:payments:viewer-my-app, applications, get, payments/payments-my-app-dc1-prd-k8s, allow
       groups:
+        - amelia@example.com
         - bob@example.com
         - doug@example.com
-        - grace@example.com
