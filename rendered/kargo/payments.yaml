@@ -52,7 +52,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: terraform
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: blue
 spec:
   requestedFreight:
@@ -114,7 +114,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: terraform
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: green
 spec:
   requestedFreight:
@@ -172,7 +172,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -235,7 +235,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -298,7 +298,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","bob@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -388,7 +388,7 @@ metadata:
     example.com/kind: control-flow
     example.com/stage: dev
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: blue
 spec:
   requestedFreight:
@@ -412,7 +412,7 @@ metadata:
     example.com/kind: control-flow
     example.com/stage: prod
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: violet
 spec:
   requestedFreight:
@@ -437,7 +437,7 @@ metadata:
     example.com/kind: control-flow
     example.com/stage: dev
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: blue
 spec:
   requestedFreight:
@@ -458,7 +458,7 @@ metadata:
     example.com/kind: control-flow
     example.com/stage: staging
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: green
 spec:
   requestedFreight:
@@ -483,7 +483,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: blue
 spec:
   shard: us-east4
@@ -547,7 +547,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: blue
 spec:
   shard: dc1
@@ -611,7 +611,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: green
 spec:
   shard: us-east4
@@ -675,7 +675,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: green
 spec:
   shard: dc1
@@ -739,7 +739,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: amber
 spec:
   shard: us-east4
@@ -803,7 +803,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: violet
     example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
@@ -881,7 +881,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: violet
     example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
@@ -954,7 +954,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1019,7 +1019,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1083,7 +1083,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1148,7 +1148,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1214,7 +1214,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","bob@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1288,7 +1288,7 @@ metadata:
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: blue
 spec:
   shard: us-east4
@@ -1345,7 +1345,7 @@ metadata:
     example.com/deploy-with: gha
     example.com/platform: cloudrun
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: green
 spec:
   requestedFreight:
@@ -1408,7 +1408,7 @@ metadata:
     example.com/deploy-with: argocd
     example.com/platform: k8s
   annotations:
-    example.com/break-glass: '["grace@example.com"]'
+    example.com/break-glass: '["amelia@example.com"]'
     kargo.akuity.io/color: violet
     example.com/pre-deploy: pitoniak32/gitops-cd/precheck.yaml@main
 spec:
@@ -1475,7 +1475,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1538,7 +1538,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1601,7 +1601,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1664,7 +1664,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","bob@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1693,7 +1693,7 @@ metadata:
     app.kubernetes.io/managed-by: gitops-platform
   annotations:
     rbac.kargo.akuity.io/managed: "true"
-    rbac.kargo.akuity.io/claims: '{"email":["bob@example.com","doug@example.com","grace@example.com"]}'
+    rbac.kargo.akuity.io/claims: '{"email":["amelia@example.com","bob@example.com","doug@example.com"]}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

@@ -24,6 +24,6 @@ spec:
         - p, proj:payments:viewer-worker, applications, get, payments/payments-worker-us-east4-dev-k8s, allow
         - p, proj:payments:viewer-worker, applications, get, payments/payments-worker-us-east4-prd-k8s, allow
       groups:
+        - amelia@example.com
         - bob@example.com
         - doug@example.com
-        - grace@example.com
