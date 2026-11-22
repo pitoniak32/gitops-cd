@@ -9,3 +9,4 @@ configMapGenerator:
       - dashboards/argocd.json
       - dashboards/traefik.json
       - dashboards/cd-pipeline.json  # ours: one app's Kargo promotions + Argo CD targets
+      - dashboards/promotion-log.json  # ours: every promotion, all systems (ADR 0032)

@@ -1,0 +1,838 @@
+{
+  "uid": "promotion-log",
+  "title": "Promotion log",
+  "description": "Every recorded promotion across all systems and apps, whatever deploys them (ADR 0032).",
+  "tags": [
+    "cd",
+    "kargo",
+    "promotion-log"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "CD pipeline (one app)",
+      "type": "link",
+      "url": "/d/cd-pipeline",
+      "icon": "dashboard"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "textbox",
+        "name": "system",
+        "label": "System",
+        "description": "regex; .* = all",
+        "query": ".*",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "app",
+        "label": "App",
+        "description": "regex; .* = all",
+        "query": ".*",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "stage",
+        "label": "Stage",
+        "description": "regex; .* = all",
+        "query": ".*",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "target",
+        "label": "Target",
+        "description": "regex; .* = all",
+        "query": ".*",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "type": "custom",
+        "name": "result",
+        "label": "Result",
+        "query": "Succeeded,Failed,Errored,Aborted",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "type": "stat",
+      "title": "Promotions",
+      "description": "Recorded promotions in the selected range (every system, app and deploy method; aborted promotions are not recorded).",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=~\"$system\" | app=~\"$app\" | stage=~\"$stage\" | target=~\"$target\" | result=~\"$result\" [$__range])) or vector(0)",
+          "refId": "A",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 2,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "type": "stat",
+      "title": "Succeeded",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=~\"$system\" | app=~\"$app\" | stage=~\"$stage\" | target=~\"$target\" | result=~\"$result\" | result=\"Succeeded\" [$__range])) or vector(0)",
+          "refId": "A",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "type": "stat",
+      "title": "Failed",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=~\"$system\" | app=~\"$app\" | stage=~\"$stage\" | target=~\"$target\" | result=~\"$result\" | result!=\"Succeeded\" [$__range])) or vector(0)",
+          "refId": "A",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "type": "stat",
+      "title": "Rollbacks",
+      "description": "Promotions of Freight older than the Stage's previous Freight.",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=~\"$system\" | app=~\"$app\" | stage=~\"$stage\" | target=~\"$target\" | result=~\"$result\" | rollback=\"true\" [$__range])) or vector(0)",
+          "refId": "A",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 5,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "type": "timeseries",
+      "title": "Promotions over time",
+      "description": "Per system/app and result.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (system, app, result) (count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=~\"$system\" | app=~\"$app\" | stage=~\"$stage\" | target=~\"$target\" | result=~\"$result\" [$__interval]))",
+          "refId": "A",
+          "legendFormat": "{{system}}/{{app}} {{result}}",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* Failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "type": "table",
+      "title": "Promotions per target (selected range)",
+      "description": "Every promotion per system, app, stage, target and result, whatever deploys it (Argo CD or GitHub Actions).",
+      "gridPos": {
+        "h": 9,
+        "w": 14,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (system, app, stage, target, deployWith, result) (count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=~\"$system\" | app=~\"$app\" | stage=~\"$stage\" | target=~\"$target\" | result=~\"$result\" [$__range]))",
+          "refId": "A",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Result"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Succeeded": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "Failed": {
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Promotions"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "System",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "system": 0,
+              "app": 1,
+              "stage": 2,
+              "target": 3,
+              "deployWith": 4,
+              "result": 5,
+              "Value #A": 6
+            },
+            "renameByName": {
+              "system": "System",
+              "app": "App",
+              "stage": "Stage",
+              "target": "Target",
+              "deployWith": "Deployed by",
+              "result": "Result",
+              "Value #A": "Promotions"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "type": "table",
+      "title": "Who promoted (selected range)",
+      "description": "automatic = Kargo auto-promotion: no person started it.",
+      "gridPos": {
+        "h": 9,
+        "w": 10,
+        "x": 14,
+        "y": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (actor) (count_over_time({k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=~\"$system\" | app=~\"$app\" | stage=~\"$stage\" | target=~\"$target\" | result=~\"$result\" | label_format actor=`{{ if eq .automatic \"true\" }}automatic{{ else }}{{ .actor }}{{ end }}` [$__range]))",
+          "refId": "A",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Promotions"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Promoted by"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "automatic": {
+                        "text": "automatic (auto-promotion)",
+                        "color": "blue",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Promotions",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "actor": "Promoted by",
+              "Value #A": "Promotions"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "type": "table",
+      "title": "Promotion log",
+      "description": "Newest first, every promotion. Commit = the env-branch commit (empty when the promotion failed before pushing). Run = the GitHub Actions run of a gha deploy.",
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{k8s_cluster_name=\"hub\"} | namespace=\"promotion-log\" | json | msg=\"promotion\" | system=~\"$system\" | app=~\"$app\" | stage=~\"$stage\" | target=~\"$target\" | result=~\"$result\"",
+          "refId": "A",
+          "queryType": "range",
+          "maxLines": 1000
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Result"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Succeeded": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "Failed": {
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rollback"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "true": {
+                        "text": "rollback",
+                        "color": "orange",
+                        "index": 0
+                      },
+                      "false": {
+                        "text": "",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Promoted by"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^system:serviceaccount:kargo:kargo-controller.*$",
+                      "result": {
+                        "text": "automatic",
+                        "color": "blue",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "empty",
+                      "result": {
+                        "text": "automatic",
+                        "color": "blue",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Run"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "GitHub Actions run",
+                    "url": "${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Kargo"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open in Kargo",
+                    "url": "${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": "^https.*$",
+                      "result": {
+                        "text": "open",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Received",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "receivedAt": true,
+              "system": true,
+              "app": true,
+              "stage": true,
+              "target": true,
+              "platform": true,
+              "deployWith": true,
+              "result": true,
+              "rollback": true,
+              "actor": true,
+              "freightAlias": true,
+              "artifact": true,
+              "commit": true,
+              "ghaRunURL": true,
+              "uiURL": true
+            },
+            "indexByName": {
+              "receivedAt": 0,
+              "system": 1,
+              "app": 2,
+              "stage": 3,
+              "target": 4,
+              "platform": 5,
+              "deployWith": 6,
+              "result": 7,
+              "rollback": 8,
+              "actor": 9,
+              "freightAlias": 10,
+              "artifact": 11,
+              "commit": 12,
+              "ghaRunURL": 13,
+              "uiURL": 14
+            },
+            "renameByName": {
+              "receivedAt": "Received",
+              "system": "System",
+              "app": "App",
+              "stage": "Stage",
+              "target": "Target",
+              "platform": "Platform",
+              "deployWith": "Deployed by",
+              "result": "Result",
+              "rollback": "Rollback",
+              "actor": "Promoted by",
+              "freightAlias": "Freight",
+              "artifact": "Artifact",
+              "commit": "Commit",
+              "ghaRunURL": "Run",
+              "uiURL": "Kargo"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
