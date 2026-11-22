@@ -340,9 +340,6 @@ metadata:
 spec:
   promotionPolicies:
     - stageSelector:
-        name: dc1-dev-k8s
-      autoPromotionEnabled: true
-    - stageSelector:
         name: dev
       autoPromotionEnabled: true
     - stageSelector:
@@ -353,9 +350,6 @@ spec:
       autoPromotionEnabled: true
     - stageSelector:
         name: staging
-      autoPromotionEnabled: true
-    - stageSelector:
-        name: us-east4-dev-k8s
       autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
@@ -1254,7 +1248,10 @@ metadata:
   name: kargo-payments-worker
   namespace: kargo-payments-worker
 spec:
-  promotionPolicies: []
+  promotionPolicies:
+    - stageSelector:
+        name: us-east4-dev-k8s
+      autoPromotionEnabled: true
 ---
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse

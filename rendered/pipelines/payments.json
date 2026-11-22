@@ -51,7 +51,7 @@
     "stages": {
       "dev": {
         "dependsOn": [],
-        "autoPromote": true,
+        "autoPromote": false,
         "level": 0,
         "targets": {
           "us-east4-dev-k8s": {
@@ -167,7 +167,7 @@
     "stages": {
       "dev": {
         "dependsOn": [],
-        "autoPromote": false,
+        "autoPromote": true,
         "level": 0,
         "targets": {
           "us-east4-dev-k8s": {
